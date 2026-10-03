@@ -9,7 +9,10 @@ import { TRPCReactProvider } from "~/trpc/react";
 export const metadata: Metadata = {
   title: "EDCtox",
   description: "Mechanistic evidence atlas for biologically active compounds. Scores are not a toxicity rank.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [
+    { rel: "icon", url: "/favicon.svg", type: "image/svg+xml" },
+    { rel: "icon", url: "/favicon.ico", sizes: "any" },
+  ],
 };
 
 const geist = Geist({
