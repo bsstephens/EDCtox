@@ -112,14 +112,14 @@ On a Supabase project:
 3. Set `DIRECT_URL` to the direct connection (port 5432) with `sslmode=require`. Migrations use `DIRECT_URL`. The app uses `DATABASE_URL`.
 4. Do not put the service role key in any `NEXT_PUBLIC_` variable. This app does not need it. The browser only talks to the Next.js server.
 
-On the Vercel hobby project:
+On the Vercel project:
 
 1. Import this repository.
-2. Add `DATABASE_URL` and `DIRECT_URL` for Production and Preview.
-3. The build command in `vercel.json` is `npm run vercel-build`, which runs `prisma migrate deploy` and then `next build`.
-4. `postinstall` runs `prisma generate`.
-
-Git on this machine is yours to attach. The folder is a local project. Add your remote when you are ready, then push. Nothing here has been pushed.
+2. Connect the database. Prisma Postgres supplies `DATABASE_URL` and does not create `DIRECT_URL`. The Vercel build uses `DATABASE_URL` for migrations when `DIRECT_URL` is absent.
+3. A pooled host such as Supabase still needs both: `DATABASE_URL` on the pooler, and `DIRECT_URL` on the direct connection. Migrations cannot run through the pooler.
+4. The build command in `vercel.json` is `npm run vercel-build`, which runs `prisma migrate deploy` and then `next build`.
+5. `postinstall` runs `prisma generate`.
+6. The build does not seed. Run `npm run db:seed` once against the hosted database.
 
 ## External evidence architecture
 
