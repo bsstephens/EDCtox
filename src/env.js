@@ -10,6 +10,8 @@ export const env = createEnv({
     DATABASE_URL: z.string().url(),
     DIRECT_URL: z.string().url(),
     EPA_CTX_API_KEY: z.string().min(1).optional(),
+    NCBI_API_KEY: z.string().min(1).optional(),
+    NCBI_EMAIL: z.string().email().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -32,6 +34,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
     EPA_CTX_API_KEY: process.env.EPA_CTX_API_KEY,
+    NCBI_API_KEY: process.env.NCBI_API_KEY,
+    NCBI_EMAIL: process.env.NCBI_EMAIL,
     NODE_ENV: process.env.NODE_ENV,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },

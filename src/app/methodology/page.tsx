@@ -57,6 +57,10 @@ export default function MethodologyPage() {
           </li>
         ))}
       </ul>
+      <h2 className="mt-8 text-lg font-medium">Literature candidates</h2>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        A literature search can store a candidate publication for later screening. That row is not a finding, and it does not change a mechanism or outcome score. An abstract returned by PubMed or Europe PMC may be kept for internal screening. Public pages do not show that abstract. A retracted publication can remain in the search record, and it still does not support a score.
+      </p>
       <h2 className="mt-8 text-lg font-medium">Language</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
         In vitro results stay in vitro. Animal results stay animal. Observational human results are associations. A receptor assay is not a disease. Therapeutic dose is not an overdose. A parent compound is not its formulation. Intended pharmacology is not automatically an adverse effect. Contradictory findings stay visible. Regulatory text, when it is added, is a separate layer.

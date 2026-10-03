@@ -1,0 +1,32 @@
+{
+  "hitCount": 2,
+  "resultList": {
+    "result": [
+      {
+        "id": "31100001",
+        "source": "MED",
+        "pmid": "31100001",
+        "pmcid": "PMC3110001",
+        "doi": "https://doi.org/10.1289/ehp.31100001",
+        "title": "Bisphenol A and ovarian reserve.",
+        "authorString": "Smith J.",
+        "journalTitle": "Environ Health Perspect",
+        "pubYear": "2019",
+        "abstractText": "Internal abstract from Europe PMC should not create a second source.",
+        "isOpenAccess": "Y"
+      },
+      {
+        "id": "32200002",
+        "source": "MED",
+        "pmid": "32200002",
+        "doi": "10.1000/bpa.null",
+        "title": "No association between bisphenol A and semen quality.",
+        "authorString": "Lee A.",
+        "journalTitle": "Human Reproduction",
+        "pubYear": "2021",
+        "abstractText": "Internal abstract from Europe PMC.",
+        "isOpenAccess": "N"
+      }
+    ]
+  }
+}

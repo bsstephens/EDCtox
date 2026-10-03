@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<PubmedArticleSet>
+<PubmedArticle>
+  <MedlineCitation>
+    <PMID Version="1">31100001</PMID>
+    <Article>
+      <Journal>
+        <Title>Environmental Health Perspectives</Title>
+        <JournalIssue>
+          <PubDate><Year>2019</Year><Month>Jan</Month></PubDate>
+        </JournalIssue>
+      </Journal>
+      <ArticleTitle>Bisphenol A and ovarian reserve.</ArticleTitle>
+      <Abstract>
+        <AbstractText>Internal abstract from PubMed.</AbstractText>
+      </Abstract>
+      <AuthorList>
+        <Author>
+          <LastName>Smith</LastName>
+          <ForeName>Jane</ForeName>
+        </Author>
+      </AuthorList>
+      <PublicationType>Journal Article</PublicationType>
+    </Article>
+  </MedlineCitation>
+  <PubmedData>
+    <ArticleIdList>
+      <ArticleId IdType="pubmed">31100001</ArticleId>
+      <ArticleId IdType="doi">10.1289/ehp.31100001</ArticleId>
+      <ArticleId IdType="pmc">PMC3110001</ArticleId>
+    </ArticleIdList>
+  </PubmedData>
+</PubmedArticle>
+</PubmedArticleSet>

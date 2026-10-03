@@ -21,8 +21,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:seed": "prisma db seed",
-    "test:scoring": "tsx --test src/server/scoring/*.test.ts src/server/external/*.test.ts",
-    "external:resolve": "tsx scripts/external-resolve.ts"
+    "test:scoring": "tsx --test src/server/scoring/*.test.ts src/server/external/*.test.ts src/server/literature/*.test.ts",
+    "external:resolve": "tsx scripts/external-resolve.ts",
+    "literature:search": "tsx scripts/literature-search.ts"
   },
   "prisma": {
     "seed": "./node_modules/.bin/tsx prisma/seed.ts"

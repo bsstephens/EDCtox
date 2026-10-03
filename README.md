@@ -129,6 +129,14 @@ npm run external:resolve -- --compound bpa,dehp,pfos --dry-run
 
 `--apply` writes verified identifiers only. There is no `--all`. CompTox is skipped unless `EPA_CTX_API_KEY` is set on the server. Do not put that key in a `NEXT_PUBLIC_` variable. Pages do not call either provider.
 
+Literature search is also a command, not a page render. Phase 3A searches BPA in the reproductive domain only. A dry run calls PubMed and Europe PMC and writes nothing. `--apply` writes candidate `EvidenceSource` rows and a `LiteratureSearchRun`. It does not write findings, and it does not change mechanism or outcome assessments. Imported papers stay non-evidence, at `SCREENING_PENDING`, unless the provider marks them retracted. Abstracts returned by those APIs are stored for screening and are not rendered on the public site. Each provider call keeps at most 15 records, newest first.
+
+```bash
+npm run literature:search -- --compound bpa --domain reproductive --all-purposes --dry-run
+```
+
+`NCBI_API_KEY` and `NCBI_EMAIL` are optional. There is no `--all` compounds. The build does not run this command, so the site still renders if PubMed is down.
+
 ## External evidence architecture
 
 EDCtox is a synthesis layer. It is not a replacement for EPA CompTox, ToxCast, ToxRefDB, ToxValDB, EDSP models, EU EASIS, ECHA CHEM, EFSA OpenFoodTox, NIEHS CEBS, OECD eChemPortal, OECD Harmonised Templates / IUCLID, AOP-Wiki, AICIS, APVMA PubCRIS, or PubChem.

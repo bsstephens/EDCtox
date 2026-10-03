@@ -125,6 +125,12 @@ model Compound {
     isEnvironmentalChemical   Boolean          @default(false)
     legacyChemical            Boolean          @default(false)
     notes                     String           @default("")
+    /// Judgment about curation progress. Accepted and rejected paper counts are queried, not stored here.
+    curationStatus            CompoundCurationStatus @default(UNREVIEWED)
+    lastEvidenceSearchAt      DateTime?
+    lastManualReviewAt        DateTime?
+    evidenceCutoffAt          DateTime?
+    curationNotes             String           @default("")
     createdAt                 DateTime         @default(now())
     updatedAt                 DateTime         @updatedAt
 
@@ -148,6 +154,7 @@ model Compound {
     externalRecords          ExternalRecord[]
     identityResolutionAttempts IdentityResolutionAttempt[]
     assayObservations    AssayObservation[]
+    literatureSearchRuns LiteratureSearchRun[]
 
     @@index([compoundType])
     @@index([casNumber])
@@ -698,6 +705,8 @@ enum EvidenceType {
     SYSTEMATIC_REVIEW
     REGULATORY_ASSESSMENT
     MECHANISTIC_REVIEW
+    /// Literature search candidates are not classified until screening.
+    UNSPECIFIED
 }
 
 enum BiologicalSex {
@@ -768,22 +777,124 @@ model EvidenceSource {
     countsAsScientificEvidence Boolean @default(true)
     regulatoryBody   String?
     citationText     String?
-    abstractText     String?
+    /// Internal screening copy when PubMed or Europe PMC returned it. Public pages must not render this verbatim.
+    abstractText     String?      @db.Text
     notes            String       @default("")
     retrievedAt      DateTime?
     lastVerifiedAt   DateTime?
     retracted        Boolean      @default(false)
     correctionNotice String?
     openAccess       Boolean?
+    /// Null on the structural seed. Search imports set this. It is not a score.
+    publicationStatus PublicationCurationStatus?
+    pmcid             String?
     /// Unstructured extras only. Searchable scientific fields stay relational.
     supplemental     Json?
     createdAt        DateTime     @default(now())
 
-    findings  EvidenceFinding[]
-    revisions AssessmentRevision[]
+    findings   EvidenceFinding[]
+    revisions  AssessmentRevision[]
+    searchHits LiteratureSearchHit[]
 
     @@index([year])
     @@index([sourceType])
+    @@index([doi])
+    @@index([pmid])
+    @@index([publicationStatus])
+}
+
+enum CompoundCurationStatus {
+    UNREVIEWED
+    IDENTITY_VERIFIED
+    EVIDENCE_GATHERING
+    EVIDENCE_TRIAGED
+    EVIDENCE_REVIEWED
+    SCORES_CURATED
+    NEEDS_UPDATE
+}
+
+/// DISCOVERED is capture before the screening queue. SCREENING_PENDING is the queue. Later review chooses a terminal status.
+enum PublicationCurationStatus {
+    DISCOVERED
+    SCREENING_PENDING
+    INCLUDED
+    EXCLUDED
+    DUPLICATE
+    RETRACTED
+}
+
+enum LiteratureProvider {
+    PUBMED
+    EUROPE_PMC
+}
+
+enum LiteratureSearchPurpose {
+    SYSTEMATIC_REVIEWS
+    HUMAN_REPRODUCTIVE
+    CONTRADICTORY_OR_NULL
+}
+
+enum LiteratureSearchStatus {
+    STARTED
+    SUCCEEDED
+    PARTIAL
+    FAILED
+}
+
+enum LiteratureHitDisposition {
+    INSERTED
+    DUPLICATE
+    CONFLICT
+    SKIPPED
+}
+
+/// One provider call. The exact query is stored so the run can be reconstructed.
+model LiteratureSearchRun {
+    id                     String                   @id @default(uuid()) @db.Uuid
+    compoundId             String                   @db.Uuid
+    provider               LiteratureProvider
+    queryText              String                   @db.Text
+    queryVersion           String
+    purpose                LiteratureSearchPurpose
+    startedAt              DateTime
+    completedAt            DateTime?
+    /// Records processed from this response, not a stored tally of screening decisions.
+    resultCount            Int                      @default(0)
+    providerReportedCount  Int?
+    insertedCount          Int                      @default(0)
+    duplicateCount         Int                      @default(0)
+    conflictCount          Int                      @default(0)
+    skippedCount           Int                      @default(0)
+    status                 LiteratureSearchStatus
+    errorText              String?                  @db.Text
+    createdAt              DateTime                 @default(now())
+
+    compound Compound              @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+    hits     LiteratureSearchHit[]
+
+    @@index([compoundId])
+    @@index([purpose])
+    @@index([status])
+}
+
+model LiteratureSearchHit {
+    id           String                   @id @default(uuid()) @db.Uuid
+    searchRunId  String                   @db.Uuid
+    sourceId     String?                  @db.Uuid
+    doi          String?
+    pmid         String?
+    pmcid        String?
+    title        String                   @default("")
+    year         Int?
+    disposition  LiteratureHitDisposition
+    detail       String                   @default("")
+    createdAt    DateTime                 @default(now())
+
+    searchRun LiteratureSearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
+    source    EvidenceSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+    @@index([searchRunId])
+    @@index([sourceId])
     @@index([doi])
     @@index([pmid])
 }
