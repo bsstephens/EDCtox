@@ -121,6 +121,14 @@ On the Vercel project:
 5. `postinstall` runs `prisma generate`.
 6. The build does not seed. Run `npm run db:seed` once against the hosted database.
 
+Identity checks for BPA, DEHP, and PFOS are a separate command. A dry run calls PubChem and writes nothing:
+
+```bash
+npm run external:resolve -- --compound bpa,dehp,pfos --dry-run
+```
+
+`--apply` writes verified identifiers only. There is no `--all`. CompTox is skipped unless `EPA_CTX_API_KEY` is set on the server. Do not put that key in a `NEXT_PUBLIC_` variable. Pages do not call either provider.
+
 ## External evidence architecture
 
 EDCtox is a synthesis layer. It is not a replacement for EPA CompTox, ToxCast, ToxRefDB, ToxValDB, EDSP models, EU EASIS, ECHA CHEM, EFSA OpenFoodTox, NIEHS CEBS, OECD eChemPortal, OECD Harmonised Templates / IUCLID, AOP-Wiki, AICIS, APVMA PubCRIS, or PubChem.

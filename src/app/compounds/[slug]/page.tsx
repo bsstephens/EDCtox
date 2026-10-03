@@ -156,7 +156,7 @@ function Overview({ compound }: { compound: Compound }) {
           </ul>
         </div>
       ) : null}
-      {compound.externalIdentifiers.length > 0 || compound.inchiKey || compound.canonicalSmiles ? (
+      {compound.externalIdentifiers.length > 0 || compound.externalRecords.length > 0 || compound.inchiKey || compound.canonicalSmiles ? (
         <section className="rounded border border-stone-300 bg-white p-3 text-sm">
           <h2 className="font-medium">External identifiers</h2>
           <p className="mt-1 text-stone-600">
@@ -169,12 +169,32 @@ function Overview({ compound }: { compound: Compound }) {
               <li key={`${identifier.namespace}-${identifier.value}`}>
                 <span className="font-medium">{prettyEnum(identifier.namespace)}</span> {identifier.value}
                 {identifier.datasetName ? ` · ${identifier.datasetName}` : ""}
+                {identifier.resolutionStatus ? ` · ${prettyEnum(identifier.resolutionStatus)}` : ""}
+                {identifier.verifiedAt ? ` · checked ${identifier.verifiedAt.slice(0, 10)}` : ""}
                 {identifier.canonical ? " · canonical" : ""}
                 {identifier.disputed ? " · disputed" : ""}
+                {identifier.sourceUrl?.startsWith("https://") ? (
+                  <a className="ml-2 underline" href={identifier.sourceUrl} rel="noreferrer">
+                    Open record
+                  </a>
+                ) : null}
                 {identifier.notes ? <span className="block text-stone-600">{identifier.notes}</span> : null}
               </li>
             ))}
           </ul>
+          {compound.externalRecords.length > 0 ? (
+            <ul className="mt-3 space-y-1 text-stone-600">
+              {compound.externalRecords.map((record) => (
+                <li key={`${record.datasetName}-${record.recordType}`}>
+                  Cached {record.datasetName}
+                  {record.retrievedAt ? ` · retrieved ${record.retrievedAt.slice(0, 10)}` : ""}
+                  {record.sourceVersion ? ` · version ${record.sourceVersion}` : ""}
+                  {record.stale ? " · stale" : ""}
+                  . This cache is not an EDCtox score.
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
       ) : null}
       <div className="grid gap-3 md:grid-cols-2">

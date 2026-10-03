@@ -1,7 +1,7 @@
 import { PrismaClient } from "../generated/prisma";
 
 import { biologicalContexts } from "../src/data/seeds/biologicalContexts";
-import { externalDatasets } from "../src/data/seeds/externalDatasets";
+import { externalAccessPolicy, externalDatasets } from "../src/data/seeds/externalDatasets";
 import { compounds } from "../src/data/seeds/compounds";
 import { domains } from "../src/data/seeds/domains";
 import {
@@ -659,6 +659,8 @@ async function main() {
   }
 
   for (const dataset of externalDatasets) {
+    const policy = externalAccessPolicy[dataset.code as keyof typeof externalAccessPolicy];
+    if (!policy) throw new Error(`Missing access policy for ${dataset.code}`);
     await db.externalDataset.upsert({
       where: { code: dataset.code },
       update: {
@@ -671,6 +673,8 @@ async function main() {
         documentationUrl: dataset.documentationUrl ?? null,
         licence: dataset.licence,
         accessType: dataset.accessType,
+        accessMode: policy.accessMode,
+        requiresApiKey: policy.requiresApiKey,
         roles: dataset.roles,
         notes: dataset.notes,
         active: true,
@@ -686,6 +690,8 @@ async function main() {
         documentationUrl: dataset.documentationUrl ?? null,
         licence: dataset.licence,
         accessType: dataset.accessType,
+        accessMode: policy.accessMode,
+        requiresApiKey: policy.requiresApiKey,
         roles: dataset.roles,
         notes: dataset.notes,
         active: true,

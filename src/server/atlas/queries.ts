@@ -1,5 +1,6 @@
 import { formatBiologicalContext } from "~/lib/labels";
 import { db } from "~/server/db";
+import { isCacheStale } from "~/server/external/identity";
 import {
   describePathways,
   summarizeDomain,
@@ -337,6 +338,17 @@ export async function getCompound(slug: string) {
       regulatoryAssessments: true,
       dataGaps: { include: { domain: true, mechanism: true }, orderBy: { priority: "asc" } },
       externalIdentifiers: { include: { dataset: true }, orderBy: [{ namespace: "asc" }, { value: "asc" }] },
+      externalRecords: {
+        select: {
+          recordType: true,
+          externalUrl: true,
+          retrievedAt: true,
+          expiresAt: true,
+          sourceVersion: true,
+          dataset: { select: { code: true, name: true } },
+        },
+        orderBy: { retrievedAt: "desc" },
+      },
       findings: {
         include: {
           source: true,
@@ -575,10 +587,20 @@ export async function getCompound(slug: string) {
       value: identifier.value,
       canonical: identifier.canonical,
       disputed: identifier.disputed,
+      resolutionStatus: identifier.resolutionStatus,
+      verifiedAt: identifier.verifiedAt?.toISOString() ?? null,
       sourceUrl: identifier.sourceUrl,
       notes: identifier.notes,
       datasetCode: identifier.dataset?.code ?? null,
       datasetName: identifier.dataset?.name ?? null,
+    })),
+    externalRecords: compound.externalRecords.map((record) => ({
+      datasetName: record.dataset.name,
+      recordType: record.recordType,
+      externalUrl: record.externalUrl,
+      retrievedAt: record.retrievedAt?.toISOString() ?? null,
+      sourceVersion: record.sourceVersion,
+      stale: isCacheStale(record.expiresAt),
     })),
     inchiKey: compound.inchiKey,
     canonicalSmiles: compound.canonicalSmiles,
@@ -708,6 +730,28 @@ export async function listEvidence(input: {
     effectDirection: finding.effectDirection,
     ourInterpretation: finding.ourInterpretation,
     limitations: finding.limitations,
+  }));
+}
+
+export async function externalDiagnostics() {
+  const datasets = await db.externalDataset.findMany({
+    orderBy: { code: "asc" },
+    include: {
+      _count: { select: { identifiers: true, records: true } },
+      importRuns: { orderBy: { startedAt: "desc" }, take: 1 },
+    },
+  });
+  return datasets.map((dataset) => ({
+    code: dataset.code,
+    name: dataset.name,
+    accessMode: dataset.accessMode,
+    accessType: dataset.accessType,
+    requiresApiKey: dataset.requiresApiKey,
+    apiKeyConfigured: dataset.requiresApiKey ? Boolean(process.env.EPA_CTX_API_KEY) : false,
+    linkedCompounds: dataset._count.identifiers,
+    cachedRecords: dataset._count.records,
+    lastRunStatus: dataset.importRuns[0]?.status ?? null,
+    lastRunAt: dataset.importRuns[0]?.completedAt?.toISOString() ?? dataset.importRuns[0]?.startedAt.toISOString() ?? null,
   }));
 }
 

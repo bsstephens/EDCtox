@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { env } from "~/env";
@@ -13,7 +14,11 @@ export default async function AdminPage() {
     <main className="mx-auto max-w-3xl px-4 py-6">
       <h1 className="text-2xl font-semibold tracking-tight">Curation</h1>
       <p className="mt-2 text-sm leading-6 text-stone-700">
-        This page is development-only. It does not edit scores. Later curation should create compounds, sources, and findings in Postgres, link findings to mechanism and outcome assessments, and write an assessment revision with a reason whenever a score changes. Service keys stay on the server.
+        This page is development-only. It does not edit scores. Later curation should create compounds, sources, and findings in Postgres, link findings to mechanism and outcome assessments, and write an assessment revision with a reason whenever a score changes. Service keys stay on the server.{" "}
+        <Link className="underline" href="/admin/external">
+          External source status
+        </Link>{" "}
+        is also development-only and does not call providers.
       </p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         {Object.entries(counts).map(([key, value]) => (

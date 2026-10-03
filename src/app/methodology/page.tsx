@@ -43,7 +43,7 @@ export default function MethodologyPage() {
       </p>
       <h2 className="mt-8 text-lg font-medium">External evidence</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
-        EDCtox is a synthesis layer. CompTox, ToxCast, ToxRefDB, ToxValDB, EDSP models, EASIS, ECHA, OpenFoodTox, CEBS, eChemPortal, IUCLID, AOP-Wiki, AICIS, APVMA PubCRIS, and PubChem stay external. An imported record does not change a domain score. A ToxCast hit is assay bioactivity. An AICIS inventory listing is industrial availability, not safety. An AOP mapping is a crosswalk, not evidence that every linked chemical causes the adverse outcome. ToxPi is a useful precedent for a multidomain picture. EDCtox does not collapse that picture into one weighted total.
+        EDCtox is a synthesis layer. CompTox, ToxCast, ToxRefDB, ToxValDB, EDSP models, EASIS, ECHA, OpenFoodTox, CEBS, eChemPortal, IUCLID, AOP-Wiki, AICIS, APVMA PubCRIS, and PubChem stay external. A verified PubChem or CompTox identifier is a link to that source. The compound page reads identifiers already stored and does not call those services while it renders. An imported record does not change a domain score. A ToxCast hit is assay bioactivity. An AICIS inventory listing is industrial availability, not safety. An AOP mapping is a crosswalk, not evidence that every linked chemical causes the adverse outcome. ToxPi is a useful precedent for a multidomain picture. EDCtox does not collapse that picture into one weighted total.
       </p>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-stone-700">
         {IDENTITY_PRECEDENCE.map((rule) => (

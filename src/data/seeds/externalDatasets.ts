@@ -229,9 +229,27 @@ export const externalDatasets: ExternalDatasetSeed[] = [
     accessType: "API",
     roles: ["IDENTITY", "STRUCTURE"],
     licence: LICENCE,
-    notes: `${NOT_SYNCED} The API address is recorded for a later adapter. This application does not call it.`,
+    notes: `${NOT_SYNCED} PUG REST is called only by the resolve command. Compound pages read stored identifiers and do not call PubChem.`,
   },
 ];
+
+export const externalAccessPolicy = {
+  EPA_COMPTOX: { accessMode: "LIVE_API", requiresApiKey: true },
+  EPA_TOXCAST: { accessMode: "BULK_REFERENCE", requiresApiKey: false },
+  EPA_TOXREFDB: { accessMode: "BULK_REFERENCE", requiresApiKey: false },
+  EPA_TOXVALDB: { accessMode: "BULK_REFERENCE", requiresApiKey: false },
+  EPA_EDSP: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  EU_EASIS: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  ECHA_CHEM: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  EFSA_OPENFOODTOX: { accessMode: "BULK_REFERENCE", requiresApiKey: false },
+  NIEHS_CEBS: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  OECD_ECHEMPORTAL: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  OECD_OHT_IUCLID: { accessMode: "MANUAL_REVIEW", requiresApiKey: false },
+  OECD_AOP_WIKI: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  AICIS: { accessMode: "BULK_REFERENCE", requiresApiKey: false },
+  APVMA_PUBCRIS: { accessMode: "LINK_ONLY", requiresApiKey: false },
+  PUBCHEM: { accessMode: "LIVE_API", requiresApiKey: false },
+} as const satisfies Record<(typeof externalDatasets)[number]["code"], { accessMode: "LINK_ONLY" | "LIVE_API" | "SNAPSHOT_CACHE" | "CURATED_IMPORT" | "BULK_REFERENCE" | "MANUAL_REVIEW"; requiresApiKey: boolean }>;
 
 export const IDENTITY_PRECEDENCE = [
   "Exact structure or InChIKey, where a single structure is meaningful.",

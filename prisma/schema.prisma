@@ -144,8 +144,9 @@ model Compound {
     dataGaps             DataGap[]
     transformationsAsParent  MetabolicTransformation[] @relation("TransformationParent")
     transformationsAsProduct MetabolicTransformation[] @relation("TransformationProduct")
-    externalIdentifiers  ExternalIdentifier[]
-    externalRecords      ExternalRecord[]
+    externalIdentifiers      ExternalIdentifier[]
+    externalRecords          ExternalRecord[]
+    identityResolutionAttempts IdentityResolutionAttempt[]
     assayObservations    AssayObservation[]
 
     @@index([compoundType])
@@ -1018,6 +1019,25 @@ enum ExternalAccessType {
     UNKNOWN
 }
 
+/// What EDCtox will do with a provider. This is not the same as accessType, which describes what the provider offers.
+enum ExternalAccessMode {
+    LINK_ONLY
+    LIVE_API
+    SNAPSHOT_CACHE
+    CURATED_IMPORT
+    BULK_REFERENCE
+    MANUAL_REVIEW
+}
+
+enum IdentityResolutionStatus {
+    VERIFIED
+    PROBABLE
+    AMBIGUOUS
+    CONFLICT
+    NOT_FOUND
+    MANUAL_REVIEW_REQUIRED
+}
+
 enum ExternalDatasetRole {
     IDENTITY
     STRUCTURE
@@ -1046,6 +1066,9 @@ model ExternalDataset {
     /// Short pointer to the provider's own terms. This seed does not grant a licence.
     licence          String?
     accessType       ExternalAccessType
+    /// EDCtox policy for this provider. Link-only providers are not fetched.
+    accessMode       ExternalAccessMode   @default(LINK_ONLY)
+    requiresApiKey   Boolean              @default(false)
     roles            ExternalDatasetRole[] @default([])
     lastCheckedAt    DateTime?
     lastSyncedAt     DateTime?
@@ -1058,6 +1081,7 @@ model ExternalDataset {
     identifiers      ExternalIdentifier[]
     ontologyMappings ExternalOntologyMapping[]
     importRuns       ExternalImportRun[]
+    resolutionAttempts IdentityResolutionAttempt[]
 }
 
 /// Substance and structure keys. DOI, PMID, and AOP ids are not stored here.
@@ -1087,6 +1111,8 @@ model ExternalIdentifier {
     /// One preferred key per namespace for this compound. A disagreement is a second row, not an overwrite.
     canonical  Boolean                     @default(false)
     disputed   Boolean                     @default(false)
+    resolutionStatus IdentityResolutionStatus?
+    verifiedAt DateTime?
     sourceUrl  String?
     notes      String                      @default("")
     createdAt  DateTime                    @default(now())
@@ -1118,8 +1144,11 @@ model ExternalRecord {
     recordType     String?
     externalUrl    String?
     sourceVersion  String?
-    retrievedAt    DateTime?
-    checksum       String?
+    retrievedAt      DateTime?
+    sourceModifiedAt DateTime?
+    expiresAt        DateTime?
+    etag             String?
+    checksum         String?
     /// Source cache only. Scientific claims belong in findings, assays, and assessments.
     rawData        Json?
     importStatus   ExternalImportStatus @default(NOT_IMPORTED)
@@ -1161,8 +1190,32 @@ model ExternalImportRun {
 
     dataset ExternalDataset  @relation(fields: [datasetId], references: [id], onDelete: Cascade)
     records ExternalRecord[]
+    resolutionAttempts IdentityResolutionAttempt[]
 
     @@index([datasetId, startedAt])
+}
+
+/// One query to one provider for one compound. An ambiguous result has no selected identifier.
+model IdentityResolutionAttempt {
+    id                 String                   @id @default(uuid()) @db.Uuid
+    compoundId         String                   @db.Uuid
+    datasetId          String                   @db.Uuid
+    importRunId        String?                  @db.Uuid
+    queryType          String
+    queryValue         String
+    candidateIds       String[]                 @default([])
+    selectedExternalId String?
+    resolutionStatus   IdentityResolutionStatus
+    reason             String                   @default("")
+    reviewedAt         DateTime?
+    createdAt          DateTime                 @default(now())
+
+    compound  Compound           @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+    dataset   ExternalDataset    @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+    importRun ExternalImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+    @@index([compoundId, createdAt])
+    @@index([datasetId])
 }
 
 enum ExternalTermType {
