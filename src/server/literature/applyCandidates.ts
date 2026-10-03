@@ -20,6 +20,7 @@ export type LiteratureStore = {
   };
   evidenceSource: {
     create(args: { data: Record<string, unknown> }): Promise<SourceRow>;
+    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
   };
   compound: {
     update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
@@ -31,6 +32,8 @@ export type LiteratureRunWrite = {
   provider: LiteratureProviderName;
   purpose: LiteraturePurposeName;
   queryText: string;
+  resultWindow: string;
+  sortMode: string;
   startedAt: Date;
   completedAt: Date;
   providerReportedCount: number | null;
@@ -73,6 +76,8 @@ export async function applyLiteratureRun(
       provider: input.provider,
       queryText: input.queryText,
       queryVersion: LITERATURE_QUERY_VERSION,
+      resultWindow: input.resultWindow,
+      sortMode: input.sortMode,
       purpose: input.purpose,
       startedAt: input.startedAt,
       completedAt: input.completedAt,
@@ -115,6 +120,7 @@ export async function applyLiteratureRun(
           abstractProvenance: hit.paper.abstractText ? input.provider : null,
           queryVersion: LITERATURE_QUERY_VERSION,
           searchPurpose: input.purpose,
+          studySignal: hit.studySignal,
         },
       },
     });
@@ -122,6 +128,15 @@ export async function applyLiteratureRun(
   }
 
   for (const hit of input.hits) {
+    if (hit.enrichment) {
+      const sourceId = resolveSourceId(hit.matchedSourceId, created);
+      const data: Record<string, unknown> = {};
+      if (hit.enrichment.pmcid) data.pmcid = hit.enrichment.pmcid;
+      if (hit.enrichment.openAccess !== undefined) data.openAccess = hit.enrichment.openAccess;
+      if (sourceId && Object.keys(data).length > 0) {
+        await store.evidenceSource.update({ where: { id: sourceId }, data });
+      }
+    }
     await store.literatureSearchHit.create({
       data: {
         searchRunId: run.id,

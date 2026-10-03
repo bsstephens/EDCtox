@@ -855,6 +855,10 @@ model LiteratureSearchRun {
     provider               LiteratureProvider
     queryText              String                   @db.Text
     queryVersion           String
+    /// relevance or recent. The two windows are unioned and then deduplicated.
+    resultWindow           String                   @default("recent")
+    /// Provider sort parameter. Empty means Europe PMC's relevance default.
+    sortMode               String                   @default("pub_date")
     purpose                LiteratureSearchPurpose
     startedAt              DateTime
     completedAt            DateTime?

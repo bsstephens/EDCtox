@@ -41,18 +41,22 @@ async function confirmApply(host: string) {
 }
 
 function printReport(report: LiteratureRunReport) {
-  console.log(`\n${report.provider} ${report.purpose} ${report.status}`);
+  console.log(`\n${report.provider} ${report.purpose} ${report.resultWindow} ${report.status}`);
   console.log(`  version ${report.queryVersion}`);
+  console.log(`  sort ${report.sortMode}`);
   console.log(`  query ${report.queryText}`);
+  if (report.purposeNote) console.log(`  note ${report.purposeNote}`);
   console.log(
-    `  reported ${report.providerReportedCount ?? "unknown"} processed ${report.resultCount} inserted ${report.insertedCount} duplicate ${report.duplicateCount} conflict ${report.conflictCount} skipped ${report.skippedCount}`,
+    `  reported ${report.providerReportedCount ?? "unknown"} fetched ${report.fetchedCount} passed ${report.passedCount} skipped ${report.relevanceSkipCount} capped ${report.capSkipCount} duplicate ${report.duplicateCount} conflict ${report.conflictCount} would-insert ${report.insertedCount}`,
   );
   if (report.errorText) console.log(`  error ${report.errorText}`);
   for (const hit of report.hits) {
     const abstract = hit.abstractRetained ? "abstract-stored" : "no-abstract";
     const retracted = hit.retracted ? " retracted" : "";
+    const signal = hit.studySignal ? ` ${hit.studySignal}` : "";
+    const enrich = hit.enrichment ? " enrich" : "";
     console.log(
-      `  ${hit.disposition} ${hit.year ?? "?"} pmid ${hit.pmid ?? "-"} doi ${hit.doi ?? "-"} ${abstract}${retracted} ${hit.title}`,
+      `  ${hit.disposition} ${hit.year ?? "?"} pmid ${hit.pmid ?? "-"} doi ${hit.doi ?? "-"} ${abstract}${retracted}${signal}${enrich} ${hit.title}`,
     );
   }
 }
@@ -84,7 +88,7 @@ async function main() {
     const before = await scientificSnapshot(db);
     const sourcesBefore = await db.evidenceSource.count();
     const existing = await db.evidenceSource.findMany({
-      select: { id: true, doi: true, pmid: true, title: true, year: true },
+      select: { id: true, doi: true, pmid: true, title: true, year: true, pmcid: true, openAccess: true },
     });
     const reports = await runBpaReproductiveSearch({
       compound: { id: compound.id, curationStatus: compound.curationStatus },

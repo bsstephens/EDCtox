@@ -2,12 +2,7 @@ import { fetchJson, ProviderRequestError, redactSecrets } from "../external/http
 import { type IncomingPaper } from "./dedup";
 import { parseEuropePmcSearch } from "./parseEuropePmc";
 import { parseEsearch, parsePubmedArticles } from "./parsePubmed";
-import {
-  EUROPE_PMC_SORT,
-  LITERATURE_RESULT_CAP,
-  PUBMED_SORT,
-  type LiteratureProviderName,
-} from "./queries";
+import { type LiteratureProviderName } from "./queries";
 
 const NCBI = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const EUROPE_PMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search";
@@ -59,13 +54,14 @@ export type LiteraturePage = {
 export async function fetchLiteraturePage(options: {
   provider: LiteratureProviderName;
   query: string;
+  sort: string | null;
+  resultCap: number;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   ncbiApiKey?: string;
   ncbiEmail?: string;
-  resultCap?: number;
 }): Promise<LiteraturePage> {
-  const cap = options.resultCap ?? LITERATURE_RESULT_CAP;
+  const cap = options.resultCap;
   const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const headers = {
     "User-Agent": options.ncbiEmail ? `EDCtox (${options.ncbiEmail})` : "EDCtox",
@@ -77,8 +73,8 @@ export async function fetchLiteraturePage(options: {
       format: "json",
       pageSize: String(cap),
       resultType: "core",
-      sort: EUROPE_PMC_SORT,
     });
+    if (options.sort) params.set("sort", options.sort);
     const payload = await fetchJson(`${EUROPE_PMC}?${params}`, {
       headers,
       fetchImpl: options.fetchImpl,
@@ -94,7 +90,7 @@ export async function fetchLiteraturePage(options: {
     db: "pubmed",
     retmode: "json",
     retmax: String(cap),
-    sort: PUBMED_SORT,
+    sort: options.sort ?? "relevance",
     term: options.query,
     tool: "edctox",
   });

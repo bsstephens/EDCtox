@@ -7,24 +7,29 @@ import test from "node:test";
 import { applyLiteratureRun, recordCompoundSearched, type LiteratureStore } from "./applyCandidates";
 import { plainText } from "./entities";
 import { parseLiteratureArgs } from "./cli";
-import { normalizeDoi, normalizePmid, normalizeTitle, planLiteratureHits, type ExistingSource, type IncomingPaper } from "./dedup";
+import { normalizeDoi, normalizePmid, normalizeTitle, planLiteratureHits, type ExistingSource, type IncomingPaper, type PlannedHit } from "./dedup";
 import { parseEuropePmcSearch } from "./parseEuropePmc";
 import { parseEsearch, parsePubmedArticles } from "./parsePubmed";
+import { assessReproductiveRelevance } from "./relevance";
+import { capNewInserts } from "./runSearch";
 import {
   BPA_REPRODUCTIVE_SCOPE,
+  EUROPE_PMC_UNIQUE_CAP,
+  EUROPE_PMC_WINDOW_CAP,
+  PUBMED_RECENT_CAP,
+  PUBMED_RELEVANCE_CAP,
   buildBpaReproductiveQuery,
   LITERATURE_QUERY_VERSION,
-  LITERATURE_RESULT_CAP,
   assertBpaReproductiveTarget,
 } from "./queries";
 
 const QUERY_HASHES = {
   "PUBMED SYSTEMATIC_REVIEWS": "08f2446f2fdfebebf1361d802d9ef8d275e5c5e9babec649e7beb53161cd59a7",
-  "EUROPE_PMC SYSTEMATIC_REVIEWS": "45178d3f8d2894842affead313ba694706fd073350454eccd14437078283c9fd",
+  "EUROPE_PMC SYSTEMATIC_REVIEWS": "5c99a007b8880f8c8fdd998f4c281170400d2264c03161722b3403a4f3e7f736",
   "PUBMED HUMAN_REPRODUCTIVE": "b906dfa593c8ea893d0b424324e489f5b1c01968ee962b8fdc61034cf6b1333c",
-  "EUROPE_PMC HUMAN_REPRODUCTIVE": "784332bee87a388666381303a8eb597f2fb8b5b2dd37dfc41288c3e769f2dce8",
+  "EUROPE_PMC HUMAN_REPRODUCTIVE": "657e615c7ccfb82acad113db3db0163178e968d5cc81d0f70760773db4fac4af",
   "PUBMED CONTRADICTORY_OR_NULL": "1b208eb0e45d12b4e53e8c5d1ab9eb0a80ca26fc82ffbcb7d464313f9b92d7c9",
-  "EUROPE_PMC CONTRADICTORY_OR_NULL": "3258676bfe278957c7f8cabbedc871af55fd3ae81d6227202097eb09ec5f5746",
+  "EUROPE_PMC CONTRADICTORY_OR_NULL": "7a136c05af9f0e9a1124aeecb997262584ab1281828f20760d2a18be72322570",
 } as const;
 
 const WRITE_PATH = [
@@ -34,6 +39,7 @@ const WRITE_PATH = [
   "src/server/literature/runSearch.ts",
   "src/server/literature/remote.ts",
   "src/server/literature/entities.ts",
+  "src/server/literature/relevance.ts",
   "src/server/literature/parsePubmed.ts",
   "src/server/literature/parseEuropePmc.ts",
   "src/server/literature/cli.ts",
@@ -93,6 +99,10 @@ function memoryStore() {
         calls.push({ model: "source", data: args.data });
         return { id: `source-${sourceCount}` };
       },
+      async update(args) {
+        calls.push({ model: "source-update", data: args.data });
+        return {};
+      },
     },
     compound: {
       async update(args) {
@@ -111,7 +121,7 @@ test("versioned BPA reproductive queries stay separated", () => {
     providers.map((provider) => {
       const built = buildBpaReproductiveQuery(purpose, provider);
       assert.equal(built.version, LITERATURE_QUERY_VERSION);
-      assert.equal(built.version, "bpa-reproductive-v1");
+      assert.equal(built.version, "bpa-reproductive-v2");
       const hash = createHash("sha256").update(built.query).digest("hex");
       assert.equal(hash, QUERY_HASHES[`${provider} ${purpose}`]);
       return built.query;
@@ -127,7 +137,17 @@ test("versioned BPA reproductive queries stay separated", () => {
   assert.equal(human.includes("humans[MeSH Terms]"), true);
   assert.equal(contradictory.includes("systematic review[Publication Type]"), false);
   assert.equal(contradictory.includes("null finding"), true);
-  assert.equal(LITERATURE_RESULT_CAP, 15);
+  assert.equal(PUBMED_RELEVANCE_CAP, 15);
+  assert.equal(PUBMED_RECENT_CAP, 10);
+  assert.equal(EUROPE_PMC_WINDOW_CAP, 10);
+  assert.equal(EUROPE_PMC_UNIQUE_CAP, 10);
+  const europeReview = buildBpaReproductiveQuery("SYSTEMATIC_REVIEWS", "EUROPE_PMC").query;
+  assert.equal(europeReview.includes('TITLE:"Bisphenol A"'), true);
+  assert.equal(europeReview.includes('ABSTRACT:"Bisphenol A"'), true);
+  assert.equal(europeReview.includes("(SRC:MED OR SRC:PMC)"), true);
+  const europeNull = buildBpaReproductiveQuery("CONTRADICTORY_OR_NULL", "EUROPE_PMC").query;
+  assert.equal(europeNull.includes('TITLE:"no association"'), true);
+  assert.equal(europeNull.includes("systematic review"), false);
 
   const seed = read("src/data/seeds/compounds.ts");
   assert.equal(seed.includes(BPA_REPRODUCTIVE_SCOPE.iupacName), true);
@@ -231,6 +251,8 @@ test("a failed search writes a run and does not write sources", async () => {
     provider: "PUBMED",
     purpose: "SYSTEMATIC_REVIEWS",
     queryText: "secret-query",
+    resultWindow: "relevance",
+    sortMode: "relevance",
     startedAt: new Date("2026-10-03T00:00:00Z"),
     completedAt: new Date("2026-10-03T00:00:01Z"),
     providerReportedCount: null,
@@ -257,6 +279,8 @@ test("apply stores screening candidates and does not queue retracted papers as i
     provider: "PUBMED",
     purpose: "HUMAN_REPRODUCTIVE",
     queryText: "query",
+    resultWindow: "relevance",
+    sortMode: "relevance",
     startedAt: new Date("2026-10-03T00:00:00Z"),
     completedAt: new Date("2026-10-03T00:00:01Z"),
     providerReportedCount: 2,
@@ -328,17 +352,90 @@ test("fixture search inserts candidates, deduplicates providers, and cannot reac
   });
 
   assert.equal(urls.some((url) => url.includes("retmax=15")), true);
-  assert.equal(urls.some((url) => url.includes("systematic+review") || url.includes("systematic%20review") || url.includes("systematic review")), true);
+  assert.equal(urls.some((url) => url.includes("retmax=10")), true);
+  assert.equal(urls.some((url) => url.includes("sort=relevance")), true);
+  assert.equal(urls.some((url) => url.includes("sort=pub_date")), true);
+  assert.equal(urls.some((url) => url.includes("TITLE%3A") || url.includes("TITLE:")), true);
   assert.equal(urls.some((url) => url.includes("SECRETKEY")), true);
   assert.equal(JSON.stringify(calls).includes("SECRETKEY"), false);
-  assert.equal(reports[0]?.status, "SUCCEEDED");
-  assert.equal(reports[1]?.duplicateCount, 1);
-  assert.equal(reports[1]?.insertedCount, 1);
+  const pubmedRelevance = reports.find((report) => report.provider === "PUBMED" && report.resultWindow === "relevance");
+  const europeRelevance = reports.find((report) => report.provider === "EUROPE_PMC" && report.resultWindow === "relevance");
+  assert.equal(pubmedRelevance?.status, "SUCCEEDED");
+  assert.equal(pubmedRelevance?.insertedCount, 1);
+  assert.equal(europeRelevance?.duplicateCount, 1);
+  assert.equal(europeRelevance?.insertedCount, 1);
   const sources = calls.filter((call) => call.model === "source");
   assert.equal(sources.length, 2);
   assert.equal(sources.every((call) => call.data.countsAsScientificEvidence === false), true);
+  const enrichment = calls.find((call) => call.model === "source-update");
+  assert.deepEqual(enrichment?.data, { openAccess: true });
   assert.equal(calls.some((call) => call.model === "compound" && call.data.curationStatus === "EVIDENCE_GATHERING"), true);
-  assert.equal(calls.some((call) => !["run", "hit", "source", "compound"].includes(call.model)), false);
+  assert.equal(calls.some((call) => !["run", "hit", "source", "source-update", "compound"].includes(call.model)), false);
+});
+
+test("relevance gate rejects obvious noise and keeps reproductive bisphenol papers", () => {
+  const noise = [
+    ["Obesity and cardiovascular disease", "Weight management and blood pressure in adults."],
+    ["Clinical performance of bulk-fill composite restorations", "A randomized dental composite trial."],
+    ["Gut microbiota signatures in primary aldosteronism", "An aldosterone-degrading gut bacterium."],
+    ["Foliar treatment modulates redox signaling in wheat", "Tellurite-stressed Triticum aestivum roots."],
+    ["Nanomaterials in radiation-induced disease", "Therapeutic promise of generic nanomaterials."],
+  ] as const;
+  for (const [title, abstractText] of noise) {
+    const decision = assessReproductiveRelevance(paper({ title, abstractText }));
+    assert.equal(decision.pass, false, title);
+  }
+  const keep = [
+    ["Bisphenol A and polycystic ovary syndrome", "Ovarian morphology and testosterone were reviewed."],
+    ["Bisphenol A exposure and in vitro fertilization outcomes", "Fertility clinic outcomes."],
+    ["BPA and sperm quality", "Bisphenol A (BPA) and semen parameters."],
+    ["Urinary bisphenol A and sex hormones", "Estradiol and testosterone in adults."],
+    ["Bisphenol A induces apoptosis in human ovarian granulosa cells", "Steroidogenesis in granulosa cells."],
+    ["Bisphenol A reproductive toxicity", "Fertility was reduced."],
+  ] as const;
+  for (const [title, abstractText] of keep) {
+    assert.equal(assessReproductiveRelevance(paper({ title, abstractText })).pass, true, title);
+  }
+  const acronym = assessReproductiveRelevance(
+    paper({
+      title: "BPA quarterly processing and sperm bank logistics",
+      abstractText: "The BPA unit handled stored samples.",
+    }),
+  );
+  assert.equal(acronym.skipReason, "relevance-acronym");
+  const cas = assessReproductiveRelevance(
+    paper({
+      title: "CAS 80-05-7 and ovarian function",
+      abstractText: "Steroidogenesis changed.",
+    }),
+  );
+  assert.equal(cas.pass, true);
+});
+
+test("Europe PMC unique cap does not drop duplicates", () => {
+  const hits: PlannedHit[] = [1, 2, 3].map((n) => ({
+    disposition: "INSERTED" as const,
+    detail: "New candidate source.",
+    stableKey: `lit:pmid:${n}`,
+    matchedSourceId: null,
+    paper: paper({ pmid: String(n), title: `Bisphenol A and sperm quality ${n}`, abstractText: "Bisphenol A and semen." }),
+    enrichment: null,
+    skipReason: null,
+    studySignal: null,
+  }));
+  const first = hits[0];
+  if (!first) throw new Error("Expected a capped hit.");
+  hits.push({
+    ...first,
+    disposition: "DUPLICATE",
+    stableKey: null,
+    matchedSourceId: "existing",
+  });
+  const capped = capNewInserts(hits, 2);
+  assert.equal(capped.used, 2);
+  assert.equal(capped.hits.filter((hit) => hit.disposition === "INSERTED").length, 2);
+  assert.equal(capped.hits.filter((hit) => hit.skipReason === "provider-cap").length, 1);
+  assert.equal(capped.hits.filter((hit) => hit.disposition === "DUPLICATE").length, 1);
 });
 
 test("command parsing stays on BPA reproductive", () => {
@@ -440,6 +537,8 @@ test("search apply cannot change the 71 mechanism assessments or create findings
             provider: "PUBMED",
             purpose: "CONTRADICTORY_OR_NULL",
             queryText: "guard query",
+            resultWindow: "relevance",
+            sortMode: "relevance",
             startedAt: new Date("2026-10-03T00:00:00Z"),
             completedAt: new Date("2026-10-03T00:00:01Z"),
             providerReportedCount: 1,

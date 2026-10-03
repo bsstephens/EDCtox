@@ -59,7 +59,7 @@ export default function MethodologyPage() {
       </ul>
       <h2 className="mt-8 text-lg font-medium">Literature candidates</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
-        A literature search can store a candidate publication for later screening. That row is not a finding, and it does not change a mechanism or outcome score. An abstract returned by PubMed or Europe PMC may be kept for internal screening. Public pages do not show that abstract. A retracted publication can remain in the search record, and it still does not support a score.
+        A literature search can store a candidate publication for later screening. That row is not a finding, and it does not change a mechanism or outcome score. A human-relevant search is not confirmation that the study was a human clinical or observational study. A search for phrases such as “no association” is not confirmation of a null finding. An abstract returned by PubMed or Europe PMC may be kept for internal screening. Public pages do not show that abstract. A retracted publication can remain in the search record, and it still does not support a score.
       </p>
       <h2 className="mt-8 text-lg font-medium">Language</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">

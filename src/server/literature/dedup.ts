@@ -20,9 +20,18 @@ export type ExistingSource = {
   pmid: string | null;
   title: string;
   year: number;
+  pmcid?: string | null;
+  openAccess?: boolean | null;
 };
 
 export type HitDisposition = "INSERTED" | "DUPLICATE" | "CONFLICT" | "SKIPPED";
+
+export type SourceEnrichment = {
+  pmcid?: string;
+  openAccess?: boolean;
+};
+
+export type SkipReason = "missing-citation" | "relevance-compound" | "relevance-domain" | "relevance-acronym" | "provider-cap";
 
 export type PlannedHit = {
   disposition: HitDisposition;
@@ -30,6 +39,9 @@ export type PlannedHit = {
   stableKey: string | null;
   matchedSourceId: string | null;
   paper: IncomingPaper;
+  enrichment: SourceEnrichment | null;
+  skipReason: SkipReason | null;
+  studySignal: string | null;
 };
 
 export function normalizeDoi(value: string | null | undefined): string | null {
@@ -83,6 +95,34 @@ function uniqueById(sources: ExistingSource[]): ExistingSource[] {
   return unique;
 }
 
+function metadataEnrichment(source: ExistingSource, paper: IncomingPaper): SourceEnrichment | null {
+  const enrichment: SourceEnrichment = {};
+  const incomingPmcid = paper.pmcid?.trim() ?? "";
+  if (incomingPmcid.length > 0 && !source.pmcid) enrichment.pmcid = incomingPmcid;
+  if (typeof paper.openAccess === "boolean" && (source.openAccess === null || source.openAccess === undefined)) {
+    enrichment.openAccess = paper.openAccess;
+  }
+  if (enrichment.pmcid === undefined && enrichment.openAccess === undefined) return null;
+  if (enrichment.pmcid) source.pmcid = enrichment.pmcid;
+  if (enrichment.openAccess !== undefined) source.openAccess = enrichment.openAccess;
+  return enrichment;
+}
+
+function duplicateHit(source: ExistingSource, paper: IncomingPaper, detail: string): PlannedHit {
+  const enrichment = metadataEnrichment(source, paper);
+  const extra = enrichment ? " Empty PMCID or open-access flag can be filled from this record." : "";
+  return {
+    disposition: "DUPLICATE",
+    detail: `${detail}${extra}`,
+    stableKey: null,
+    matchedSourceId: source.id,
+    paper,
+    enrichment,
+    skipReason: null,
+    studySignal: null,
+  };
+}
+
 function identifiersDisagree(paperDoi: string | null, paperPmid: string | null, source: ExistingSource): boolean {
   const doiDisagrees = Boolean(paperDoi && source.doi && source.doi !== paperDoi);
   const pmidDisagrees = Boolean(paperPmid && source.pmid && source.pmid !== paperPmid);
@@ -109,6 +149,9 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
         stableKey: null,
         matchedSourceId: null,
         paper,
+        enrichment: null,
+        skipReason: "missing-citation",
+        studySignal: null,
       });
       continue;
     }
@@ -128,6 +171,9 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
         stableKey: null,
         matchedSourceId: null,
         paper,
+        enrichment: null,
+        skipReason: null,
+        studySignal: null,
       });
       continue;
     }
@@ -141,16 +187,13 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
           stableKey: null,
           matchedSourceId: null,
           paper,
+          enrichment: null,
+          skipReason: null,
+          studySignal: null,
         });
         continue;
       }
-      hits.push({
-        disposition: "DUPLICATE",
-        detail: `Matches existing source ${identifiedMatch.id}.`,
-        stableKey: null,
-        matchedSourceId: identifiedMatch.id,
-        paper,
-      });
+      hits.push(duplicateHit(identifiedMatch, paper, `Matches existing source ${identifiedMatch.id}.`));
       continue;
     }
 
@@ -162,16 +205,13 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
           stableKey: null,
           matchedSourceId: null,
           paper,
+          enrichment: null,
+          skipReason: null,
+          studySignal: null,
         });
         continue;
       }
-      hits.push({
-        disposition: "DUPLICATE",
-        detail: `Title and year match ${titleMatch.id}.`,
-        stableKey: null,
-        matchedSourceId: titleMatch.id,
-        paper,
-      });
+      hits.push(duplicateHit(titleMatch, paper, `Title and year match ${titleMatch.id}.`));
       continue;
     }
 
@@ -182,6 +222,9 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
       stableKey,
       matchedSourceId: null,
       paper,
+      enrichment: null,
+      skipReason: null,
+      studySignal: null,
     });
     pool.push({
       id: `pending:${stableKey}`,
@@ -189,6 +232,8 @@ export function planLiteratureHits(existing: ExistingSource[], papers: IncomingP
       pmid,
       title,
       year,
+      pmcid: paper.pmcid,
+      openAccess: paper.openAccess,
     });
   }
 
