@@ -155,6 +155,8 @@ model Compound {
     identityResolutionAttempts IdentityResolutionAttempt[]
     assayObservations    AssayObservation[]
     literatureSearchRuns LiteratureSearchRun[]
+    screeningDecisions   LiteratureScreeningDecision[]
+    mechanisticClaims    MechanisticClaim[]
 
     @@index([compoundType])
     @@index([casNumber])
@@ -484,6 +486,7 @@ model Mechanism {
     interactions CompoundInteraction[]
     dataGaps     DataGap[]
     ontologyMappings ExternalOntologyMapping[]
+    mechanisticClaims MechanisticClaim[]
 
     @@index([domainId, sortOrder])
     @@index([familyId])
@@ -792,9 +795,11 @@ model EvidenceSource {
     supplemental     Json?
     createdAt        DateTime     @default(now())
 
-    findings   EvidenceFinding[]
-    revisions  AssessmentRevision[]
-    searchHits LiteratureSearchHit[]
+    findings           EvidenceFinding[]
+    revisions          AssessmentRevision[]
+    searchHits         LiteratureSearchHit[]
+    screeningDecisions LiteratureScreeningDecision[]
+    mechanisticClaims  MechanisticClaim[]
 
     @@index([year])
     @@index([sourceType])
@@ -813,7 +818,8 @@ enum CompoundCurationStatus {
     NEEDS_UPDATE
 }
 
-/// DISCOVERED is capture before the screening queue. SCREENING_PENDING is the queue. Later review chooses a terminal status.
+/// Bibliographic state of the publication. Include, exclude, and uncertain are contextual screening decisions, not values here.
+/// Bibliographic state of the publication. Include, exclude, and uncertain are contextual screening decisions, not values written by this queue.
 enum PublicationCurationStatus {
     DISCOVERED
     SCREENING_PENDING
@@ -901,6 +907,225 @@ model LiteratureSearchHit {
     @@index([sourceId])
     @@index([doi])
     @@index([pmid])
+}
+
+enum ScreeningDecision {
+    INCLUDE
+    EXCLUDE
+    UNCERTAIN
+}
+
+enum ScreeningReason {
+    DIRECT_HUMAN_EVIDENCE
+    DIRECT_EXPERIMENTAL_EVIDENCE
+    SYSTEMATIC_REVIEW
+    META_ANALYSIS
+    REGULATORY_REVIEW
+    MECHANISTIC_RELEVANCE
+    DEVELOPMENTAL_RELEVANCE
+    REPRODUCTIVE_RELEVANCE
+    WRONG_COMPOUND
+    WRONG_BISPHENOL
+    WRONG_DOMAIN
+    EXPOSURE_ONLY
+    ANIMAL_ONLY
+    IN_VITRO_ONLY
+    MIXED_OR_UNCLEAR
+    COMMENTARY_OR_EDITORIAL
+    NARRATIVE_REVIEW_ONLY
+    METHOD_ONLY
+    NON_RELEVANT_OUTCOME
+    IRRELEVANT_KEYWORD_MATCH
+    DUPLICATE_PUBLICATION
+    RETRACTED
+    FULL_TEXT_NEEDED
+    OTHER
+}
+
+/// Confidence in the screening classification. Not study quality and not assessment confidence.
+enum ScreeningConfidence {
+    LOW
+    MODERATE
+    HIGH
+}
+
+/// One advisory or curator pass. Machine fields and curator fields are written separately.
+model CurationAgentRun {
+    id            String   @id @default(uuid()) @db.Uuid
+    taskType      String
+    provider      String
+    model         String
+    promptVersion String
+    /// Source ids and task parameters. Not abstracts and not chain-of-thought.
+    inputRefs     Json
+    outputRefs    Json
+    status        String
+    createdAt     DateTime @default(now())
+    reviewedAt    DateTime?
+
+    decisions LiteratureScreeningDecision[]
+    claims    MechanisticClaim[]
+
+    @@index([taskType])
+    @@index([createdAt])
+}
+
+/// Contextual triage. Uniqueness is publication + compound + domain. Search purpose is provenance.
+model LiteratureScreeningDecision {
+    id                String                @id @default(uuid()) @db.Uuid
+    evidenceSourceId  String                @db.Uuid
+    compoundId        String                @db.Uuid
+    /// Screening workflow domain, such as "reproductive". Not a mechanism-domain score.
+    domainCode        String
+    searchPurpose     LiteratureSearchPurpose?
+    machineDecision   ScreeningDecision?
+    machineReason     ScreeningReason?
+    machineConfidence ScreeningConfidence?
+    machineRationale  String?               @db.Text
+    curatorDecision   ScreeningDecision?
+    curatorReasonCode ScreeningReason?
+    curatorNotes      String?               @db.Text
+    screenedBy        String?
+    screenedAt        DateTime?
+    agentRunId        String?               @db.Uuid
+    createdAt         DateTime              @default(now())
+    updatedAt         DateTime              @updatedAt
+
+    evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+    compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+    agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+    @@unique([evidenceSourceId, compoundId, domainCode])
+    @@index([compoundId, domainCode])
+    @@index([curatorDecision])
+    @@index([machineDecision])
+}
+
+/// One directed edge a machine read from a stored abstract or title.
+/// A claim is not a finding, a measurement row, or a score.
+enum ClaimNodeType {
+    CHEMICAL
+    RECEPTOR
+    ENZYME
+    GENE
+    PROTEIN
+    BIOMARKER
+    CELL
+    TISSUE
+    ORGAN
+    PHYSIOLOGICAL_PROCESS
+    CELLULAR_PROCESS
+    PHENOTYPE
+    OUTCOME
+    OTHER
+}
+
+enum MechanisticRelation {
+    BINDS
+    AGONIZES
+    ANTAGONIZES
+    INHIBITS
+    ACTIVATES
+    INCREASES_EXPRESSION
+    DECREASES_EXPRESSION
+    INCREASES_LEVEL
+    DECREASES_LEVEL
+    IMPAIRS_FUNCTION
+    ENHANCES_FUNCTION
+    CONTRIBUTES_TO
+    ASSOCIATED_WITH
+    NO_EFFECT
+    OTHER
+}
+
+/// How directly the cited text supports the edge. Not a score direction.
+enum EvidenceDirectness {
+    DIRECTLY_DEMONSTRATED
+    STRONGLY_SUPPORTED
+    CONSISTENT_WITH
+    INFERRED
+    HYPOTHESIZED
+    UNKNOWN
+}
+
+/// Extraction confidence. VERIFIED is not a confidence value.
+enum ExtractionConfidence {
+    LOW
+    MODERATE
+    HIGH
+}
+
+enum ClaimMappingState {
+    UNMAPPED
+    CANDIDATE
+    VERIFIED
+}
+
+/// Review priority only. AUTO_ACCEPT_LOW_RISK is not scientific acceptance.
+enum ClaimReviewPriority {
+    AUTO_ACCEPT_LOW_RISK
+    REVIEW_RECOMMENDED
+    REVIEW_REQUIRED
+}
+
+enum ClaimTextOrigin {
+    ABSTRACT
+    FULL_TEXT
+}
+
+model MechanisticClaim {
+    id                   String                @id @default(uuid()) @db.Uuid
+    /// source + subject + relation + object. Re-runs update machine fields only.
+    stableKey            String                @unique
+    evidenceSourceId     String                @db.Uuid
+    compoundId           String                @db.Uuid
+    /// Workflow domain such as "reproductive". Provenance, not part of the unique key.
+    domainCode           String
+    subjectType          ClaimNodeType
+    subjectText          String
+    relation             MechanisticRelation
+    objectType           ClaimNodeType
+    objectText           String
+    machineDirectness    EvidenceDirectness
+    machineConfidence    ExtractionConfidence
+    machineRationale     String                @db.Text
+    /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
+    machineMappingState  ClaimMappingState
+    mechanismId          String?               @db.Uuid
+    curatorDirectness    EvidenceDirectness?
+    curatorMappingState  ClaimMappingState?
+    curatorVerified      Boolean               @default(false)
+    curatorNote          String?               @db.Text
+    speciesText          String?
+    tissueText           String?
+    cellTypeText         String?
+    doseText             String?
+    measureType          String?
+    /// Printed token from the text, such as an IC50. Not a converted number.
+    measureValue         String?
+    measureUnit          String?
+    textOrigin           ClaimTextOrigin
+    sourceSection        String
+    /// One supporting sentence. Not the stored abstract.
+    quotedSupport        String?               @db.Text
+    reviewPriority       ClaimReviewPriority
+    reviewDerived        Boolean               @default(false)
+    provider             String
+    modelName            String
+    promptVersion        String
+    agentRunId           String?               @db.Uuid
+    createdAt            DateTime              @default(now())
+    updatedAt            DateTime              @updatedAt
+
+    evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+    compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+    mechanism      Mechanism?        @relation(fields: [mechanismId], references: [id], onDelete: SetNull)
+    agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+    @@index([evidenceSourceId])
+    @@index([compoundId])
+    @@index([mechanismId])
+    @@index([agentRunId])
 }
 
 model EvidenceFinding {

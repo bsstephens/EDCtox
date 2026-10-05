@@ -18,7 +18,15 @@ export default async function AdminPage() {
         <Link className="underline" href="/admin/external">
           External source status
         </Link>{" "}
-        is also development-only and does not call providers.
+        and{" "}
+        <Link className="underline" href="/admin/literature">
+          literature screening
+        </Link>{" "}
+        and{" "}
+        <Link className="underline" href="/admin/literature/claims">
+          mechanistic claims
+        </Link>{" "}
+        are also development-only and do not call providers.
       </p>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         {Object.entries(counts).map(([key, value]) => (

@@ -21,9 +21,11 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:seed": "prisma db seed",
-    "test:scoring": "tsx --test src/server/scoring/*.test.ts src/server/external/*.test.ts src/server/literature/*.test.ts",
+    "test:scoring": "tsx --test src/server/scoring/*.test.ts src/server/external/*.test.ts src/server/literature/*.test.ts src/server/screening/*.test.ts src/server/claims/*.test.ts",
     "external:resolve": "tsx scripts/external-resolve.ts",
-    "literature:search": "tsx scripts/literature-search.ts"
+    "literature:search": "tsx scripts/literature-search.ts",
+    "literature:screen": "tsx scripts/literature-screen.ts",
+    "literature:claims": "tsx scripts/literature-claims.ts"
   },
   "prisma": {
     "seed": "./node_modules/.bin/tsx prisma/seed.ts"

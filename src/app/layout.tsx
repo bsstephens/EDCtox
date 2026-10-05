@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { SiteHeader } from "~/components/SiteHeader";
+import { themeBootScript } from "~/components/theme";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
@@ -22,8 +23,11 @@ const geist = Geist({
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
-      <body className="min-h-screen bg-[#f4f1ea] font-sans text-stone-900 antialiased">
+    <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
+      <body className="min-h-screen bg-[var(--page)] font-sans text-stone-900 antialiased">
         <TRPCReactProvider>
           <SiteHeader />
           {children}

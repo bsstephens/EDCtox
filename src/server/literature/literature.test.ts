@@ -469,7 +469,7 @@ test("publication status includes a screening step and search code cannot write 
 
   for (const path of walk("src/app")) {
     const source = read(path);
-    assert.equal(source.includes("abstractText"), false, path);
+    if (!path.includes("/admin/literature/")) assert.equal(source.includes("abstractText"), false, path);
     assert.equal(source.includes("server/literature"), false, path);
   }
   assert.equal(read("src/server/atlas/queries.ts").includes("abstractText"), false);

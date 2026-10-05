@@ -137,6 +137,20 @@ npm run literature:search -- --compound bpa --domain reproductive --all-purposes
 
 `NCBI_API_KEY` and `NCBI_EMAIL` are optional. There is no `--all` compounds. The build does not run this command, so the site still renders if PubMed is down.
 
+Machine screening is a separate local command. It writes a suggestion for a publication, compound, and domain. It does not set the curator decision.
+
+```bash
+npm run literature:screen -- --compound bpa --domain reproductive --pending --limit 20 --dry-run
+```
+
+The command refuses a database that is not localhost. `/admin/literature` is development-only and reads stored rows. It does not call PubMed or Europe PMC.
+
+Abstract claim extraction is a separate local command for five BPA reproductive papers. It writes machine claims only. It does not write findings, and it does not change mechanism or outcome assessments. A claim is not scientific acceptance.
+
+```bash
+npm run literature:claims -- --compound bpa --domain reproductive --limit 5 --dry-run
+```
+
 ## External evidence architecture
 
 EDCtox is a synthesis layer. It is not a replacement for EPA CompTox, ToxCast, ToxRefDB, ToxValDB, EDSP models, EU EASIS, ECHA CHEM, EFSA OpenFoodTox, NIEHS CEBS, OECD eChemPortal, OECD Harmonised Templates / IUCLID, AOP-Wiki, AICIS, APVMA PubCRIS, or PubChem.

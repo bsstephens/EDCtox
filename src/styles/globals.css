@@ -4,3 +4,81 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+:root {
+  --page: #f4f1ea;
+  --header: #f7f4ee;
+  color-scheme: light;
+}
+
+html:not(.dark) .theme-sun,
+html.dark .theme-moon {
+  display: none;
+}
+
+/* Dark mode recolors the shared stone surfaces. Signed score colors stay put. */
+html.dark {
+  --page: #1c1917;
+  --header: #231f1c;
+  color-scheme: dark;
+}
+
+html.dark .bg-white {
+  background-color: #292524;
+}
+html.dark .bg-stone-50,
+html.dark .hover\:bg-stone-50:hover {
+  background-color: #35302c;
+}
+html.dark .bg-stone-100 {
+  background-color: #3f3a36;
+}
+html.dark .bg-stone-200,
+html.dark .hover\:bg-stone-200:hover {
+  background-color: #44403c;
+}
+html.dark .bg-stone-900 {
+  background-color: #f5f5f4;
+  color: #1c1917;
+}
+html.dark .text-stone-950,
+html.dark .hover\:text-stone-950:hover {
+  color: #fafaf9;
+}
+html.dark .text-stone-900 {
+  color: #f5f5f4;
+}
+html.dark .text-stone-800 {
+  color: #e7e5e4;
+}
+html.dark .text-stone-700 {
+  color: #d6d3d1;
+}
+html.dark .text-stone-600,
+html.dark .text-stone-500 {
+  color: #a8a29e;
+}
+html.dark .border-stone-200 {
+  border-color: #44403c;
+}
+html.dark .border-stone-300 {
+  border-color: #57534e;
+}
+html.dark .border-stone-400 {
+  border-color: #78716c;
+}
+html.dark .border-stone-900 {
+  border-color: #e7e5e4;
+}
+html.dark .ring-stone-300 {
+  --tw-ring-color: #57534e;
+}
+html.dark .bg-amber-50 {
+  background-color: #3f3218;
+}
+html.dark .border-amber-200 {
+  border-color: #a16207;
+}
+html.dark .text-amber-950 {
+  color: #fde68a;
+}
