@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
-import { env } from "~/env";
 import { prettyEnum } from "~/lib/labels";
 import { CLAIM_PILOT_PMIDS, CLAIM_PROMPT_VERSION } from "~/server/claims/constants";
 import { loadStoredClaims } from "~/server/claims/load";
@@ -21,7 +19,6 @@ function rank(pmid: string | null): number {
 }
 
 export default async function MechanisticClaimsPage() {
-  if (env.NODE_ENV === "production") notFound();
   const claims = await loadStoredClaims(db);
   const groups = new Map<string, { source: (typeof claims)[number]["evidenceSource"]; claims: typeof claims }>();
   for (const claim of claims) {
@@ -34,18 +31,16 @@ export default async function MechanisticClaimsPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
-      <p className="text-sm">
-        <Link className="underline" href="/admin">
-          Curation
-        </Link>
-        {" · "}
-        <Link className="underline" href="/admin/literature">
-          Literature screening
-        </Link>
+      <p className="text-sm text-stone-600">
+        Unlisted review list. It is not in the public navigation.{" "}
+        <Link className="underline" href="/evidence">
+          Evidence
+        </Link>{" "}
+        still shows only curated findings.
       </p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Mechanistic claims</h1>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-700">
-        Development-only machine claims from stored abstracts for five BPA reproductive papers, extractor {CLAIM_PROMPT_VERSION}. These papers were chosen because the abstract names a specific event. A machine screening include is not treated as screened-in. A claim is not a finding and does not change a score. Low review priority is not scientific acceptance.
+        Machine claims from stored abstracts for five BPA reproductive papers, extractor {CLAIM_PROMPT_VERSION}. These papers were chosen because the abstract names a specific event. A machine screening include is not treated as screened-in. A claim is not a finding and does not change a score. Low review priority is not scientific acceptance. Full abstracts are not shown.
       </p>
       <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         {[

@@ -197,11 +197,14 @@ test("the pilot is five pending papers and the command stays local", () => {
   }
 });
 
-test("claim pages stay off the public site", () => {
+test("the claim review list is unlisted and the public site stays free of claims", () => {
   const page = read("src/app/admin/literature/claims/page.tsx");
-  assert.match(page, /notFound/);
+  assert.equal(page.includes("notFound"), false);
   assert.match(page, /not scientific acceptance/);
+  assert.match(page, /Unlisted review list/);
   assert.equal(page.includes("abstractText"), false);
+  assert.match(read("src/app/admin/page.tsx"), /notFound/);
+  assert.match(read("src/app/admin/literature/page.tsx"), /notFound/);
   for (const path of walk("src/app")) {
     if (path.includes("/admin/literature/")) continue;
     const source = read(path);

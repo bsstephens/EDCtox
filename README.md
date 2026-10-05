@@ -145,7 +145,7 @@ npm run literature:screen -- --compound bpa --domain reproductive --pending --li
 
 The command refuses a database that is not localhost. `/admin/literature` is development-only and reads stored rows. It does not call PubMed or Europe PMC.
 
-Abstract claim extraction is a separate local command for five BPA reproductive papers. It writes machine claims only. It does not write findings, and it does not change mechanism or outcome assessments. A claim is not scientific acceptance.
+Abstract claim extraction is a separate local command for five BPA reproductive papers. It writes machine claims only. It does not write findings, and it does not change mechanism or outcome assessments. A claim is not scientific acceptance. The unlisted review list at `/admin/literature/claims` reads those stored claims. It does not show the full abstract. The screening desk stays off the public site.
 
 ```bash
 npm run literature:claims -- --compound bpa --domain reproductive --limit 5 --dry-run
