@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/DomainBars";
+import { MechanismCoverage } from "~/components/MechanismCoverage";
 import { ScoreCell } from "~/components/ScoreCell";
 import {
   CONFIDENCE_LABEL,
@@ -13,6 +14,8 @@ import {
   prettyEnum,
   signedScore,
 } from "~/lib/labels";
+import { loadCompoundCoverage, type CompoundCoverage } from "~/server/coverage/query";
+import { db } from "~/server/db";
 import { api } from "~/trpc/server";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +44,7 @@ export default async function CompoundPage({
   const query = await searchParams;
   const compound = await api.atlas.bySlug({ slug });
   if (!compound) notFound();
+  const coverage = await loadCompoundCoverage(db, compound.slug);
   const tab: Tab = tabs.some((item) => item[0] === query.tab) ? (query.tab as Tab) : "overview";
 
   return (
@@ -127,7 +131,7 @@ export default async function CompoundPage({
       </nav>
 
       <section className="mt-5">
-        {tab === "overview" ? <Overview compound={compound} /> : null}
+        {tab === "overview" ? <Overview compound={compound} coverage={coverage} /> : null}
         {tab === "mechanisms" ? <Mechanisms compound={compound} /> : null}
         {tab === "outcomes" ? <Outcomes compound={compound} /> : null}
         {tab === "evidence" ? <Evidence compound={compound} /> : null}
@@ -142,10 +146,11 @@ export default async function CompoundPage({
 
 type Compound = NonNullable<Awaited<ReturnType<typeof api.atlas.bySlug>>>;
 
-function Overview({ compound }: { compound: Compound }) {
+function Overview({ compound, coverage }: { compound: Compound; coverage: CompoundCoverage }) {
   return (
     <div className="space-y-6">
       <DomainBars domains={compound.domains} />
+      <MechanismCoverage coverage={coverage} />
       {compound.pathwayNotes.length > 0 ? (
         <div className="rounded border border-stone-300 bg-white p-3 text-sm">
           <h2 className="font-medium">Pathway notes</h2>

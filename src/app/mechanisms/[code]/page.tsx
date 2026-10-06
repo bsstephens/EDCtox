@@ -37,7 +37,6 @@ function ClaimTable({ detail }: { detail: MechanismDetail }) {
                   {claim.subjectText} {prettyEnum(claim.relation)} {claim.objectText}
                 </span>
                 {claim.reviewDerived ? <span className="mt-0.5 block text-xs text-stone-500">Review-derived</span> : null}
-                {claim.verifiedSentence ? <span className="mt-1 block text-stone-700">{claim.verifiedSentence}</span> : null}
               </td>
               <td className="px-3 py-2">
                 {claim.title}
@@ -104,7 +103,7 @@ export default async function MechanismDetailPage({ params }: { params: Promise<
       <p className="mt-3 max-w-3xl text-sm leading-6 text-stone-700">{detail.description}</p>
       <p className="mt-2 text-sm text-stone-600">
         {status}. {detail.verifiedClaims === 0 && detail.claims.length > 0 ? "No curator-verified mapping yet. " : ""}
-        The supporting sentence stays unlisted until a claim is curator-verified. Claim count does not change a score.
+        The supporting sentence stays unlisted. Claim count does not change a score.
       </p>
 
       <section className="mt-6">

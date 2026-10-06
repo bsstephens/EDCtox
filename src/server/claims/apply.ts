@@ -63,6 +63,7 @@ export async function applyMachineClaims(
   });
 
   for (const item of extracted) {
+    const machineMechanismId = item.draft.mechanismId;
     const machine = {
       domainCode: CLAIM_DOMAIN,
       subjectType: item.draft.subjectType,
@@ -74,7 +75,7 @@ export async function applyMachineClaims(
       machineConfidence: item.draft.machineConfidence,
       machineRationale: item.draft.machineRationale,
       machineMappingState: item.draft.machineMappingState,
-      mechanismId: item.draft.mechanismId,
+      machineMechanismId,
       speciesText: item.draft.speciesText,
       tissueText: item.draft.tissueText,
       cellTypeText: item.draft.cellTypeText,
@@ -92,15 +93,26 @@ export async function applyMachineClaims(
       promptVersion: CLAIM_PROMPT_VERSION,
       agentRunId: run.id,
     };
-    await store.mechanisticClaim.upsert({
+    const existing = await store.mechanisticClaim.findUnique({
       where: { stableKey: item.stableKey },
-      create: {
-        stableKey: item.stableKey,
-        evidenceSourceId: item.paper.evidenceSourceId,
-        compoundId: input.compoundId,
-        ...machine,
-      },
-      update: machine,
+      select: { curatorVerified: true, curatorMappingState: true },
+    });
+    if (!existing) {
+      await store.mechanisticClaim.create({
+        data: {
+          stableKey: item.stableKey,
+          evidenceSourceId: item.paper.evidenceSourceId,
+          compoundId: input.compoundId,
+          mechanismId: machineMechanismId,
+          ...machine,
+        },
+      });
+      continue;
+    }
+    const curatorLocked = existing.curatorVerified || existing.curatorMappingState !== null;
+    await store.mechanisticClaim.update({
+      where: { stableKey: item.stableKey },
+      data: curatorLocked ? machine : { ...machine, mechanismId: machineMechanismId },
     });
   }
 

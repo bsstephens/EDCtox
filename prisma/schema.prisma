@@ -486,7 +486,10 @@ model Mechanism {
     interactions CompoundInteraction[]
     dataGaps     DataGap[]
     ontologyMappings ExternalOntologyMapping[]
-    mechanisticClaims MechanisticClaim[]
+    mechanisticClaims MechanisticClaim[] @relation("CurrentClaimMechanism")
+    machineSuggestedClaims MechanisticClaim[] @relation("MachineClaimMechanism")
+    mappingEventsFrom ClaimMappingEvent[] @relation("MappingEventFrom")
+    mappingEventsTo ClaimMappingEvent[] @relation("MappingEventTo")
 
     @@index([domainId, sortOrder])
     @@index([familyId])
@@ -1061,6 +1064,13 @@ enum ClaimMappingState {
     VERIFIED
 }
 
+/// Curator action on a claim-to-mechanism link. This is not a score change.
+enum ClaimMappingAction {
+    VERIFY
+    REMAP
+    UNMAP
+}
+
 /// Review priority only. AUTO_ACCEPT_LOW_RISK is not scientific acceptance.
 enum ClaimReviewPriority {
     AUTO_ACCEPT_LOW_RISK
@@ -1091,7 +1101,10 @@ model MechanisticClaim {
     machineRationale     String                @db.Text
     /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
     machineMappingState  ClaimMappingState
+    /// Current ontology link. A curator remap or unmap changes this pointer.
     mechanismId          String?               @db.Uuid
+    /// Frozen machine suggestion. Curator actions and later re-extraction of the current link do not erase it.
+    machineMechanismId   String?               @db.Uuid
     curatorDirectness    EvidenceDirectness?
     curatorMappingState  ClaimMappingState?
     curatorVerified      Boolean               @default(false)
@@ -1119,13 +1132,38 @@ model MechanisticClaim {
 
     evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
     compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanism      Mechanism?        @relation(fields: [mechanismId], references: [id], onDelete: SetNull)
+    mechanism      Mechanism?        @relation("CurrentClaimMechanism", fields: [mechanismId], references: [id], onDelete: SetNull)
+    machineMechanism Mechanism?     @relation("MachineClaimMechanism", fields: [machineMechanismId], references: [id], onDelete: SetNull)
     agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+    mappingEvents  ClaimMappingEvent[]
 
     @@index([evidenceSourceId])
     @@index([compoundId])
     @@index([mechanismId])
+    @@index([machineMechanismId])
     @@index([agentRunId])
+}
+
+/// Append-only record of a curator mapping decision. Machine extraction does not write these rows.
+model ClaimMappingEvent {
+    id               String             @id @default(uuid()) @db.Uuid
+    claimId          String             @db.Uuid
+    action           ClaimMappingAction
+    fromMechanismId  String?            @db.Uuid
+    toMechanismId    String?            @db.Uuid
+    fromState        ClaimMappingState
+    toState          ClaimMappingState
+    note             String?            @db.Text
+    actor            String
+    createdAt        DateTime           @default(now())
+
+    claim          MechanisticClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+    fromMechanism  Mechanism?       @relation("MappingEventFrom", fields: [fromMechanismId], references: [id], onDelete: SetNull)
+    toMechanism    Mechanism?       @relation("MappingEventTo", fields: [toMechanismId], references: [id], onDelete: SetNull)
+
+    @@index([claimId])
+    @@index([fromMechanismId])
+    @@index([toMechanismId])
 }
 
 model EvidenceFinding {

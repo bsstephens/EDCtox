@@ -36,7 +36,10 @@ export default async function MechanisticClaimsPage() {
         <Link className="underline" href="/evidence">
           Evidence
         </Link>{" "}
-        still shows only curated findings.
+        still shows only curated findings.{" "}
+        <Link className="underline" href="/admin/mechanisms/mapping">
+          Mapping queue
+        </Link>
       </p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Mechanistic claims</h1>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-700">

@@ -59,7 +59,7 @@ export default function MethodologyPage() {
       </ul>
       <h2 className="mt-8 text-lg font-medium">Mechanisms, claims, and assessments</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
-        A mechanism is a reusable concept in the ontology. A claim is a statement read from one paper. An assessment is the EDCtox judgment, including any signed score. The mechanism browser lists every mechanism, including those with no claims and no assessment. A machine-extracted claim can name a mechanism before a curator verifies the mapping. That page shows the citation, directness, and mapping status. The supporting sentence stays unlisted until the claim is curator-verified. The number of claims does not change a score.
+        A mechanism is a reusable concept in the ontology. A claim is a statement read from one paper. An assessment is the EDCtox judgment, including any signed score. The mechanism browser lists every mechanism, including those with no claims and no assessment. A compound page lists which of that compound’s claims are mapped, still candidate mappings, or unmapped. A machine-extracted claim can name a mechanism before a curator verifies the mapping. Those pages show the citation, directness, and mapping status. The supporting sentence stays unlisted. The number of claims does not change a score.
       </p>
       <h2 className="mt-8 text-lg font-medium">Literature candidates</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
