@@ -4,6 +4,7 @@ import { ThemeToggle } from "~/components/ThemeToggle";
 
 const links = [
   ["/", "Compounds"],
+  ["/mechanisms", "Mechanisms"],
   ["/compare", "Compare"],
   ["/evidence", "Evidence"],
   ["/methodology", "Methodology"],

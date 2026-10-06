@@ -57,6 +57,10 @@ export default function MethodologyPage() {
           </li>
         ))}
       </ul>
+      <h2 className="mt-8 text-lg font-medium">Mechanisms, claims, and assessments</h2>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        A mechanism is a reusable concept in the ontology. A claim is a statement read from one paper. An assessment is the EDCtox judgment, including any signed score. The mechanism browser lists every mechanism, including those with no claims and no assessment. A machine-extracted claim can name a mechanism before a curator verifies the mapping. That page shows the citation, directness, and mapping status. The supporting sentence stays unlisted until the claim is curator-verified. The number of claims does not change a score.
+      </p>
       <h2 className="mt-8 text-lg font-medium">Literature candidates</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
         A literature search can store a candidate publication for later screening. That row is not a finding, and it does not change a mechanism or outcome score. A later include or exclude decision is about one compound and one domain. It does not change the publication’s bibliographic status and it does not create a finding. A mechanistic claim read from an abstract is also not a finding. It does not change a score, and a review-priority label is not scientific acceptance. A human-relevant search is not confirmation that the study was a human clinical or observational study. A search for phrases such as “no association” is not confirmation of a null finding. An abstract returned by PubMed or Europe PMC may be kept for internal screening. Public pages do not show that abstract. A retracted publication can remain in the search record, and it still does not support a score.
