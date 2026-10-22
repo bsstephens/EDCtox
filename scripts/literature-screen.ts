@@ -2,8 +2,15 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { PrismaClient } from "../generated/prisma";
 import { assertScientificSnapshotUnchanged, scientificSnapshot } from "../src/server/literature/guard";
-import { applyMachineSuggestions, type SuggestionCandidate } from "../src/server/screening/applySuggestions";
-import { suggestDeterministic } from "../src/server/screening/deterministic";
+import { applyMachineSuggestions, deterministicProvider, type SuggestionCandidate, type SuggestionProvider } from "../src/server/screening/applySuggestions";
+import {
+  CLAUDE_SCREENING_MODEL,
+  CLAUDE_SCREENING_PROMPT_VERSION,
+  CLAUDE_SCREENING_PROVIDER,
+  chooseScreeningTransport,
+  loadSeedKnowledge,
+  suggestWithClaude,
+} from "../src/server/screening/claude";
 import { assertLocalDatabase, parseScreeningArgs } from "../src/server/screening/cli";
 import { loadBpaScreeningQueue, type ScreeningCard } from "../src/server/screening/queue";
 import { SCREENING_MODEL, SCREENING_PROMPT_VERSION, SCREENING_PROVIDER } from "../src/server/screening/reasons";
@@ -38,20 +45,42 @@ function toCandidate(card: ScreeningCard): SuggestionCandidate {
   };
 }
 
+/// The deterministic rules stay the default and the test fixture. `--provider claude` runs the
+/// Claude-backed provider through the same interface; the run then records that provider, model
+/// and prompt version. Either way only machine columns are written, and only on localhost.
+function chooseProvider(name: "deterministic" | "claude"): {
+  provider: SuggestionProvider;
+  providerName: string;
+  model: string;
+  promptVersion: string;
+} {
+  if (name === "claude") {
+    const transport = chooseScreeningTransport();
+    return {
+      provider: suggestWithClaude({ transport, seedKnowledge: loadSeedKnowledge("bpa") }),
+      providerName: `${CLAUDE_SCREENING_PROVIDER}:${transport.name}`,
+      model: CLAUDE_SCREENING_MODEL,
+      promptVersion: CLAUDE_SCREENING_PROMPT_VERSION,
+    };
+  }
+  return { provider: deterministicProvider, providerName: SCREENING_PROVIDER, model: SCREENING_MODEL, promptVersion: SCREENING_PROMPT_VERSION };
+}
+
 async function main() {
   const command = parseScreeningArgs(process.argv.slice(2));
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set.");
   assertLocalDatabase(process.env.DATABASE_URL);
+  const chosen = chooseProvider(command.provider);
 
   const db = new PrismaClient();
   try {
     const before = await scientificSnapshot(db);
     const queue = await loadBpaScreeningQueue(db);
     const selected = selectSuggestionSample(queue.cards, command.limit);
-    console.log(`${SCREENING_PROVIDER} ${SCREENING_MODEL} ${SCREENING_PROMPT_VERSION}`);
+    console.log(`${chosen.providerName} ${chosen.model} ${chosen.promptVersion}`);
     console.log(`localhost BPA reproductive pending suggestions ${selected.length}`);
     for (const card of selected) {
-      const suggestion = suggestDeterministic(toCandidate(card));
+      const suggestion = await chosen.provider(toCandidate(card));
       console.log(
         `${suggestion.decision} ${suggestion.reasonCode} ${suggestion.confidence} ${card.year ?? "?"} pmid ${card.pmid ?? "-"} ${card.title}`,
       );
@@ -67,6 +96,10 @@ async function main() {
       const written = await applyMachineSuggestions(tx, {
         compoundId: queue.compoundId,
         candidates: selected.map(toCandidate),
+        provider: chosen.provider,
+        providerName: chosen.providerName,
+        model: chosen.model,
+        promptVersion: chosen.promptVersion,
       });
       assertScientificSnapshotUnchanged(snapshot, await scientificSnapshot(tx));
       return written;

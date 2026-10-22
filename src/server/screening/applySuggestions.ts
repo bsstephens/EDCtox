@@ -9,10 +9,15 @@ export type SuggestionCandidate = ScreeningText & {
   publicationStatus: string | null;
 };
 
-export type SuggestionProvider = (candidate: SuggestionCandidate) => MachineSuggestion;
+/// A provider reads one candidate and returns one suggestion. It is async so a model-backed
+/// provider and the deterministic rules share one interface. The deterministic rules are the
+/// test fixture; a provider never sees or writes a curator column.
+export type SuggestionProvider = (candidate: SuggestionCandidate) => Promise<MachineSuggestion>;
+
+export const deterministicProvider: SuggestionProvider = async (candidate) => suggestDeterministic(candidate);
 
 export function fixtureSuggestion(suggestion: MachineSuggestion): SuggestionProvider {
-  return () => suggestion;
+  return async () => suggestion;
 }
 
 export async function applyMachineSuggestions(
@@ -22,18 +27,23 @@ export async function applyMachineSuggestions(
     candidates: readonly SuggestionCandidate[];
     provider?: SuggestionProvider;
     providerName?: string;
+    model?: string;
+    promptVersion?: string;
   },
 ): Promise<{ runId: string; written: number }> {
-  const provider = input.provider ?? suggestDeterministic;
+  const provider = input.provider ?? deterministicProvider;
   const eligible = input.candidates.filter((candidate) => candidate.publicationStatus !== "DUPLICATE");
   if (eligible.length === 0) return { runId: "", written: 0 };
-  const suggestions = eligible.map((candidate) => ({ candidate, suggestion: provider(candidate) }));
+  const suggestions: Array<{ candidate: SuggestionCandidate; suggestion: MachineSuggestion }> = [];
+  for (const candidate of eligible) {
+    suggestions.push({ candidate, suggestion: await provider(candidate) });
+  }
   const run = await store.curationAgentRun.create({
     data: {
       taskType: "literature-screening",
       provider: input.providerName ?? SCREENING_PROVIDER,
-      model: SCREENING_MODEL,
-      promptVersion: SCREENING_PROMPT_VERSION,
+      model: input.model ?? SCREENING_MODEL,
+      promptVersion: input.promptVersion ?? SCREENING_PROMPT_VERSION,
       status: "SUCCEEDED",
       inputRefs: {
         compoundId: input.compoundId,

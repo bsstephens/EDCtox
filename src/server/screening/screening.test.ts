@@ -5,12 +5,15 @@ import test from "node:test";
 
 import { applyLiteratureRun } from "../literature/applyCandidates";
 import { planLiteratureHits, type IncomingPaper } from "../literature/dedup";
-import { applyMachineSuggestions, fixtureSuggestion } from "./applySuggestions";
-import { assertLocalDatabase, parseScreeningArgs } from "./cli";
+import { applyMachineSuggestions, deterministicProvider, fixtureSuggestion } from "./applySuggestions";
+import { CLAUDE_SCREENING_MODEL, CLAUDE_SCREENING_PROMPT_VERSION, suggestWithClaude, type ScreeningCompletionRequest, type ScreeningTransport } from "./claude";
+import { assertLocalDatabase, parseCompareArgs, parseScreeningArgs } from "./cli";
+import { cohensKappa, renderComparisonMarkdown, summarizeComparison, type ComparisonRow } from "./compare";
 import { ScreeningError, applyCuratorDecision, assertCuratorCommand } from "./curate";
 import { suggestDeterministic } from "./deterministic";
+import { SCREENING_OUTPUT_SCHEMA, ScreeningProviderError, buildScreeningSystemPrompt, buildScreeningUserPrompt, parseScreeningOutput } from "./prompt";
 import { filterScreeningCards, parseScreeningFilters, type ScreeningCard } from "./queue";
-import { reasonsForDecision } from "./reasons";
+import { SCREENING_CONFIDENCE, SCREENING_DECISIONS, SCREENING_REASONS, reasonsForDecision } from "./reasons";
 import { selectSuggestionSample, type QueueCandidate } from "./sample";
 
 const WRITE_PATH = [
@@ -21,7 +24,11 @@ const WRITE_PATH = [
   "src/server/screening/applySuggestions.ts",
   "src/server/screening/cli.ts",
   "src/server/screening/queue.ts",
+  "src/server/screening/prompt.ts",
+  "src/server/screening/claude.ts",
+  "src/server/screening/compare.ts",
   "scripts/literature-screen.ts",
+  "scripts/literature-screen-compare.ts",
   "src/app/admin/literature/actions.ts",
   "src/app/admin/literature/page.tsx",
 ];
@@ -300,6 +307,246 @@ test("filters do not turn a missing curator decision into a zero agreement displ
     assert.equal(source.includes("compoundOutcomeAssessment"), false, path);
     assert.equal(source.includes("chainOfThought"), false, path);
   }
+});
+
+const SEED = "# Bisphenol A\n\nBisphenol S is a different compound.";
+
+function fakeTransport(output: unknown, seen: ScreeningCompletionRequest[] = []): ScreeningTransport {
+  return {
+    name: "fake",
+    complete: async (request) => {
+      seen.push(request);
+      return { output, servedModel: "claude-haiku-5-5" };
+    },
+  };
+}
+
+function comparisonRow(overrides: Partial<ComparisonRow> & { evidenceSourceId: string }): ComparisonRow {
+  return {
+    pmid: null,
+    year: 2024,
+    title: `Paper ${overrides.evidenceSourceId}`,
+    governingPurpose: "HUMAN_REPRODUCTIVE",
+    existing: null,
+    curator: null,
+    model: null,
+    error: null,
+    ...overrides,
+  };
+}
+
+test("the Claude screener speaks only the reasons.ts vocabulary and carries the pinned prompt version", async () => {
+  assert.equal(CLAUDE_SCREENING_PROMPT_VERSION, "bpa-reproductive-claude-v1");
+  assert.equal(CLAUDE_SCREENING_MODEL, "claude-haiku-5-5");
+  assert.deepEqual(SCREENING_OUTPUT_SCHEMA.properties.decision.enum, [...SCREENING_DECISIONS]);
+  assert.deepEqual(SCREENING_OUTPUT_SCHEMA.properties.reasonCode.enum, [...SCREENING_REASONS]);
+  assert.deepEqual(SCREENING_OUTPUT_SCHEMA.properties.confidence.enum, [...SCREENING_CONFIDENCE]);
+  assert.equal(SCREENING_OUTPUT_SCHEMA.additionalProperties, false);
+  assert.equal("searchPurpose" in SCREENING_OUTPUT_SCHEMA.properties, false);
+
+  const system = buildScreeningSystemPrompt({ seedKnowledge: SEED, endpointVocabulary: ["semen quality", "granulosa"] });
+  assert.match(system, /Bisphenol S is a different compound/);
+  assert.match(system, /semen quality, granulosa/);
+  assert.match(system, /ANIMAL_ONLY and IN_VITRO_ONLY are only valid when the governing purpose is HUMAN_REPRODUCTIVE/);
+  assert.doesNotMatch(system, /curator decision column|curatorDecision/);
+
+  const user = buildScreeningUserPrompt({
+    title: "Bisphenol A and semen quality in men",
+    abstractText: "  Urinary bisphenol A and semen quality were studied in men.  ",
+    retracted: false,
+    purposes: ["CONTRADICTORY_OR_NULL", "SYSTEMATIC_REVIEWS"],
+  });
+  assert.match(user, /Governing purpose: SYSTEMATIC_REVIEWS\./);
+  assert.match(user, /Abstract: Urinary bisphenol A and semen quality were studied in men\.$/m);
+  assert.match(
+    buildScreeningUserPrompt({ title: "Bisphenol A exposure", abstractText: null, retracted: true, purposes: ["HUMAN_REPRODUCTIVE"] }),
+    /Retracted: yes\.\nTitle: Bisphenol A exposure\nAbstract: none is stored\./,
+  );
+
+  const valid = parseScreeningOutput(
+    { decision: "EXCLUDE", reasonCode: "ANIMAL_ONLY", confidence: "HIGH", rationale: "  Adult   mice only.\n No people. " },
+    ["HUMAN_REPRODUCTIVE"],
+  );
+  assert.deepEqual(valid, {
+    decision: "EXCLUDE",
+    reasonCode: "ANIMAL_ONLY",
+    confidence: "HIGH",
+    rationale: "Adult mice only. No people.",
+    searchPurpose: "HUMAN_REPRODUCTIVE",
+  });
+  assert.equal(
+    parseScreeningOutput({ decision: "INCLUDE", reasonCode: "SYSTEMATIC_REVIEW", confidence: "HIGH", rationale: "x".repeat(900) }, ["SYSTEMATIC_REVIEWS"]).rationale.length,
+    400,
+  );
+  assert.throws(
+    () => parseScreeningOutput({ decision: "EXCLUDE", reasonCode: "ANIMAL_ONLY", confidence: "HIGH", rationale: "Mice." }, ["SYSTEMATIC_REVIEWS"]),
+    ScreeningProviderError,
+  );
+  assert.throws(
+    () => parseScreeningOutput({ decision: "INCLUDE", reasonCode: "WRONG_DOMAIN", confidence: "HIGH", rationale: "Mixed." }, ["HUMAN_REPRODUCTIVE"]),
+    /not available/,
+  );
+  assert.throws(() => parseScreeningOutput({ decision: "MAYBE", reasonCode: "OTHER", confidence: "LOW", rationale: "?" }, ["HUMAN_REPRODUCTIVE"]), ScreeningProviderError);
+  assert.throws(() => parseScreeningOutput({ decision: "UNCERTAIN", reasonCode: "OTHER", confidence: "LOW", rationale: "   " }, ["HUMAN_REPRODUCTIVE"]), /empty rationale/);
+  assert.throws(() => parseScreeningOutput("INCLUDE", ["HUMAN_REPRODUCTIVE"]), ScreeningProviderError);
+
+  const seen: ScreeningCompletionRequest[] = [];
+  const served: Array<string | null> = [];
+  const provider = suggestWithClaude({
+    transport: fakeTransport({ decision: "INCLUDE", reasonCode: "DIRECT_HUMAN_EVIDENCE", confidence: "HIGH", rationale: "A cohort of men." }, seen),
+    seedKnowledge: SEED,
+    onServedModel: (model) => served.push(model),
+  });
+  const first = await provider({
+    evidenceSourceId: "s1",
+    title: "Bisphenol A and semen quality in men",
+    abstractText: "A cohort of men.",
+    retracted: false,
+    purposes: ["HUMAN_REPRODUCTIVE"],
+    publicationStatus: "SCREENING_PENDING",
+  });
+  await provider({
+    evidenceSourceId: "s2",
+    title: "Bisphenol A and sperm in mice",
+    abstractText: "Mice.",
+    retracted: false,
+    purposes: ["HUMAN_REPRODUCTIVE"],
+    publicationStatus: "SCREENING_PENDING",
+  });
+  assert.equal(first.decision, "INCLUDE");
+  assert.equal(first.searchPurpose, "HUMAN_REPRODUCTIVE");
+  assert.equal(seen.length, 2);
+  assert.equal(seen[0]?.model, "claude-haiku-5-5");
+  assert.equal(seen[0]?.system, seen[1]?.system);
+  assert.equal(seen[0]?.schema, SCREENING_OUTPUT_SCHEMA);
+  assert.match(seen[0]?.user ?? "", /A cohort of men/);
+  assert.deepEqual(served, ["claude-haiku-5-5", "claude-haiku-5-5"]);
+
+  const strict = suggestWithClaude({
+    transport: fakeTransport({ decision: "EXCLUDE", reasonCode: "IN_VITRO_ONLY", confidence: "HIGH", rationale: "Cells." }),
+    seedKnowledge: SEED,
+  });
+  await assert.rejects(
+    () =>
+      strict({
+        evidenceSourceId: "s3",
+        title: "Bisphenol A and granulosa cells",
+        abstractText: "Cells.",
+        retracted: false,
+        purposes: ["CONTRADICTORY_OR_NULL"],
+        publicationStatus: "SCREENING_PENDING",
+      }),
+    ScreeningProviderError,
+  );
+
+  const deterministic = await deterministicProvider({
+    evidenceSourceId: "s4",
+    title: "Systematic review of bisphenol A and fertility",
+    abstractText: "This systematic review covers bisphenol A and fertility.",
+    retracted: false,
+    purposes: ["SYSTEMATIC_REVIEWS"],
+    publicationStatus: "SCREENING_PENDING",
+  });
+  assert.equal(deterministic.reasonCode, "SYSTEMATIC_REVIEW");
+
+  for (const path of ["src/server/screening/prompt.ts", "src/server/screening/claude.ts", "src/server/screening/applySuggestions.ts"]) {
+    const source = read(path);
+    for (const column of ["curatorDecision", "curatorReasonCode", "curatorNotes", "screenedBy", "screenedAt"]) {
+      assert.equal(source.includes(column), false, `${path} mentions ${column}`);
+    }
+  }
+  const compareScript = read("scripts/literature-screen-compare.ts");
+  assert.equal(compareScript.includes("applyMachineSuggestions"), false);
+  assert.equal(compareScript.includes("applyCuratorDecision"), false);
+  assert.equal(compareScript.includes(".upsert("), false);
+  assert.equal(compareScript.includes(".create("), false);
+  assert.equal(compareScript.includes(".update("), false);
+});
+
+test("the dry-run comparison counts agreement with the rules and the curator and lists disagreements", () => {
+  const rows: ComparisonRow[] = [
+    comparisonRow({
+      evidenceSourceId: "a",
+      existing: { decision: "INCLUDE", reasonCode: "DIRECT_HUMAN_EVIDENCE", confidence: "HIGH" },
+      curator: { decision: "INCLUDE", reasonCode: null },
+      model: { decision: "INCLUDE", reasonCode: "DIRECT_HUMAN_EVIDENCE", confidence: "HIGH", rationale: "People.", searchPurpose: "HUMAN_REPRODUCTIVE" },
+    }),
+    comparisonRow({
+      evidenceSourceId: "b",
+      existing: { decision: "INCLUDE", reasonCode: "REPRODUCTIVE_RELEVANCE", confidence: "MODERATE" },
+      curator: { decision: "EXCLUDE", reasonCode: "WRONG_DOMAIN" },
+      model: { decision: "EXCLUDE", reasonCode: "WRONG_DOMAIN", confidence: "HIGH", rationale: "Plants.", searchPurpose: "CONTRADICTORY_OR_NULL" },
+    }),
+    comparisonRow({
+      evidenceSourceId: "c",
+      existing: { decision: "EXCLUDE", reasonCode: "ANIMAL_ONLY", confidence: "MODERATE" },
+      model: { decision: "EXCLUDE", reasonCode: "IN_VITRO_ONLY", confidence: "HIGH", rationale: "Cells.", searchPurpose: "HUMAN_REPRODUCTIVE" },
+    }),
+    comparisonRow({
+      evidenceSourceId: "d",
+      model: { decision: "UNCERTAIN", reasonCode: "FULL_TEXT_NEEDED", confidence: "LOW", rationale: "No abstract.", searchPurpose: "HUMAN_REPRODUCTIVE" },
+    }),
+    comparisonRow({ evidenceSourceId: "e", existing: { decision: "INCLUDE", reasonCode: "META_ANALYSIS", confidence: "HIGH" }, error: "provider down" }),
+  ];
+  const summary = summarizeComparison(rows);
+  assert.equal(summary.total, 5);
+  assert.equal(summary.screened, 4);
+  assert.equal(summary.errors, 1);
+  assert.deepEqual(summary.modelDecisions, { INCLUDE: 1, EXCLUDE: 2, UNCERTAIN: 1 });
+  assert.equal(summary.versusMachine.n, 3);
+  assert.equal(summary.versusMachine.decisionAgree, 2);
+  assert.equal(summary.versusMachine.reasonComparable, 2);
+  assert.equal(summary.versusMachine.reasonAgree, 1);
+  assert.equal(summary.versusMachine.matrix.INCLUDE.EXCLUDE, 1);
+  assert.equal(summary.versusMachine.matrix.EXCLUDE.EXCLUDE, 1);
+  assert.equal(summary.versusCurator.n, 2);
+  assert.equal(summary.versusCurator.decisionAgree, 2);
+  assert.equal(summary.versusCurator.reasonComparable, 1);
+  assert.equal(summary.versusCurator.reasonAgree, 1);
+  assert.equal(summary.versusCurator.kappa, 1);
+  assert.deepEqual(
+    summary.machineDisagreements.map((row) => row.evidenceSourceId),
+    ["b"],
+  );
+  assert.deepEqual(summary.curatorDisagreements, []);
+  assert.deepEqual(
+    summary.failures.map((row) => row.evidenceSourceId),
+    ["e"],
+  );
+  assert.equal(cohensKappa({ INCLUDE: { INCLUDE: 0, EXCLUDE: 0, UNCERTAIN: 0 }, EXCLUDE: { INCLUDE: 0, EXCLUDE: 0, UNCERTAIN: 0 }, UNCERTAIN: { INCLUDE: 0, EXCLUDE: 0, UNCERTAIN: 0 } }), null);
+  const chance = cohensKappa({ INCLUDE: { INCLUDE: 5, EXCLUDE: 5, UNCERTAIN: 0 }, EXCLUDE: { INCLUDE: 5, EXCLUDE: 5, UNCERTAIN: 0 }, UNCERTAIN: { INCLUDE: 0, EXCLUDE: 0, UNCERTAIN: 0 } });
+  assert.equal(chance, 0);
+
+  const markdown = renderComparisonMarkdown(summary, {
+    promptVersion: "bpa-reproductive-claude-v1",
+    model: "claude-haiku-5-5",
+    servedModels: ["claude-haiku-5-5"],
+    transport: "fake",
+    source: "a fixture",
+    ranAt: "2026-10-22T00:00:00.000Z",
+  });
+  assert.match(markdown, /Decision agreement \| 2 of 3 \(67%\)/);
+  assert.match(markdown, /Nothing was written/);
+  assert.match(markdown, /Paper b/);
+  assert.match(markdown, /provider down/);
+  assert.doesNotMatch(markdown, /abstractText/);
+
+  const nobody = summarizeComparison([rows[3]!]);
+  assert.equal(nobody.versusCurator.n, 0);
+  assert.equal(nobody.versusCurator.decisionRate, null);
+  assert.match(renderComparisonMarkdown(nobody, { promptVersion: "v", model: "m", servedModels: [], transport: "t", source: "s", ranAt: "now" }), /No curator decision to compare against/);
+});
+
+test("the comparison command is a dry run with no apply flag and the screen command accepts a provider", () => {
+  const command = parseCompareArgs(["--compound", "bpa", "--domain", "reproductive"]);
+  assert.deepEqual(command, { fromFile: null, outFile: null, limit: null, concurrency: 4 });
+  assert.equal(parseCompareArgs(["--compound", "bpa", "--domain", "reproductive", "--from", "x.json", "--limit", "5", "--concurrency", "2", "--out", "r.md"]).limit, 5);
+  assert.throws(() => parseCompareArgs(["--compound", "bpa", "--domain", "reproductive", "--apply"]), /never writes/);
+  assert.throws(() => parseCompareArgs(["--compound", "dehp", "--domain", "reproductive"]));
+  assert.throws(() => parseCompareArgs(["--compound", "bpa", "--domain", "reproductive", "--concurrency", "9"]));
+  assert.equal(parseScreeningArgs(["--compound", "bpa", "--domain", "reproductive", "--pending", "--dry-run"]).provider, "deterministic");
+  assert.equal(parseScreeningArgs(["--compound", "bpa", "--domain", "reproductive", "--pending", "--dry-run", "--provider", "claude"]).provider, "claude");
+  assert.throws(() => parseScreeningArgs(["--compound", "bpa", "--domain", "reproductive", "--pending", "--dry-run", "--provider", "gpt"]), /provider/);
 });
 
 function loadEnvFile(path: string) {

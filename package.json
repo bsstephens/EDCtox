@@ -25,12 +25,14 @@
     "external:resolve": "tsx scripts/external-resolve.ts",
     "literature:search": "tsx scripts/literature-search.ts",
     "literature:screen": "tsx scripts/literature-screen.ts",
+    "literature:screen:compare": "tsx scripts/literature-screen-compare.ts",
     "literature:claims": "tsx scripts/literature-claims.ts"
   },
   "prisma": {
     "seed": "./node_modules/.bin/tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "@prisma/client": "^6.6.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.69.0",
