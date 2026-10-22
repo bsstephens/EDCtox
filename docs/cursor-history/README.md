@@ -1,0 +1,20 @@
+# Cursor chat history
+
+Chats exported from Cursor that are about EDCtox (edc.fyi). The export covered 687 chats across the SCOTT multi-root workspace; the rest were about Grifn, grifndoor, Grifn Link or unrelated matters and were not copied. Files are kept verbatim under their original export names. No secrets were found in them (the only connection strings are passwordless `localhost` URLs), so nothing was redacted.
+
+## Chats
+
+- `2026-10-01-pharmaceuticals-comparison-database-56128cb6.md` (1–6 Oct 2026) — The whole project to date in one chat: built the T3/Prisma/Postgres app from the master prompt with the signed −4..+4 scoring model, separate confidence and H0–H4 human relevance, nullable scores and aggregation groups; then applied the schema-refinement prompt (biological context, sex, dose metric, study quality, formulations, metabolic transformations), the phase 1 interoperability layer (external datasets, identifiers, records, assay observations, 15 providers seeded as metadata only), the gut-microbiome/endothelial ontology (273 mechanisms, non-profile `VASCULAR_ENDOTHELIAL` domain, descriptive-by-default diversity mechanisms), put the repo on GitHub and Vercel at edc.fyi with Prisma Postgres and Cloudflare DNS, seeded production (116 compounds, 71 assessments) via `scripts/seed-production.sh`, added phase 2 PubChem identity resolution (BPA and PFOS resolve, DEHP ambiguous, CompTox no-ops without a key), phase 3A versioned PubMed/Europe PMC literature search (`bpa-reproductive-v2`, 90 candidate sources, search never writes findings), phase 3B contextual screening desk at `/admin/literature` (20 machine suggestions, curator decisions separate, local-only), a dark-mode toggle and a brain/hypothalamus favicon, phase 3C `MechanisticClaim` extraction (17 claims from 5 BPA abstracts, copied to production and shown read-only at `/admin/literature/claims`), phase 3D public `/mechanisms` browser, and phase 3E compound mechanism coverage plus the unlisted `/admin/mechanisms/mapping` queue with `ClaimMappingEvent` provenance, all deployed to production with scores unchanged throughout.
+
+## Open threads
+
+- **No BPA claim mappings have been curator-verified.** The mapping queue is live but all 17 claims are still candidate (7) or unmapped (10); the chat ended with "verify a few BPA mappings" as the next step.
+- **TFA stress test not started.** Phase 3C-C (TFA search, identity and the LDH-versus-mitochondria rule) was deferred until the mapping workflow felt right.
+- **Mechanism families mostly unassigned.** 206 of 273 mechanisms have no family; only gut barrier, host–microbe xenobiotic interaction and endothelial/vascular exist. No decision on whether or how to define families for the reproductive and other original domains.
+- **DEHP identity unresolved.** CAS 117-81-7 returns four PubChem CIDs; no identifier was selected and no resolution rule was agreed.
+- **CompTox never called.** `EPA_CTX_API_KEY` was never obtained, so no DTXSIDs exist; the planned ToxCast assay sample (≤20 BPA assays) was explicitly left for a separate yes.
+- **Admin pages have no auth.** The claims list and mapping queue are unlisted but open on production; a single review key in the Vercel environment was suggested and not implemented. The screening desk (full abstracts, curator decisions) is still local-only and its decisions were never copied to production.
+- **Preview deployments may share the production database.** Flagged in the CI/CD walkthrough as something to check in Vercel settings; not confirmed either way.
+- **Re-seeding overwrites curated scores.** The seed upserts seeded assessment keys, so a routine re-seed belongs on the local copy only; no guard exists against running it on production after curation starts.
+- **Three-compound real-data proof (BPA, DEHP, PFOS from CompTox) and the first non-BPA or non-reproductive literature search** were agreed as the direction but not begun.
+- **Phase 3 scope deliberately left out:** Semantic Scholar, the six extraction agents, score proposals, full-text (pass 2) extraction, `REJECTED` mapping state and ontology-gap records.
