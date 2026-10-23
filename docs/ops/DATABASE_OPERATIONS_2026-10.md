@@ -116,3 +116,28 @@ being deployed, which fits crawling better than the scripts.
 Fixes 1–3 together take the measured full-crawl cost from ~9,700 operations to a cold-cache
 cost of roughly 3,000 and a warm-cache cost near zero, well inside any free tier, including
 Supabase's unmetered query count. Fix 4 reduces how often the cache is cold.
+
+## 6. What was done (23 Oct 2026, branch `ops/database-move`)
+
+Production moved to Supabase (free plan, Tokyo) from a `pg_dump` of the Prisma database;
+791 rows in 37 tables, identical counts, migrations reported up to date. Preview deployments
+no longer build (Ignored Build Step in the dashboard and `ignoreCommand` in `vercel.json`) and
+Preview has no database variables. Fixes 1–5 were implemented; fix 6 was not.
+
+Measured again on the local database after the changes, statements per view
+(first request → any later request within a day):
+
+| Route | Before | After, cold | After, cached |
+|---|---:|---:|---:|
+| `/` and every filter or sort of it | 16 | 16 | 0 |
+| `/compounds/[slug]` | 48–53 | 36–39 | 0 |
+| `/compare` (3 compounds / 6 compounds) | 100 / 245 | 0 / 0 | 0 |
+| `/evidence` (any filter) | 6 | 6 | 0 |
+| `/mechanisms` (any filter) | 6 | 6 | 0 |
+| `/mechanisms/[code]` | 10 | 10 | 0 |
+| `/sitemap.xml` | – | 2 | 0 |
+
+A full crawl now costs about 7,600 statements the first time after a deploy and about 0
+until the day-long cache expires, against ~9,700 on every crawl before. The cache key includes
+the deployment id, so each deploy starts cold once; a curator action in the mapping queue
+clears the cache tag immediately.
