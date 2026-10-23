@@ -63,8 +63,11 @@ needs the dashboard. **Scott, please open and paste back:**
 3. Prisma console → `prisma-postgres-copper-bridge` → **Usage** → paste the daily operations
    figures for 3, 4, 6, 7 Oct and a few typical days after that, or describe the graph shape.
 
-With those numbers the crawl-versus-human split and the script share below can be made exact.
-Until then the estimates in this file come from the per-page costs above.
+Update 23 Oct: the Hobby plan only shows the last 12 hours. In that window, with the site
+returning errors on every function call (77.8% error rate, the database being suspended), the
+CDN still served roughly 150 requests, about 300 a day, in small bursts. Visitors that keep
+arriving at a broken site in bursts are crawlers, which supports the one-crawl-a-day reading
+above. The Prisma console figures are still worth pasting in when convenient.
 
 Crawlability: there is **no `robots.txt` and no sitemap**. Every compound, mechanism and compare
 preset is linked from the site, and the compound index has eight column-sort links, each a
