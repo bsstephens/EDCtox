@@ -14,8 +14,8 @@ import {
   prettyEnum,
   signedScore,
 } from "~/lib/labels";
-import { loadCompoundCoverage, type CompoundCoverage } from "~/server/coverage/query";
-import { db } from "~/server/db";
+import { loadCompoundCoverageCached } from "~/server/atlas/cached";
+import { type CompoundCoverage } from "~/server/coverage/query";
 import { api } from "~/trpc/server";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export default async function CompoundPage({
   const query = await searchParams;
   const compound = await api.atlas.bySlug({ slug });
   if (!compound) notFound();
-  const coverage = await loadCompoundCoverage(db, compound.slug);
+  const coverage = await loadCompoundCoverageCached(compound.slug);
   const tab: Tab = tabs.some((item) => item[0] === query.tab) ? (query.tab as Tab) : "overview";
 
   return (

@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CONFIDENCE_LABEL, DIRECTION_LABEL, HUMAN_LABEL, prettyEnum, scoreTone, signedScore } from "~/lib/labels";
-import { db } from "~/server/db";
-import { loadMechanismDetail, mechanismStatus, type MechanismDetail } from "~/server/mechanisms/query";
+import { loadMechanismDetailCached } from "~/server/atlas/cached";
+import { ATLAS_REVALIDATE_SECONDS } from "~/server/cache";
+import { mechanismStatus, type MechanismDetail } from "~/server/mechanisms/query";
 
-export const dynamic = "force-dynamic";
+// No search params here, so the whole page can be served statically and re-rendered
+// at most once a day (or sooner after a deploy).
+export const revalidate = ATLAS_REVALIDATE_SECONDS;
 
 function CountList({ items }: { items: { label: string; count: number }[] }) {
   if (items.length === 0) return <span className="text-stone-500">None recorded</span>;
@@ -83,7 +86,7 @@ function ClaimTable({ detail }: { detail: MechanismDetail }) {
 
 export default async function MechanismDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const detail = await loadMechanismDetail(db, code);
+  const detail = await loadMechanismDetailCached(code);
   if (!detail) notFound();
   const status = mechanismStatus({
     claimCount: detail.claims.length,

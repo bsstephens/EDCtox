@@ -1,7 +1,9 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { ATLAS_CACHE_TAG } from "~/server/cache";
 import { db } from "~/server/db";
 
 import { applyClaimMapping } from "./apply";
@@ -21,6 +23,8 @@ async function run(command: Parameters<typeof applyClaimMapping>[1]) {
   let message: string | null = null;
   try {
     await applyClaimMapping(db, command);
+    // Public mechanism and compound pages read claim mappings from the cache.
+    revalidateTag(ATLAS_CACHE_TAG);
   } catch (error) {
     message = publicMessage(error);
   }

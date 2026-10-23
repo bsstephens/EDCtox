@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { prettyEnum } from "~/lib/labels";
-import { db } from "~/server/db";
-import { filterMechanismRows, loadMechanismRows, mechanismOptions, mechanismStatus, parseMechanismFilters } from "~/server/mechanisms/query";
+import { loadMechanismRowsCached } from "~/server/atlas/cached";
+import { filterMechanismRows, mechanismOptions, mechanismStatus, parseMechanismFilters } from "~/server/mechanisms/query";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function MechanismsPage({
 }) {
   const params = await searchParams;
   const filters = parseMechanismFilters(params);
-  const rows = await loadMechanismRows(db);
+  const rows = await loadMechanismRowsCached();
   const visible = filterMechanismRows(rows, filters);
   const options = mechanismOptions(rows);
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { getCompound, listCompounds, listEvidence, atlasCounts } from "~/server/atlas/queries";
+import { getCompoundCached, listCompoundsCached, listEvidenceCached } from "~/server/atlas/cached";
+import { atlasCounts } from "~/server/atlas/queries";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { PROFILE_LABELS } from "~/lib/labels";
 
@@ -22,7 +23,7 @@ const filterInput = z.object({
 
 export const atlasRouter = createTRPCRouter({
   list: publicProcedure.input(filterInput).query(async ({ input }) => {
-    const compounds = await listCompounds();
+    const compounds = await listCompoundsCached();
     const query = input.q?.trim().toLowerCase();
     const filtered = compounds.filter((compound) => {
       if (query) {
@@ -92,18 +93,24 @@ export const atlasRouter = createTRPCRouter({
   }),
 
   bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-    return getCompound(input.slug);
+    return getCompoundCached(input.slug);
   }),
 
+  // Compare renders only the seven domain cells, which is the index shape. Reading
+  // them from the cached index costs no statements; the old per-slug full load was
+  // 100–245 statements per view.
   compare: publicProcedure
     .input(z.object({ slugs: z.array(z.string().min(1)).min(2).max(6) }))
     .query(async ({ input }) => {
-      const compounds = [];
-      for (const slug of input.slugs) {
-        const compound = await getCompound(slug);
-        if (compound) compounds.push(compound);
-      }
-      return compounds;
+      const compounds = await listCompoundsCached();
+      const bySlug = new Map(compounds.map((compound) => [compound.slug, compound]));
+      const seen = new Set<string>();
+      return input.slugs.flatMap((slug) => {
+        if (seen.has(slug)) return [];
+        seen.add(slug);
+        const compound = bySlug.get(slug);
+        return compound ? [compound] : [];
+      });
     }),
 
   evidence: publicProcedure
@@ -125,7 +132,7 @@ export const atlasRouter = createTRPCRouter({
         mechanismFamily: z.string().optional(),
       }),
     )
-    .query(async ({ input }) => listEvidence(input)),
+    .query(async ({ input }) => listEvidenceCached(input)),
 
   counts: publicProcedure.query(async () => atlasCounts()),
 });
