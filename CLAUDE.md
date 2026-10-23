@@ -13,8 +13,7 @@ into `generated/prisma`. Every public page is a server component.
 
 ## Commands
 
-- `npm run dev` (local Postgres 15 via Homebrew, `.env` / `.env.local`; start it with
-  `LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@15 start`)
+- `npm run dev` against local Postgres 15 (`LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@15 start`)
 - `npm run typecheck`, `npm run test:scoring`, `SKIP_ENV_VALIDATION=1 npm run lint` — run all three
   before each commit (`next lint` validates env at config load, hence the flag)
 - `npm run db:seed` — local only. The seed upserts seed scores over curated rows; never run it
