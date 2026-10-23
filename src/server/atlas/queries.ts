@@ -361,19 +361,21 @@ export async function getCompound(slug: string) {
   });
   if (!compound) return null;
 
-  const listShape = await db.compound.findUniqueOrThrow({
-    where: { slug },
-    include: {
-      aliases: true,
-      exposureContexts: true,
-      findings: { include: { source: true } },
-      mechanismAssessments: { include: assessmentInclude },
-    },
-  });
-  const domains = cellsFor(listShape);
+  // The wide include above already carries everything cellsFor needs. Loading the
+  // compound a second time in the index shape was ~15 extra statements per view.
+  const domains = cellsFor(compound);
 
   const mechanisms = await db.mechanism.findMany({
-    include: { domain: true, parent: true },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      description: true,
+      aggregationGroup: true,
+      scorePolicy: true,
+      domain: { select: { code: true, shortLabel: true, name: true, contributesToProfile: true } },
+      parent: { select: { name: true } },
+    },
     orderBy: [{ domain: { sortOrder: "asc" } }, { sortOrder: "asc" }],
   });
   const assessmentsByMechanism = new Map<string, typeof compound.mechanismAssessments>();
