@@ -105,21 +105,25 @@ npm run typecheck
 
 ## Supabase and Vercel
 
-On a Supabase project:
+Production is a Supabase Postgres project (free plan, Tokyo) since 23 Oct 2026. It was
+restored from a `pg_dump` of the earlier Prisma Postgres database, including
+`_prisma_migrations`, so every migration shows as applied. The move is written up in
+`docs/ops/DATABASE_OPERATIONS_2026-10.md`.
 
-1. Create a Postgres database.
-2. Set `DATABASE_URL` to the pooled connection (port 6543) with `pgbouncer=true&sslmode=require`.
-3. Set `DIRECT_URL` to the direct connection (port 5432) with `sslmode=require`. Migrations use `DIRECT_URL`. The app uses `DATABASE_URL`.
-4. Do not put the service role key in any `NEXT_PUBLIC_` variable. This app does not need it. The browser only talks to the Next.js server.
+On the Supabase project, both strings come from Connect → Connection string → URI:
+
+1. `DATABASE_URL` is the **transaction pooler** (port 6543) with `?pgbouncer=true&sslmode=require`. The app uses it.
+2. `DIRECT_URL` is the **session pooler** (port 5432, same `pooler.supabase.com` host) with `?sslmode=require`. `prisma migrate deploy`, `pg_dump` and `pg_restore` use it. The "direct" `db.<ref>.supabase.co` host is IPv6-only on the free plan and is not used.
+3. Do not put the service role key in any `NEXT_PUBLIC_` variable. This app does not need it. The browser only talks to the Next.js server.
 
 On the Vercel project:
 
-1. Import this repository.
-2. Connect the database. Prisma Postgres supplies `DATABASE_URL` and does not create `DIRECT_URL`. The Vercel build uses `DATABASE_URL` for migrations when `DIRECT_URL` is absent.
-3. A pooled host such as Supabase still needs both: `DATABASE_URL` on the pooler, and `DIRECT_URL` on the direct connection. Migrations cannot run through the pooler.
-4. The build command in `vercel.json` is `npm run vercel-build`, which runs `prisma migrate deploy` and then `next build`.
-5. `postinstall` runs `prisma generate`.
-6. The build does not seed. Run `npm run db:seed` once against the hosted database.
+1. `DATABASE_URL` and `DIRECT_URL` are set for **Production only**, as sensitive variables. Preview has no database variables and `vercel.json` cancels every non-production build (`ignoreCommand`), so a branch push never touches production.
+2. `regions` in `vercel.json` pins functions to Tokyo (`hnd1`) to sit next to the database.
+3. The build command in `vercel.json` is `npm run vercel-build`, which runs `prisma migrate deploy` and then `next build`. `postinstall` runs `prisma generate`.
+4. The build does not seed. Seeding re-applies seed scores over curated rows, so it belongs on the local copy; production was loaded once with `scripts/seed-production.sh`.
+
+To reach production from this machine, copy the two strings into `.env.supabase.local` (gitignored) and pass them as environment variables for the one command that needs them; never commit them.
 
 Identity checks for BPA, DEHP, and PFOS are a separate command. A dry run calls PubChem and writes nothing:
 
