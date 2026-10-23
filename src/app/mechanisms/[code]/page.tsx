@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 
 import { CONFIDENCE_LABEL, DIRECTION_LABEL, HUMAN_LABEL, prettyEnum, scoreTone, signedScore } from "~/lib/labels";
 import { loadMechanismDetailCached } from "~/server/atlas/cached";
-import { ATLAS_REVALIDATE_SECONDS } from "~/server/cache";
 import { mechanismStatus, type MechanismDetail } from "~/server/mechanisms/query";
 
 // No search params here, so the whole page can be served statically and re-rendered
-// at most once a day (or sooner after a deploy).
-export const revalidate = ATLAS_REVALIDATE_SECONDS;
+// at most once a day (or sooner after a deploy). Next requires this to be a literal,
+// so it repeats ATLAS_REVALIDATE_SECONDS from ~/server/cache rather than importing it.
+export const revalidate = 86400;
 
 function CountList({ items }: { items: { label: string; count: number }[] }) {
   if (items.length === 0) return <span className="text-stone-500">None recorded</span>;
