@@ -1,6 +1,13 @@
+export type ScreeningProviderName = "deterministic" | "claude";
+
 export type ScreeningCommand = {
   dryRun: boolean;
   limit: number;
+  provider: ScreeningProviderName;
+  /** Claude provider only: replay recorded responses from this file, and record new ones into it. */
+  transcript: string | null;
+  /** Claude provider only: write the prompts to this file and stop without screening. */
+  writePrompts: string | null;
 };
 
 function argument(argv: string[], name: string): string | undefined {
@@ -32,5 +39,17 @@ export function parseScreeningArgs(argv: string[]): ScreeningCommand {
   const limitText = argument(argv, "--limit") ?? "20";
   const limit = Number(limitText);
   if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new Error("Use --limit from 1 to 20.");
-  return { dryRun, limit };
+  const providerText = argument(argv, "--provider") ?? "deterministic";
+  if (providerText !== "deterministic" && providerText !== "claude") {
+    throw new Error("Use --provider deterministic or --provider claude.");
+  }
+  if (providerText === "claude" && apply) {
+    throw new Error("Phase 4A compares the Claude provider in --dry-run only. Writing its suggestions waits for the lane guard (4C).");
+  }
+  const transcript = argument(argv, "--transcript") ?? null;
+  const writePrompts = argument(argv, "--write-prompts") ?? null;
+  if ((transcript || writePrompts) && providerText !== "claude") {
+    throw new Error("--transcript and --write-prompts apply to --provider claude only.");
+  }
+  return { dryRun, limit, provider: providerText, transcript, writePrompts };
 }

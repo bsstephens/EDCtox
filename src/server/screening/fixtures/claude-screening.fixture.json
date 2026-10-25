@@ -1,0 +1,38 @@
+{
+  "promptVersion": "bpa-reproductive-claude-v1",
+  "entries": {
+    "fixture-human-cohort": {
+      "title": "Urinary bisphenol A and semen quality in a fertility clinic cohort",
+      "promptSha256": "computed-at-test-time",
+      "model": "claude-haiku-5-5",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "DIRECT_HUMAN_EVIDENCE",
+        "confidence": "HIGH",
+        "rationale": "A cohort of men attending a fertility clinic with urinary bisphenol A measured against semen parameters. Human primary evidence on a reproductive endpoint, which the human-reproductive queue asks for.   "
+      }
+    },
+    "fixture-animal-on-human-queue": {
+      "title": "Bisphenol A lowers sperm count in adult male mice",
+      "promptSha256": "computed-at-test-time",
+      "model": "claude-haiku-5-5",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "ANIMAL_ONLY",
+        "confidence": "HIGH",
+        "rationale": "An invalid pairing used by the test."
+      }
+    },
+    "fixture-malformed": {
+      "title": "Bisphenol A migration from canned beverages",
+      "promptSha256": "computed-at-test-time",
+      "model": "claude-haiku-5-5",
+      "response": {
+        "decision": "MAYBE",
+        "reasonCode": "EXPOSURE_ONLY",
+        "confidence": "HIGH",
+        "rationale": "A decision outside the vocabulary used by the test."
+      }
+    }
+  }
+}

@@ -9,10 +9,24 @@ export type SuggestionCandidate = ScreeningText & {
   publicationStatus: string | null;
 };
 
-export type SuggestionProvider = (candidate: SuggestionCandidate) => MachineSuggestion;
+/** A provider may be synchronous (the deterministic rules) or asynchronous (a model call). */
+export type SuggestionProvider = (candidate: SuggestionCandidate) => Promise<MachineSuggestion> | MachineSuggestion;
+
+/** Provider, model and prompt version recorded on the CurationAgentRun for every machine write. */
+export type SuggestionProvenance = {
+  provider: string;
+  model: string;
+  promptVersion: string;
+};
+
+export const DETERMINISTIC_PROVENANCE: SuggestionProvenance = {
+  provider: SCREENING_PROVIDER,
+  model: SCREENING_MODEL,
+  promptVersion: SCREENING_PROMPT_VERSION,
+};
 
 export function fixtureSuggestion(suggestion: MachineSuggestion): SuggestionProvider {
-  return () => suggestion;
+  return () => Promise.resolve(suggestion);
 }
 
 export async function applyMachineSuggestions(
@@ -21,19 +35,29 @@ export async function applyMachineSuggestions(
     compoundId: string;
     candidates: readonly SuggestionCandidate[];
     provider?: SuggestionProvider;
+    /** Overrides the provider name only. Prefer `provenance` for a model-backed provider. */
     providerName?: string;
+    provenance?: SuggestionProvenance;
   },
 ): Promise<{ runId: string; written: number }> {
-  const provider = input.provider ?? suggestDeterministic;
+  const provider: SuggestionProvider = input.provider ?? suggestDeterministic;
+  const provenance: SuggestionProvenance = {
+    ...DETERMINISTIC_PROVENANCE,
+    ...input.provenance,
+    ...(input.providerName ? { provider: input.providerName } : {}),
+  };
   const eligible = input.candidates.filter((candidate) => candidate.publicationStatus !== "DUPLICATE");
   if (eligible.length === 0) return { runId: "", written: 0 };
-  const suggestions = eligible.map((candidate) => ({ candidate, suggestion: provider(candidate) }));
+  const suggestions: Array<{ candidate: SuggestionCandidate; suggestion: MachineSuggestion }> = [];
+  for (const candidate of eligible) {
+    suggestions.push({ candidate, suggestion: await provider(candidate) });
+  }
   const run = await store.curationAgentRun.create({
     data: {
       taskType: "literature-screening",
-      provider: input.providerName ?? SCREENING_PROVIDER,
-      model: SCREENING_MODEL,
-      promptVersion: SCREENING_PROMPT_VERSION,
+      provider: provenance.provider,
+      model: provenance.model,
+      promptVersion: provenance.promptVersion,
       status: "SUCCEEDED",
       inputRefs: {
         compoundId: input.compoundId,

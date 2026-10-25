@@ -15,7 +15,7 @@ const PURPOSE_RANK: Record<ScreeningPurposeName, number> = {
   CONTRADICTORY_OR_NULL: 2,
 };
 
-const ENDPOINTS = [
+export const REPRODUCTIVE_ENDPOINTS = [
   "reproductive hormone",
   "male fertility",
   "female fertility",
@@ -107,7 +107,7 @@ export function suggestDeterministic(input: ScreeningText): MachineSuggestion {
   const otherBisphenol = any(text, ["bisphenol s", "bisphenol f", "bisphenol af", "bisphenol b", "bps", "bpf"]);
   const titleNamesOtherBisphenol = any(title, ["bisphenol s", "bisphenol f", "bisphenol af", "bisphenol b"]);
   const titleNamesBisphenolA = has(title, "bisphenol a") || has(title, "bpa") || has(title, "80 05 7");
-  const endpoint = any(text, ENDPOINTS);
+  const endpoint = any(text, REPRODUCTIVE_ENDPOINTS);
   const human = any(text, HUMAN);
   const animal = any(text, ANIMAL);
   const inVitro = any(text, ["in vitro", "cell line"]);
