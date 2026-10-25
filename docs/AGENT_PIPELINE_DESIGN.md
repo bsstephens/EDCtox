@@ -175,3 +175,25 @@ Each slice stops for review, as phases 1 to 3 did.
 3. Agree the model split, Haiku 5.5 for screening and Opus 5.5 for extraction, proposals and audit.
 4. Say whether the first ten seed-knowledge files should be written by you, by the model from the current seed assessments for you to correct, or both.
 5. Say whether 4A should start now.
+
+### Decisions (Scott, 25 Oct 2026)
+
+1. **Agreed.** The outcome layer carries the headline when outcome evidence exists. Scott is not
+   sold on the word "damage"; the framing stands, the name is open.
+2. **Changed.** Scores may move without a person. 4D gains an auto-accept lane: a proposal above
+   a confidence bar is applied by the machine, writes an `AssessmentRevision` whose actor is the
+   model and run id (never a curator), is reported in the audit summary, and can be reverted
+   with one command per run. The snapshot guard in section 6.1 still applies: a run that changes
+   an assessment outside its own proposals fails and rolls back. The bar and the first lane
+   (mechanism assessments only, outcomes later) are set in 4D after 4B's comparison numbers
+   exist. Token cost must stay on Max-plan cloud sessions with the Haiku/Opus split below;
+   nothing in the pipeline uses the interactive Fable session.
+3. **Agreed.** Haiku 5.5 for screening; Opus 5.5 for extraction, proposals and audit.
+4. **Model drafts, Scott corrects.** The first ten seed-knowledge files, written by the model from
+   the current seed assessments and the compound's own literature, then corrected by Scott:
+   BPA, DEHP, PFOS, TFA, valproate, olanzapine, paraquat, rotenone, boscalid, melatonin. That
+   covers the four compounds Scott named plus the mitochondrial and metabolic domains he is
+   most interested in, with melatonin as the protective reference. Isocycloseram waits for its
+   ontology proposal (`docs/proposals/ISOCYCLOSERAM.md`) because the ontology has no
+   ion-channel mechanism yet.
+5. **4A starts now** (25 Oct 2026).
