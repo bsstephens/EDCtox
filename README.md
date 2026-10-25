@@ -149,6 +149,14 @@ npm run literature:screen -- --compound bpa --domain reproductive --pending --li
 
 The command refuses a database that is not localhost. `/admin/literature` is development-only and reads stored rows. It does not call PubMed or Europe PMC.
 
+Phase 4A adds a Claude-backed provider (Haiku 5.5, prompt `bpa-reproductive-claude-v1`) beside the keyword rules. It is dry-run only in 4A and compares the model with the stored machine suggestions and any curator decisions:
+
+```bash
+npm run literature:screen -- --compound bpa --domain reproductive --pending --dry-run --provider claude --transcript docs/ops/phase-4a/claude-screening-transcript.json
+```
+
+The API transport reads `ANTHROPIC_API_KEY` (optional, server-only). A `--transcript` file replays recorded answers and records new ones; `--write-prompts <file>` dumps the prompts without screening. Results and the comparison are in `docs/ops/PHASE_4A_SCREENER_REPORT.md`.
+
 Abstract claim extraction is a separate local command for five BPA reproductive papers. It writes machine claims only. It does not write findings, and it does not change mechanism or outcome assessments. A claim is not scientific acceptance. The unlisted review list at `/admin/literature/claims` reads those stored claims. It does not show the full abstract. The screening desk stays off the public site.
 
 ```bash

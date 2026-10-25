@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod/v4";
 
-import type { SuggestionCandidate, SuggestionProvenance, SuggestionProvider } from "./applySuggestions";
+import type { SuggestionCandidate, SuggestionProvenance } from "./applySuggestions";
 import { governingPurpose, REPRODUCTIVE_ENDPOINTS, type MachineSuggestion } from "./deterministic";
 import {
   SCREENING_CONFIDENCE,
@@ -238,7 +238,9 @@ export type ClaudeScreeningProviderOptions = {
 };
 
 /** The SuggestionProvider. Deterministic given a completion; the completion decides the transport. */
-export function createClaudeSuggestionProvider(options: ClaudeScreeningProviderOptions): SuggestionProvider {
+export function createClaudeSuggestionProvider(
+  options: ClaudeScreeningProviderOptions,
+): (candidate: SuggestionCandidate) => Promise<MachineSuggestion> {
   return async (candidate) => {
     const request = buildClaudeScreeningRequest(candidate);
     const raw = await options.completion(request);
