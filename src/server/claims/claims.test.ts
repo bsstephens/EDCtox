@@ -7,7 +7,7 @@ import { applyMachineClaims } from "./apply";
 import { assertClaimDatabase, parseClaimArgs } from "./cli";
 import { CLAIM_PILOT_PMIDS, MITOCHONDRIAL_MECHANISM_CODES } from "./constants";
 import { acronymIsSpecific, claimStableKey, extractMechanisticClaims, resolveMechanismCode, type ClaimDraft, type MechanismCatalog } from "./extract";
-import { selectClaimPilot } from "./select";
+import { orderByCompoundCentrality, selectClaimPilot } from "./select";
 
 const WRITE_PATH = [
   "src/server/claims/constants.ts",
@@ -187,7 +187,38 @@ test("the pilot is five pending papers and the command stays local", () => {
   assert.throws(() => parseClaimArgs(["--all", "--dry-run", "--compound", "bpa", "--domain", "reproductive"]), /--all/);
   assert.throws(() => parseClaimArgs(["--dry-run", "--apply", "--compound", "bpa", "--domain", "reproductive"]), /either/);
   assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--limit", "90"]), /1 to 5/);
-  assert.deepEqual(parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]), { dryRun: true, limit: 5 });
+  assert.deepEqual(parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]), {
+    dryRun: true,
+    limit: 5,
+    cohort: "pilot",
+    extractor: "deterministic",
+    inspect: null,
+    transcriptPath: undefined,
+    recordPath: undefined,
+  });
+
+  // The included cohort is a bigger run of the same compound and domain, so it raises the
+  // ceiling and nothing else. --all would change the scope and is still refused.
+  const included = parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--cohort", "included"]);
+  assert.equal(included.cohort, "included");
+  assert.equal(included.limit, 60);
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--cohort", "every"]), /pilot or/);
+  assert.throws(
+    () => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--cohort", "included", "--limit", "900"]),
+    /1 to 60/,
+  );
+  // Another compound or domain is still a different scope and still refused.
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "phthalates", "--domain", "reproductive"]), /--compound bpa/);
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "redox"]), /--domain reproductive/);
+
+  // The rule-based extractor is the default: a model run, which costs money, is always asked for.
+  assert.equal(parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]).extractor, "deterministic");
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--extractor", "gpt"]), /deterministic or/);
+  // Inspecting is a read, so it cannot be paired with a write.
+  assert.throws(
+    () => parseClaimArgs(["--apply", "--compound", "bpa", "--domain", "reproductive", "--inspect", "10"]),
+    /without writing/,
+  );
   try {
     assertClaimDatabase("postgresql://scott:secret@db.example/edctox");
     assert.fail("non-local database was accepted");
@@ -421,4 +452,29 @@ test("the five pilot abstracts support specific claims", { skip: !isLocalDatabas
   } finally {
     await db.$disconnect();
   }
+});
+
+
+test("the cohort is ordered by how central the compound is, and nothing is dropped", () => {
+  // The first inspection of this cohort read the ten oldest papers and found BPA was the fifth
+  // of eight agents in a panel in most of them, which yields true but unmappable claims about a
+  // bystander. The multi-compound screening assays are the older literature, so reading by year
+  // made that the whole sample.
+  const bpa = (name: string) => name.toLowerCase().includes("bisphenol") || name.toLowerCase().startsWith("bpa");
+  const rows = [
+    { pmid: "old-panel", year: 1999, profiles: [{ compoundsStudied: ["17beta-estradiol", "bisphenol A", "2,3-dichlorophenole"] }] },
+    { pmid: "bpa-only", year: 2015, profiles: [{ compoundsStudied: ["bisphenol A"] }] },
+    { pmid: "bpa-first", year: 2026, profiles: [{ compoundsStudied: ["Bisphenol A", "estrone", "17beta-estradiol", "mifepristone"] }] },
+    { pmid: "unprofiled", year: 2024, profiles: [] },
+    { pmid: "bpa-only-older", year: 2012, profiles: [{ compoundsStudied: ["bisphenol A"] }] },
+  ];
+  const ordered = orderByCompoundCentrality(rows, bpa);
+  assert.deepEqual(
+    ordered.map((row) => row.pmid),
+    ["bpa-only", "bpa-only-older", "bpa-first", "old-panel", "unprofiled"],
+  );
+  // Ordering only: every paper is still there, so a bystander finding is not thrown away.
+  assert.equal(ordered.length, rows.length);
+  // A paper the profiler never read sorts last rather than being treated as central.
+  assert.equal(ordered[ordered.length - 1]?.pmid, "unprofiled");
 });

@@ -29,11 +29,22 @@ export async function applyMachineClaims(
     compoundId: string;
     papers: readonly ClaimPaper[];
     extract?: ClaimExtractor;
+    /**
+     * Who produced these claims. It defaults to the rule-based extractor's constants, so a
+     * model-backed run must say so: a row that records the wrong producer cannot be audited,
+     * re-run, or retracted when the prompt behind it turns out to be wrong.
+     */
+    provenance?: { provider: string; model: string; promptVersion: string };
   },
 ): Promise<{ runId: string; written: number; papers: number }> {
   const rows = await store.mechanism.findMany({ select: { id: true, code: true, scorePolicy: true } });
   const catalog = catalogFromRows(rows);
   const extract = input.extract ?? defaultExtractor;
+  const provenance = input.provenance ?? {
+    provider: CLAIM_PROVIDER,
+    model: CLAIM_MODEL,
+    promptVersion: CLAIM_PROMPT_VERSION,
+  };
   const perPaper: Array<{ paper: ClaimPaper; drafts: ClaimDraft[] }> = [];
   for (const paper of input.papers) {
     perPaper.push({ paper, drafts: await extract(paper, catalog) });
@@ -50,9 +61,9 @@ export async function applyMachineClaims(
   const run = await store.curationAgentRun.create({
     data: {
       taskType: CLAIM_TASK,
-      provider: CLAIM_PROVIDER,
-      model: CLAIM_MODEL,
-      promptVersion: CLAIM_PROMPT_VERSION,
+      provider: provenance.provider,
+      model: provenance.model,
+      promptVersion: provenance.promptVersion,
       status: "SUCCEEDED",
       inputRefs: {
         compoundId: input.compoundId,
@@ -101,9 +112,9 @@ export async function applyMachineClaims(
       quotedSupport: item.draft.quotedSupport,
       reviewPriority: item.draft.reviewPriority,
       reviewDerived: item.draft.reviewDerived,
-      provider: CLAIM_PROVIDER,
-      modelName: CLAIM_MODEL,
-      promptVersion: CLAIM_PROMPT_VERSION,
+      provider: provenance.provider,
+      modelName: provenance.model,
+      promptVersion: provenance.promptVersion,
       agentRunId: run.id,
     };
     const existing = await store.mechanisticClaim.findUnique({

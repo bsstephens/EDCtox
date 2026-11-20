@@ -1,6 +1,6 @@
 import type { PrismaClient } from "../../../generated/prisma";
 import { CLAIM_DOMAIN, CLAIM_PILOT_PMIDS } from "./constants";
-import { selectClaimPilot } from "./select";
+import { orderByCompoundCentrality, selectClaimPilot } from "./select";
 
 type Db = PrismaClient;
 
@@ -22,6 +22,52 @@ export async function loadClaimPilot(db: Db, limit: number) {
   return {
     compoundId: compound.id,
     papers: selected.map((source) => ({
+      evidenceSourceId: source.id,
+      title: source.title,
+      year: source.year,
+      pmid: source.pmid,
+      abstractText: source.abstractText,
+    })),
+  };
+}
+
+/**
+ * Every BPA reproductive paper the screener included and that has an abstract to read. The
+ * compound and the domain are the pilot's, so this is the same scientific scope with more
+ * papers in it. Ordered oldest first so a truncated run is a stable prefix rather than a
+ * different set of papers each time.
+ */
+export async function loadIncludedClaimCohort(db: Db, limit: number) {
+  const compound = await db.compound.findUniqueOrThrow({ where: { slug: "bpa" }, select: { id: true, canonicalName: true } });
+  const decisions = await db.literatureScreeningDecision.findMany({
+    where: { machineDecision: "INCLUDE", compoundId: compound.id, domainCode: "REP" },
+    select: { evidenceSourceId: true },
+  });
+  const sources = await db.evidenceSource.findMany({
+    where: {
+      id: { in: decisions.map((row) => row.evidenceSourceId) },
+      retracted: false,
+      abstractText: { not: null },
+    },
+    select: {
+      id: true,
+      pmid: true,
+      title: true,
+      year: true,
+      abstractText: true,
+      profiles: { select: { compoundsStudied: true } },
+    },
+  });
+
+  const ordered = orderByCompoundCentrality(
+    sources,
+    (name) => name.toLowerCase().includes("bisphenol") || name.toLowerCase().startsWith("bpa"),
+  );
+
+  return {
+    compoundId: compound.id,
+    compoundName: compound.canonicalName,
+    papers: ordered.slice(0, limit).map((source) => ({
       evidenceSourceId: source.id,
       title: source.title,
       year: source.year,
