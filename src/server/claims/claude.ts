@@ -35,7 +35,7 @@ export const CLAUDE_CLAIM_PROVIDER = "claude";
  * and Haiku is that fallback until the behaviour changes or Scott raises it with Anthropic.
  */
 export const CLAUDE_CLAIM_MODEL = "claude-haiku-5-5";
-export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v1";
+export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v2";
 
 export class ClaudeClaimError extends Error {}
 
@@ -46,7 +46,13 @@ Rules:
 - One claim per distinct stated relationship. Do not split one finding into several claims, and do not merge two findings into one.
 - objectText is the thing affected, in the abstract's own words: a receptor, an enzyme, a gene, a hormone, a cell type, a process, or an outcome. Do not translate it into a standard vocabulary and do not expand an abbreviation the abstract did not expand.
 - relation is what the abstract says happened. NO_EFFECT is a real and useful answer when the abstract reports that nothing changed; record it rather than dropping the finding.
-- machineDirectness says how the abstract supports the claim, and an abstract supports very little directly. DIRECTLY_DEMONSTRATED needs an explicit experimental result in this publication, such as a measured binding constant, a knockout, or a rescue. An abstract that says a compound "inhibits" something, with a result behind it, is STRONGLY_SUPPORTED. A correlation or an association is CONSISTENT_WITH. A review restating others' work, or a mechanism the authors propose, is INFERRED or HYPOTHESIZED.
+- machineDirectness says how firmly this abstract supports this claim. Grade the sentence you quoted, not the quality of the journal, not how plausible the claim is, and not how confident the authors sound. Most sentences in most abstracts do not reach the top of this list. Work down it and stop at the first level that fits:
+  - DIRECTLY_DEMONSTRATED: not available from an abstract. Do not use it.
+  - STRONGLY_SUPPORTED: the quoted sentence reports a measurement these authors made, on this compound, with a direction, and carries a number, a named assay, or a stated comparison against a control. "BPA reduced aromatase mRNA by 40% at 10 nM in granulosa cells."
+  - CONSISTENT_WITH: the quoted sentence reports a real observation that fits the claim without isolating it. A correlation or an association; a change in a downstream marker offered as evidence of an upstream mechanism; a result in one tissue or species read across to another; or a measured change with no direction, no comparison and no control stated. "Exposed animals showed altered expression of steroidogenic genes."
+  - INFERRED: the quoted sentence states the relationship, but this paper did not measure it. The authors are restating earlier work, as a review or an introduction does, or drawing the relationship out of their own results rather than testing it. "These findings indicate disruption of ovarian steroidogenesis."
+  - HYPOTHESIZED: the quoted sentence proposes, suggests or speculates the relationship, or leaves it to future work. "We propose that this contributes to impaired steroidogenesis", "may play a role", "warrants further investigation".
+  Two things override the list. If a sentence fits two levels, take the lower one. If this paper is a review, then any sentence that is not a result these authors measured themselves is INFERRED at best, however firmly it is worded.
 - quotedSupport is the sentence from the abstract that carries the claim, copied exactly and not paraphrased. If you cannot quote a sentence, you do not have a claim.
 - species, tissue, cell type and dose are recorded only when the abstract gives them for this claim. Leave them empty otherwise rather than carrying them over from another sentence.
 - machineRationale is one sentence on why this reading is right. No reasoning steps.
@@ -107,10 +113,14 @@ export const ClaudeClaimOutput = z.object({
         confidence: z.enum(["LOW", "MODERATE", "HIGH"]),
         quotedSupport: z.string().min(1).max(600),
         rationale: z.string().min(1).max(400),
-        speciesText: z.string().max(120),
-        tissueText: z.string().max(120),
-        cellTypeText: z.string().max(120),
-        doseText: z.string().max(160),
+        // No length limit on the four context fields. A verbose answer here is not a wrong
+        // answer, and the whole response is one structured object: the first pilot run lost a
+        // paper's 15 good claims because one tissueText ran to 130 characters. They are
+        // truncated to the column width in parseClaims instead.
+        speciesText: z.string(),
+        tissueText: z.string(),
+        cellTypeText: z.string(),
+        doseText: z.string(),
       }),
     )
     .max(40),
@@ -148,7 +158,12 @@ export function buildClaimRequest(paper: ClaimPaper, compoundName: string): Clai
   };
 }
 
-const empty = (value: string): string | null => (value.trim() ? value.trim() : null);
+/** Null for a field the abstract did not give, trimmed to the column width otherwise. */
+const empty = (value: string, limit: number): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.length <= limit ? trimmed : `${trimmed.slice(0, limit - 1).trimEnd()}\u2026`;
+};
 
 /**
  * Turns the model's answer into claim drafts.
@@ -216,10 +231,10 @@ export function parseClaims(
       machineMappingState: mapping.mappingState,
       mechanismCode,
       mechanismId: mapping.mechanismId,
-      speciesText: empty(claim.speciesText),
-      tissueText: empty(claim.tissueText),
-      cellTypeText: empty(claim.cellTypeText),
-      doseText: empty(claim.doseText),
+      speciesText: empty(claim.speciesText, 120),
+      tissueText: empty(claim.tissueText, 120),
+      cellTypeText: empty(claim.cellTypeText, 120),
+      doseText: empty(claim.doseText, 160),
       measureType: null,
       measureValue: null,
       measureUnit: null,

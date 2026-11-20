@@ -64,6 +64,21 @@ test("the prompt carries the compound and the abstract and nothing about scores"
   assert.match(request.system, /candidate list for a curator/);
 });
 
+test("the prompt teaches every directness level with an example", () => {
+  // The first real run graded 50 of 52 claims STRONGLY_SUPPORTED, because the rule was one
+  // sentence with one example in it. Each level now carries a worked example, and the two
+  // overrides that stop a confident-sounding review sentence reading as a measurement.
+  const { system } = buildClaimRequest(paper, "bisphenol A");
+  for (const level of ["STRONGLY_SUPPORTED", "CONSISTENT_WITH", "INFERRED", "HYPOTHESIZED"]) {
+    const line = system.split("\n").find((row) => row.includes(`- ${level}:`));
+    assert.ok(line, `${level} needs its own line in the prompt`);
+    assert.ok(line.includes('"'), `${level} needs a quoted example, not just a definition`);
+  }
+  assert.match(system, /DIRECTLY_DEMONSTRATED: not available from an abstract/);
+  assert.match(system, /take the lower one/);
+  assert.match(system, /review, then any sentence that is not a result these authors measured/);
+});
+
 test("a claim whose quotation is not in the abstract is dropped", () => {
   // A quotation that cannot be found is the clearest signal that a reading was invented, so it
   // is checked here rather than asked for and trusted.
@@ -99,6 +114,18 @@ test("mapping reuses the existing guards rather than trusting the match", () => 
   // An object the ontology does not hold stays unmapped rather than being forced onto a neighbour.
   const unknown = parse([claim({ objectText: "cell viability", quotedSupport: "Cell viability was unchanged at the same concentrations." })]);
   assert.equal(unknown.drafts[0]?.mechanismCode, null);
+});
+
+test("a long context field is trimmed, not allowed to lose the paper", () => {
+  // The first v2 pilot run lost a paper's 15 claims because one tissueText was 130 characters:
+  // the response is one object, so a cosmetic overrun in one field discarded all of it.
+  const result = parse([claim({ tissueText: "ovarian granulosa cells ".repeat(8) })]);
+  assert.equal(result.drafts.length, 1);
+  const tissue = result.drafts[0]?.tissueText ?? "";
+  assert.equal(tissue.length, 120);
+  assert.ok(tissue.endsWith("\u2026"));
+  // A field within the limit is untouched.
+  assert.equal(parse([claim()]).drafts[0]?.cellTypeText, "granulosa cells");
 });
 
 test("a reported absence of effect is kept, not dropped", () => {

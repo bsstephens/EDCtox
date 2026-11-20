@@ -29,6 +29,7 @@ import {
 } from "../src/server/claims/claude";
 import { CLAIM_PILOT_PMIDS } from "../src/server/claims/constants";
 import { catalogFromRows, claimNorm } from "../src/server/claims/extract";
+import { buildMechanismLookup } from "../src/server/claims/mechanismLookup";
 
 function loadEnvFile(path: string) {
   if (!existsSync(path)) return;
@@ -87,12 +88,8 @@ async function main() {
 
     const mechanismRows = await db.mechanism.findMany({ select: { id: true, code: true, name: true, scorePolicy: true } });
     const catalog = catalogFromRows(mechanismRows);
-    const byName = new Map<string, string>();
-    for (const row of mechanismRows) {
-      byName.set(claimNorm(row.name), row.code);
-      byName.set(claimNorm(row.code.replace(/_/g, " ")), row.code);
-    }
-    const mechanismCodeFor = (objectText: string) => byName.get(claimNorm(objectText)) ?? null;
+    const lookup = buildMechanismLookup(mechanismRows);
+    const mechanismCodeFor = (objectText: string) => lookup.find(objectText);
 
     const stored = await db.mechanisticClaim.findMany({
       where: { evidenceSourceId: { in: sources.map((row) => row.id) } },
@@ -182,6 +179,11 @@ async function main() {
       }
     }
 
+    const isoforms = lookup.isoformMatches();
+    if (isoforms.size > 0) {
+      console.log(`\nMapped by dropping an isoform digit, which a curator should confirm:`);
+      for (const [term, code] of isoforms) console.log(`  ${term} -> ${code}`);
+    }
     if (recordPath) writeClaimTranscript(recordPath, transcript);
     console.log(
       `\nModel read ${modelTotal} claims across ${papers.length - failures.length} papers, ${mappedTotal} mapped to a mechanism.` +
