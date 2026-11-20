@@ -198,3 +198,60 @@ Each item is small and stops for review.
 4. **Table 5.1 burden estimates.** Store and show them as attributed cost estimates, or leave
    them out because they are one group's method?
 5. **Order.** A to F as written, or the literature pipeline first?
+
+## 8. Decisions and revised order (20 Nov 2026)
+
+Sections 6 and 7 were a working draft. This section replaces them.
+
+### Decided
+
+1. **Scope: one site, two labelled tracks.** Expansive: pollutants and drugs with
+   endocrine-disrupting potential. Track one is endocrine disruption in the report's sense.
+   Track two is mitochondrial and metabolic harm, including pharmaceuticals. The site says
+   which track a compound and a column belong to.
+2. **Thyroid becomes its own profile column**, the eighth.
+5. **The pipeline is the centre of the work.** The aim is to populate the database with as
+   little human involvement as possible (see the 25 Oct decisions in
+   `AGENT_PIPELINE_DESIGN.md`).
+
+### Proposed, awaiting a yes
+
+3. **Cancer by the middle road.** No cancer domain and no cancer column. Add the four
+   hormone-related cancers as outcomes. Add the few mechanisms that have no home today
+   (proliferation, epigenetic reprogramming, DNA damage, mammary gland development) inside
+   existing domains. Link existing endocrine mechanisms to those outcomes with `CausalPathway`
+   rows, starting from pathways already published in AOP-Wiki, so a reader can go from an
+   outcome down to mechanisms and their claims.
+4. **Leave the burden estimates out.** They describe a population's exposure in one place and
+   year, which is a risk figure, and EDCtox states that it does not publish risk figures. A
+   link from the methodology page is enough.
+
+### Order of work
+
+Each step stops for review. Steps 1 and 2 come first because the pipeline maps every claim to
+a mechanism or outcome, and a claim with nowhere to land is wasted: ten of the seventeen BPA
+claims are already unmapped.
+
+1. **Ontology migration (expand-only, one migration).** Thyroid as a profile domain, with the
+   five thyroid mechanisms moved under it and the three thyroid outcomes recategorised. The
+   missing outcomes from section 2. The cancer middle road. A key-characteristic tag on
+   mechanisms. Track labels on domains. Scoring tests updated so the 71 assessments are
+   unchanged except where a thyroid assessment moves column.
+2. **Compound records the pipeline needs.** Unscored seed records for the report's in-focus
+   chemicals that are missing (section 3.3).
+3. **Deterministic importers, built as pipeline lanes.** No model involved, fully repeatable:
+   the EU-identified list into `RegulatoryAssessment`, and the existing identity resolver run
+   on production. These give pages cited content immediately and exercise the production write
+   guard before any model writes through it.
+4. **Merge phase 4A, then build 4B (the extractor).** 4A's three open questions are answered
+   first: transport, the 20 curator decisions, and whether model writes wait for 4C.
+5. **Breadth (4C) over the report's compounds.** Query generation per compound and domain,
+   starting with the chemicals the report discusses most and EDCtox has not scored: BPS, BPF,
+   PFOA, DBP, atrazine, chlorpyrifos, DDT, DDE, tributyltin, triclosan.
+6. **Proposals and the auto-accept lane (4D)**, as decided on 25 Oct: machine revisions, the
+   snapshot guard, one-command rollback.
+7. **Presentation.** Default index shows compounds with content; per-page titles; a home page
+   that states the two tracks.
+
+Report-backed statements on compound pages, step D of the old draft, fold into step 3 as a
+second deterministic lane once the regulatory rows exist.
