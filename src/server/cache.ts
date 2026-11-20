@@ -17,7 +17,14 @@ import { unstable_cache } from "next/cache";
 export const ATLAS_CACHE_TAG = "atlas";
 export const ATLAS_REVALIDATE_SECONDS = 60 * 60 * 24;
 
-const deploymentKey = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.VERCEL_DEPLOYMENT_ID ?? "local";
+// Unique per deployment, including a redeploy of the same commit. The commit SHA is the
+// fallback, not the first choice: a redeploy keeps the SHA, so keying on it meant "redeploy to
+// pick up a seed change" silently did nothing and pages served pre-seed data for a day.
+const deploymentKey =
+  process.env.VERCEL_DEPLOYMENT_ID ??
+  process.env.VERCEL_URL ??
+  process.env.VERCEL_GIT_COMMIT_SHA ??
+  "local";
 
 export function cachedQuery<Args extends unknown[], Result>(
   name: string,

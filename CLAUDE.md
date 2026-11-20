@@ -18,28 +18,26 @@ into `generated/prisma`. Every public page is a server component.
   before each commit (`next lint` validates env at config load, hence the flag)
 - `npm run db:seed` — local only. The seed upserts seed scores over curated rows; never run it
   against production.
-- Literature and identity scripts (`literature:*`, `external:resolve`) refuse non-localhost
-  databases unless explicitly pointed at one. Keep it that way.
+- `literature:*` and `external:resolve` refuse a non-localhost database unless pointed at one.
 
 ## Rules that do not change
 
 - Scoring rules live in `src/server/scoring/`. Do not change them without an
   `AssessmentRevision`. `test:scoring` protects the 71 seeded mechanism assessments and 2
   structural findings; it must stay green.
-- Machine stages (search, screening, claim extraction, mapping suggestions) write machine
-  columns only. They never create `EvidenceFinding` rows or change `MechanismAssessment` or
-  `CompoundOutcomeAssessment`. Curator decisions are separate columns.
-- Migrations are expand-only and ship with the code that needs them. Vercel runs
-  `prisma migrate deploy` in the build (`vercel.json` → `npm run vercel-build`).
+- Machine stages (search, screening, extraction, mapping) write machine columns only. They never
+  create `EvidenceFinding` rows or change a `MechanismAssessment` or `CompoundOutcomeAssessment`.
+  Curator decisions live in separate columns.
+- Migrations are expand-only and ship with their code. Vercel runs `prisma migrate deploy` in the build.
 - `/admin/*` routes are unlisted; only the claims list and mapping queue render in production.
 - Public pages read through `src/server/atlas/cached.ts` (one-day data cache, tag `atlas`).
   Any new write that changes what a public page shows must call
   `revalidateTag(ATLAS_CACHE_TAG)`. Admin pages read the database directly. `robots.txt`
   blocks `/admin`, `/api` and all query-string URLs; keep new list pages inside that rule.
-- Shipping a seed change to production is deploy, then seed, then **redeploy**. The cache key
-  includes the deployment id, so anything cached between the deploy and the seed serves
-  pre-seed data for a day. Locally, `rm -rf .next/cache` after seeding, or the dev server
-  shows stale pages and you will think the seed failed.
+- Shipping a seed change is deploy, seed, then **redeploy**: anything cached between the deploy
+  and the seed serves pre-seed data for a day. The cache key is the deployment id, not the
+  commit, so a redeploy of the same commit does change it. Locally, `rm -rf .next/cache` after
+  seeding or the dev server shows stale pages and you will think the seed failed.
 
 ## Database (since 23 Oct 2026)
 
