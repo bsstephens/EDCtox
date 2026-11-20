@@ -327,8 +327,12 @@ test("a pass that fails does not lose the paper, and a paper with no answer stil
   assert.equal(asked, 2);
   assert.deepEqual(failures, [0]);
   assert.equal(drafts.length, 1);
-  // One pass answered, so it is not treated as a disputed claim.
-  assert.equal(drafts[0]?.reviewPriority, "REVIEW_RECOMMENDED");
+  // One reading of the two asked for. The denominator counts what was attempted, not what came
+  // back: a claim backed by one reading is backed by one reading whether the other disagreed or
+  // never arrived, and why it is missing belongs in the run log.
+  assert.equal(drafts[0]?.machinePassesSeen, 1);
+  assert.equal(drafts[0]?.machinePassesRun, 2);
+  assert.equal(drafts[0]?.reviewPriority, "REVIEW_REQUIRED");
   assert.ok(request.promptSha256);
 
   const allFail = createClaudeExtractor({

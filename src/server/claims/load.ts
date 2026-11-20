@@ -37,7 +37,7 @@ export async function loadClaimPilot(db: Db, limit: number) {
  * papers in it. Ordered oldest first so a truncated run is a stable prefix rather than a
  * different set of papers each time.
  */
-export async function loadIncludedClaimCohort(db: Db, limit: number) {
+export async function loadIncludedClaimCohort(db: Db, limit: number, pmids: readonly string[] = []) {
   const compound = await db.compound.findUniqueOrThrow({ where: { slug: "bpa" }, select: { id: true, canonicalName: true } });
   const decisions = await db.literatureScreeningDecision.findMany({
     where: { machineDecision: "INCLUDE", compoundId: compound.id, domainCode: "REP" },
@@ -48,6 +48,7 @@ export async function loadIncludedClaimCohort(db: Db, limit: number) {
       id: { in: decisions.map((row) => row.evidenceSourceId) },
       retracted: false,
       abstractText: { not: null },
+      ...(pmids.length > 0 ? { pmid: { in: [...pmids] } } : {}),
     },
     select: {
       id: true,

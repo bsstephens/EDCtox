@@ -207,7 +207,19 @@ test("the pilot is five pending papers and the command stays local", () => {
     inspect: null,
     transcriptPath: undefined,
     recordPath: undefined,
+    pmids: [],
   });
+
+  // Re-reading a handful of papers after a prompt or ontology change should not cost a re-read
+  // of the rest.
+  assert.deepEqual(
+    parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--pmids", "40429952, 33387880"]).pmids,
+    ["40429952", "33387880"],
+  );
+  assert.throws(
+    () => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--pmids", "PMC12345"]),
+    /digits only/,
+  );
 
   // The included cohort is a bigger run of the same compound and domain, so it raises the
   // ceiling and nothing else. --all would change the scope and is still refused.

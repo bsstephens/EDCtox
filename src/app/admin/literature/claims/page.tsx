@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { prettyEnum } from "~/lib/labels";
-import { CLAIM_PILOT_PMIDS, CLAIM_PROMPT_VERSION } from "~/server/claims/constants";
+import { CLAIM_PILOT_PMIDS } from "~/server/claims/constants";
 import { loadStoredClaims } from "~/server/claims/load";
 import { db } from "~/server/db";
 
@@ -58,7 +58,7 @@ export default async function MechanisticClaimsPage() {
       </p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Mechanistic claims</h1>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-700">
-        Machine claims from stored abstracts for five BPA reproductive papers, extractor {CLAIM_PROMPT_VERSION}. These papers were chosen because the abstract names a specific event. A machine screening include is not treated as screened-in. A claim is not a finding and does not change a score. Low review priority is not scientific acceptance. Full abstracts are not shown.
+        Machine claims from stored abstracts for the BPA reproductive papers the screener included. Each claim names the extractor that read it, and two extractors can hold a row each for one relationship: a rule-based one, and a model-backed one that reads every abstract twice. A claim only one pass read is marked as such and rests on a single reading. A machine screening include is not treated as screened-in. A claim is not a finding and does not change a score. Low review priority is not scientific acceptance. Full abstracts are not shown.
       </p>
       <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         {[

@@ -13,6 +13,11 @@ export type ClaimCommand = {
   inspect: number | null;
   transcriptPath: string | undefined;
   recordPath: string | undefined;
+  /**
+   * Specific papers to re-read, as PMIDs, within the chosen cohort. For repairing or revisiting
+   * a handful of papers after a prompt or ontology change without paying to read the rest.
+   */
+  pmids: readonly string[];
 };
 
 /** The included cohort is larger than the pilot but still one compound and one domain. */
@@ -65,6 +70,11 @@ export function parseClaimArgs(argv: string[]): ClaimCommand {
   if (inspect !== null && (!Number.isInteger(inspect) || inspect < 1)) throw new Error("Use --inspect with a count.");
   if (inspect !== null && apply) throw new Error("--inspect reads without writing, so pass it with --dry-run.");
 
+  const pmidText = argument(argv, "--pmids");
+  const pmids = pmidText ? pmidText.split(",").map((value) => value.trim()).filter(Boolean) : [];
+  if (pmidText !== undefined && pmids.length === 0) throw new Error("Use --pmids with a comma-separated list.");
+  if (pmids.some((value) => !/^\d+$/.test(value))) throw new Error("A PMID is digits only.");
+
   return {
     dryRun,
     limit,
@@ -73,5 +83,6 @@ export function parseClaimArgs(argv: string[]): ClaimCommand {
     inspect,
     transcriptPath: argument(argv, "--transcript"),
     recordPath: argument(argv, "--record"),
+    pmids,
   };
 }

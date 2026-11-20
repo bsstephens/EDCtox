@@ -68,11 +68,11 @@ Six stages. Each writes one `CurationAgentRun` per batch. Each has a dry-run tha
 | 4.1 Discover | Search windows per compound × domain | `LiteratureSearchRun`, candidate `EvidenceSource` | None | Yes, BPA reproductive only |
 | 4.2 Fetch | Candidate sources | `abstractText`; full text to object storage, not the database | None | Abstract only |
 | 4.3 Screen | Title, abstract, purposes | `LiteratureScreeningDecision` machine columns | Haiku 5.5 | Keyword rules |
-| 4.4 Extract and map | Title, abstract, full text when held, mechanism catalogue | `MechanisticClaim` machine columns, `machineMechanismId` | Opus 5.5 | Regex rules, five papers |
+| 4.4 Extract and map | Title, abstract, full text when held, mechanism catalogue, outcome catalogue | `MechanisticClaim` machine columns, `machineMechanismId`, `machineOutcomeId`, pass counts | Haiku 5.5, two passes (Opus 5.5 refuses) | Rules on five papers; model on the 52 included BPA reproductive papers |
 | 4.5 Propose | Verified and candidate claims per compound × mechanism | `AssessmentProposal` (new) | Opus 5.5 | No |
 | 4.6 Audit | A sample of every batch | `CurationAgentRun.status`, a report | Opus 5.5 | No |
 
-Haiku 5.5 is proposed for screening because the task is a bounded classification into the existing enums at high volume. Opus 5.5 is proposed where the task is reading science and deciding what a sentence supports. Both calls use structured output into the existing enum vocabularies so the model cannot invent a decision or reason code. The prompt version is a string constant per stage, as `SCREENING_PROMPT_VERSION` is today, and changes with the prompt text.
+Haiku 5.5 is proposed for screening because the task is a bounded classification into the existing enums at high volume. Opus 5.5 was proposed where the task is reading science and deciding what a sentence supports, and for extraction it is not available: see decision 3. Both calls use structured output into the existing enum vocabularies so the model cannot invent a decision or reason code. The prompt version is a string constant per stage, as `SCREENING_PROMPT_VERSION` is today, and changes with the prompt text.
 
 ### 4.1 Discover
 
@@ -154,7 +154,7 @@ Prompts change. A prompt that reads worse than the last one must not ship. The g
 
 `npm run eval:pipeline` runs the current prompts over the gold set in dry-run and prints agreement per stage. A drop against the last recorded run blocks the version bump. The tests in `src/server/*/*.test.ts` keep covering the apply functions with the deterministic fixtures, so they stay fast and need no model.
 
-Scale, to set expectations rather than to budget: 116 compounds across seven domains is on the order of a few hundred new papers a week. Screening that many abstracts with Haiku 5.5 costs cents. Extraction with Opus 5.5 over the ones that pass costs dollars. Neither is a reason to wait.
+Scale, to set expectations rather than to budget: 116 compounds across seven domains is on the order of a few hundred new papers a week. Screening that many abstracts with Haiku 5.5 costs cents. Extraction also runs on Haiku 5.5, twice per abstract, and the whole 52-paper run cost cents rather than dollars. Neither is a reason to wait.
 
 ## 8. Slices, in order
 
@@ -172,7 +172,7 @@ Each slice stops for review, as phases 1 to 3 did.
 
 1. Agree the damage model framing in section 3, in particular that the outcome layer carries the headline when outcome evidence exists.
 2. Agree that a score never moves without a person, even in 4E. The alternative, auto-accepting proposals above a confidence bar, is possible and is not proposed.
-3. Agree the model split, Haiku 5.5 for screening and Opus 5.5 for extraction, proposals and audit.
+3. Agree the model split, Haiku 5.5 for screening and for extraction, Opus 5.5 for proposals and audit.
 4. Say whether the first ten seed-knowledge files should be written by you, by the model from the current seed assessments for you to correct, or both.
 5. Say whether 4A should start now.
 
@@ -188,7 +188,21 @@ Each slice stops for review, as phases 1 to 3 did.
    (mechanism assessments only, outcomes later) are set in 4D after 4B's comparison numbers
    exist. Token cost must stay on Max-plan cloud sessions with the Haiku/Opus split below;
    nothing in the pipeline uses the interactive Fable session.
-3. **Agreed.** Haiku 5.5 for screening; Opus 5.5 for extraction, proposals and audit.
+3. **Agreed, then overtaken for extraction.** Haiku 5.5 for screening. Opus 5.5 was agreed for
+   extraction, proposals and audit, and extraction does not use it: Opus 5.5 declines this task.
+   On all five pilot abstracts it returned `stop_reason: "refusal"` with category `bio`. The
+   prompt was not reworded to get around the refusal. Haiku 5.5 completed all five and is what
+   4B ships with, at `CLAUDE_CLAIM_MODEL`. Proposals and audit are unbuilt, so the Opus choice
+   there stands untested.
+
+   Extraction reads each abstract **twice** and keeps the union, which was not in this design.
+   A single pass finds 42 to 45 of the findings in the five pilot papers and two find 46 to 50;
+   two passes agree on 74% to 86% of findings. The claims a pass returns are sound, but which
+   marginal findings count as a claim at all moves between passes, so this is a recall measure
+   rather than a correctness one. A claim fewer passes read is queued `REVIEW_REQUIRED` and
+   records how many of the attempted passes read it. A pass can also fail outright, when one
+   claim carries a relation outside the vocabulary and fails the parse for the whole structured
+   object; the other pass then covers the paper, which is why no paper was lost in the real run.
 4. **Model drafts, Scott corrects.** The first ten seed-knowledge files, written by the model from
    the current seed assessments and the compound's own literature, then corrected by Scott:
    BPA, DEHP, PFOS, TFA, valproate, olanzapine, paraquat, rotenone, boscalid, melatonin. That

@@ -65,7 +65,7 @@ async function main() {
     const cohort =
       command.cohort === "pilot"
         ? { ...(await loadClaimPilot(db, command.limit)), compoundName: "bisphenol A" }
-        : await loadIncludedClaimCohort(db, command.limit);
+        : await loadIncludedClaimCohort(db, command.limit, command.pmids);
     if (command.cohort === "pilot" && cohort.papers.length !== command.limit) {
       throw new Error(`Expected ${command.limit} pilot papers, found ${cohort.papers.length}.`);
     }

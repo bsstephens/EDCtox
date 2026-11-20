@@ -16,6 +16,11 @@ into `generated/prisma`. Every public page is a server component.
 - `npm run dev` against local Postgres 15 (`LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@15 start`)
 - `npm run typecheck`, `npm run test:scoring`, `SKIP_ENV_VALIDATION=1 npm run lint` — run all three
   before each commit (`next lint` validates env at config load, hence the flag)
+- `npm run literature:claims -- --dry-run --compound bpa --domain reproductive` runs the
+  rule-based extractor over the five-paper pilot. Add `--cohort included` for the 52 screened
+  BPA reproductive papers, `--extractor claude` to use the model (costs money, prompts first),
+  `--inspect N` to read the first N without writing, and `--pmids a,b` to re-read specific
+  papers. `--all` is refused: another compound or domain is a change of scope, not a bigger run.
 - `npm run db:seed` — local only. The seed upserts seed scores over curated rows; never run it
   against production.
 - `literature:*` and `external:resolve` refuse a non-localhost database unless pointed at one.
@@ -34,6 +39,20 @@ into `generated/prisma`. Every public page is a server component.
   Any new write that changes what a public page shows must call
   `revalidateTag(ATLAS_CACHE_TAG)`. Admin pages read the database directly. `robots.txt`
   blocks `/admin`, `/api` and all query-string URLs; keep new list pages inside that rule.
+- A claim's `stableKey` decides what a re-extraction updates rather than duplicates. It is
+  `claim:{producer}:{hash}`, hashed over the evidence source, subject, relation and the object's
+  **head** where a model supplied one. The producer keeps the rule-based and model-backed
+  extractors from overwriting each other's rows; the head keeps a re-read updating a claim
+  rather than stranding it, since model phrasing drifts between runs. Changing either is a
+  data migration, not just a code change.
+- Claim extraction runs on `claude-haiku-5-5`, twice per abstract, keeping the union. Opus 5.5
+  refuses the task outright, which `src/server/claims/claude.ts` records; do not reword the
+  prompt to get around it. A claim fewer passes read is queued `REVIEW_REQUIRED` and stores the
+  counts, so "one reading of two" is distinguishable from "did not map".
+- A claim points at a `Mechanism` or an `Outcome`, never both, and a `GROUPING_ONLY` mechanism is
+  refused as a claim target. Mapping is exact matching on keys built from the ontology itself:
+  no fuzzy matching, no nearest neighbour. A term the ontology does not hold stays unmapped so
+  the gap stays visible. See `docs/CLAIM_SYNONYM_PROPOSALS.md` for the pending vocabulary work.
 - Shipping a seed change is deploy, seed, then **redeploy**: anything cached between the deploy
   and the seed serves pre-seed data for a day. The cache key is the deployment id, not the
   commit, so a redeploy of the same commit does change it. Locally, `rm -rf .next/cache` after

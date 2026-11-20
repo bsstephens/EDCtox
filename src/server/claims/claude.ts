@@ -434,12 +434,23 @@ function sameFinding(a: ClaimDraft, b: ClaimDraft): boolean {
  * or not it mapped. The model's own stated confidence is left alone: it said how sure it was of
  * its reading, and that is a different question from whether a repeat of the same request
  * happened to surface the same finding.
+ *
+ * `attempted` is how many passes were asked for, which is not always how many answered. It was
+ * the count that answered, on the reasoning that a claim should not look disputed because the
+ * pass that would have confirmed it never returned. That was the wrong way round. What a
+ * curator needs to know is how many independent readings support the claim, and one reading is
+ * one reading whether the second disagreed or never arrived; why it is missing belongs in the
+ * run log, not in the strength of the claim. So a paper where one pass of two failed now yields
+ * claims marked 1 of 2 rather than claims marked as if the question did not arise.
  */
-export function unionPasses(perPass: readonly ClaimDraft[][]): {
+export function unionPasses(
+  perPass: readonly ClaimDraft[][],
+  attempted: number = perPass.length,
+): {
   drafts: ClaimDraft[];
   agreement: Map<string, number>;
 } {
-  const passes = perPass.length;
+  const passes = Math.max(attempted, perPass.length);
   const first = new Map<string, ClaimDraft>();
   const seen = new Map<string, number>();
   for (const drafts of perPass) {
@@ -516,11 +527,12 @@ export function createClaudeExtractor(options: {
       if (lastError instanceof Error) throw lastError;
       throw new ClaudeClaimError(`No pass answered for ${paper.title}.`);
     }
-    if (perPass.length === 1) return perPass[0] ?? [];
-    const { drafts, agreement } = unionPasses(perPass);
-    // The denominator is the passes that answered, not the passes asked for, so a claim is not
-    // marked as disputed merely because the pass that would have confirmed it never returned.
-    options.onAgreement?.(paper, agreement, perPass.length);
+    // Only a single-pass configuration skips the union. A two-pass run where one pass failed
+    // still goes through it, so its claims are recorded as resting on one reading of two
+    // instead of carrying no pass counts at all, which is how 34 claims from five papers came
+    // to look the same as a claim from a deterministic extractor that has no passes.
+    const { drafts, agreement } = unionPasses(perPass, passes);
+    options.onAgreement?.(paper, agreement, passes);
     return drafts;
   };
 }
