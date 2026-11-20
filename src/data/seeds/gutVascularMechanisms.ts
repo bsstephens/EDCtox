@@ -104,7 +104,7 @@ export const gutVascularMechanisms: MechanismSeed[] = [
     group: "VASCULAR_AXIS",
     familyCode: endothelial,
     policy: "GROUPING_ONLY",
-    description: "Organizational parent for vascular mechanisms that are not part of the seven profile columns. Not scored.",
+    description: "Organizational parent for vascular mechanisms that are not part of the profile columns. Not scored.",
   }),
 
   node({

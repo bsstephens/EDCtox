@@ -84,7 +84,7 @@ export default async function MechanismsPage({
           label="Profile domain"
           value={filters.profile}
           options={[
-            { value: "profile", label: "In the seven profile columns" },
+            { value: "profile", label: "In the profile columns" },
             { value: "other", label: "Not in the profile score" },
           ]}
         />

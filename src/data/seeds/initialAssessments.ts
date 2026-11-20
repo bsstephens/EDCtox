@@ -103,7 +103,20 @@ function mechanism(
   };
 }
 
-export const pathways = [
+export type PathwaySeed = {
+  code: string;
+  name: string;
+  description: string;
+  /// The adverse outcome this pathway ends at. Omitted for the anti-double-count clusters, which
+  /// exist to record that several mechanisms are one chain, not to reach an outcome.
+  outcomeCode?: string;
+  /// The AOP-Wiki entry this mirrors. A crosswalk to published work, not a claim about any compound.
+  aopWikiId?: string;
+  /// Mechanisms in order, molecular initiating event first. A reading route, never a score input.
+  steps?: Array<{ mechanismCode: string; note?: string }>;
+};
+
+export const pathways: PathwaySeed[] = [
   {
     code: "BPA_INSULIN_SIGNALING",
     name: "BPA insulin-signalling cluster",
@@ -140,7 +153,29 @@ export const pathways = [
     description:
       "Secondary bile acids, FXR, and TGR5 already share one aggregation group, so they are one metabolic cluster. This pathway names that chain and its possible metabolic continuation. No compound is attached. Pathway membership alone does not prevent score inflation.",
   },
-] as const;
+  // The first pathway that ends at an outcome. It mirrors a published adverse outcome pathway so a
+  // reader can go from a cancer outcome down to the mechanisms that bear on it, and from each
+  // mechanism to its claims. No compound is attached, no score is created, and EDCtox has no cancer
+  // column: the cancers are outcomes only.
+  {
+    code: "ER_ENDOMETRIAL_CANCER",
+    name: "Uterine estrogen-receptor activation and endometrial cancer",
+    description:
+      "Estrogen receptor alpha activation in the uterus, sustained proliferation of the responsive epithelium, and endometrial carcinoma. Mirrors AOP 503 in AOP-Wiki, which was under review when the WHO/UNEP 2026 assessment cited it. The steps are a route for reading evidence. A receptor or proliferation result on this route is not a cancer finding, and no compound is attached to this pathway.",
+    outcomeCode: "ENDOMETRIAL_CANCER",
+    aopWikiId: "AOP 503",
+    steps: [
+      {
+        mechanismCode: "ER_ALPHA_AGONISM",
+        note: "Molecular initiating event: activation of estrogen receptor alpha in uterine tissue.",
+      },
+      {
+        mechanismCode: "HORMONE_DEPENDENT_PROLIFERATION",
+        note: "Sustained proliferation of the hormone-responsive endometrial epithelium.",
+      },
+    ],
+  },
+];
 
 export const mechanismAssessments: MechanismAssessmentSeed[] = [
   mechanism({

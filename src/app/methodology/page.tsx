@@ -8,6 +8,19 @@ export default function MethodologyPage() {
       <p className="mt-3 text-sm leading-6 text-stone-700">
         The unit of record is a compound, in an exposure context, at a mechanism or outcome, supported by a finding. Domain columns are summaries of those records. They are not a substitute for them, and they are not added into one toxicity number.
       </p>
+      <h2 className="mt-6 text-lg font-semibold tracking-tight">The columns, and the two tracks</h2>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        Eight domain columns are displayed. Six of them are endocrine disruption in the sense of the WHO/IPCS definition: reproductive, developmental, neuroendocrine, thyroid, immune, and metabolic. Two of them, mitochondrial and redox, are bioenergetic and cellular harm. That second pair is recorded because it is mechanistically real and because it matters for several pharmaceuticals and newer pesticides in this database, not because it is endocrine disruption. The WHO/UNEP 2026 assessment does not treat mitochondrial or redox effects as an endocrine health domain, and neither does this site. Columns are never added, within a track or across the two.
+      </p>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        Thyroid became its own column in November 2026. It was part of the neuroendocrine domain until then. The move followed the WHO/UNEP 2026 assessment, which rates thyroid evidence as strong in both humans and animals and treats it as a health domain of its own. No score, direction, confidence, or human relevance changed in the move. Only the column an assessment is read under changed, and only for thyroid-hormone assessments. Thyroid-dependent brain development stays on the developmental domain, because the outcome there is brain development.
+      </p>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        Hormone-related cancers are recorded as outcomes. There is no cancer column and no cancer domain. The same assessment rates cancer evidence as moderate in humans and notes that the human epidemiology is heterogeneous, so a receptor result, a proliferation result, or a key-characteristic tag never fills in a cancer outcome. Where a published adverse outcome pathway exists, the mechanisms on it are recorded in order, as a route for reading evidence from an outcome down to the claims beneath it. That route carries no score of its own: aggregation groups, not pathway membership, remain the only thing that stops a chain inflating a domain headline. Cardiovascular outcomes stay on a stored vascular domain that is not a column, matching an evidence rating of emerging.
+      </p>
+      <p className="mt-2 text-sm leading-6 text-stone-700">
+        Mechanisms can carry one of the ten key characteristics of endocrine-disrupting chemicals, where the mapping is unambiguous. That tag records which molecular initiating event a mechanism represents. It is not counted and it is not scored: the assessment is explicit that the key characteristics are not a checklist and that the number a chemical displays does not predict whether it is an endocrine disruptor. An untagged mechanism means the tag was not assigned, never that the mechanism lacks endocrine relevance.
+      </p>
       <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-6">
         {SCORING_RULES.map((rule) => (
           <li key={rule}>{rule}</li>
@@ -35,7 +48,7 @@ export default function MethodologyPage() {
       </p>
       <h2 className="mt-8 text-lg font-medium">Endothelial and vascular evidence</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">
-        ICAM-1, VCAM-1, eNOS, and endothelial reactive oxygen species are mechanisms. They are not a diagnosis of cardiovascular disease. Nitric oxide bioavailability, vascular tone, the endothelial barrier, angiogenesis, haemostasis, and microvascular function live on a vascular domain that is stored and is not one of the seven profile columns. Adhesion and vascular inflammation remain immune mechanisms, each in its own aggregation group. Endothelial reactive oxygen species remains a redox mechanism in its own group. An outcome such as endothelial dysfunction or a thrombotic event stays separate from the mechanism that might lead to it.
+        ICAM-1, VCAM-1, eNOS, and endothelial reactive oxygen species are mechanisms. They are not a diagnosis of cardiovascular disease. Nitric oxide bioavailability, vascular tone, the endothelial barrier, angiogenesis, haemostasis, and microvascular function live on a vascular domain that is stored and is not one of the profile columns. Adhesion and vascular inflammation remain immune mechanisms, each in its own aggregation group. Endothelial reactive oxygen species remains a redox mechanism in its own group. An outcome such as endothelial dysfunction or a thrombotic event stays separate from the mechanism that might lead to it.
       </p>
       <h2 className="mt-8 text-lg font-medium">Aggregation groups and pathways</h2>
       <p className="mt-2 text-sm leading-6 text-stone-700">

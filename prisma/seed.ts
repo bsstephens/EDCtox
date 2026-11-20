@@ -34,6 +34,7 @@ async function main() {
         shortLabel: domain.shortLabel,
         description: domain.description,
         contributesToProfile: domain.contributesToProfile,
+        track: domain.track,
         sortOrder: domain.sortOrder,
       },
       create: {
@@ -42,6 +43,7 @@ async function main() {
         shortLabel: domain.shortLabel,
         description: domain.description,
         contributesToProfile: domain.contributesToProfile,
+        track: domain.track,
         sortOrder: domain.sortOrder,
       },
     });
@@ -119,6 +121,7 @@ async function main() {
         aggregationGroup: mechanism.aggregationGroup,
         scorePolicy: mechanism.scorePolicy,
         quantitativeScoreByDefault: mechanism.quantitativeScoreByDefault ?? true,
+        keyCharacteristic: mechanism.keyCharacteristic ?? null,
         sortOrder: mechanism.sortOrder,
       },
       create: {
@@ -130,6 +133,7 @@ async function main() {
         aggregationGroup: mechanism.aggregationGroup,
         scorePolicy: mechanism.scorePolicy,
         quantitativeScoreByDefault: mechanism.quantitativeScoreByDefault ?? true,
+        keyCharacteristic: mechanism.keyCharacteristic ?? null,
         sortOrder: mechanism.sortOrder,
       },
     });
@@ -167,11 +171,31 @@ async function main() {
   }
 
   for (const pathway of pathways) {
-    await db.causalPathway.upsert({
+    const outcomeId = pathway.outcomeCode
+      ? (await db.outcome.findUniqueOrThrow({ where: { code: pathway.outcomeCode } })).id
+      : null;
+    const row = {
+      name: pathway.name,
+      description: pathway.description,
+      outcomeId,
+      aopWikiId: pathway.aopWikiId ?? null,
+    };
+    const saved = await db.causalPathway.upsert({
       where: { code: pathway.code },
-      update: { name: pathway.name, description: pathway.description },
-      create: pathway,
+      update: row,
+      create: { code: pathway.code, ...row },
     });
+
+    // Steps are declared in order. Re-seeding rewrites the route and leaves the pathway row,
+    // its assessments, and every mechanism untouched.
+    for (const [stepOrder, step] of (pathway.steps ?? []).entries()) {
+      const mechanism = await db.mechanism.findUniqueOrThrow({ where: { code: step.mechanismCode } });
+      await db.causalPathwayStep.upsert({
+        where: { pathwayId_mechanismId: { pathwayId: saved.id, mechanismId: mechanism.id } },
+        update: { stepOrder, note: step.note ?? null },
+        create: { pathwayId: saved.id, mechanismId: mechanism.id, stepOrder, note: step.note ?? null },
+      });
+    }
   }
 
   const withoutParents = compounds.filter((compound) => !compound.parentSlug);

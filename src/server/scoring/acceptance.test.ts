@@ -92,11 +92,16 @@ test("priority compounds keep separate domain headlines", () => {
   assert.equal(boscalid.MITO?.humanRelevance, "H1");
   assert.equal(boscalid.MITO?.trace[0]?.selectedMechanismCode, "ETC_COMPLEX_II");
 
+  // Thyroid became its own profile column in November 2026. TFA's thyroid-hormone assessment is
+  // unchanged in score, direction, confidence, and human relevance; only the column it is read
+  // under moved, from NEUROENDO to THY. Its thyroid-dependent brain development row stays in DEV,
+  // which is why DEV is still 3.
   const tfa = profile("tfa");
-  assert.equal(tfa.NEUROENDO?.maximumEvidenceSupportedEffect, 4);
+  assert.equal(tfa.THY?.maximumEvidenceSupportedEffect, 4);
+  assert.equal(tfa.THY?.humanRelevance, "H2");
+  assert.equal(tfa.NEUROENDO?.maximumEvidenceSupportedEffect, null);
   assert.equal(tfa.DEV?.maximumEvidenceSupportedEffect, 3);
   assert.equal(tfa.REP?.maximumEvidenceSupportedEffect, null);
-  assert.equal(tfa.NEUROENDO?.humanRelevance, "H2");
 
   const fluoxetine = profile("fluoxetine");
   assert.equal(fluoxetine.REP?.dominantDirection, "CONTEXT_DEPENDENT");

@@ -15,15 +15,34 @@ import { descriptiveScoreError } from "./compositionScores";
 
 const gutCodes = new Set(gutVascularMechanisms.map((row) => row.code));
 
-test("the seven profile columns stay the displayed domains", () => {
-  assert.deepEqual([...PROFILE_LABELS], ["REP", "DEV", "NEUROENDO", "IMM", "MET", "MITO", "REDOX"]);
+test("the profile columns stay the displayed domains", () => {
+  // Thyroid was added as the eighth column in November 2026, after the WHO/UNEP assessment rated
+  // thyroid evidence strong in both humans and animals. Exposure and vascular stay out: the same
+  // assessment rates cardiovascular evidence as emerging.
+  assert.deepEqual([...PROFILE_LABELS], ["REP", "DEV", "NEUROENDO", "THY", "IMM", "MET", "MITO", "REDOX"]);
   const vascular = domains.find((row) => row.code === "VASCULAR_ENDOTHELIAL");
   const exposure = domains.find((row) => row.code === "EXPOSURE_DEVELOPMENTAL_MODIFIERS");
+  const thyroid = domains.find((row) => row.code === "THYROID");
   assert.equal(vascular?.shortLabel, "VASCULAR");
   assert.equal(vascular?.contributesToProfile, false);
   assert.equal(exposure?.contributesToProfile, false);
+  assert.equal(thyroid?.shortLabel, "THY");
+  assert.equal(thyroid?.contributesToProfile, true);
   assert.equal(PROFILE_LABELS.includes("VASCULAR" as never), false);
   assert.equal(PROFILE_LABELS.includes("EXPOSURE" as never), false);
+});
+
+test("the two tracks label every domain and never enter a score", () => {
+  // Track membership is editorial. Nothing in src/server/scoring reads it, and the two tracks are
+  // never summed into a single number, any more than two domains within one track are.
+  for (const domain of domains) {
+    assert.ok(["ENDOCRINE_DISRUPTION", "CELLULAR_BIOENERGETIC", "CONTEXTUAL"].includes(domain.track));
+  }
+  const byLabel = new Map(domains.map((row) => [row.shortLabel, row.track]));
+  assert.equal(byLabel.get("THY"), "ENDOCRINE_DISRUPTION");
+  assert.equal(byLabel.get("MITO"), "CELLULAR_BIOENERGETIC");
+  assert.equal(byLabel.get("REDOX"), "CELLULAR_BIOENERGETIC");
+  assert.equal(byLabel.get("EXPOSURE"), "CONTEXTUAL");
 });
 
 test("gut and endothelial mechanisms exist without becoming headline columns", () => {

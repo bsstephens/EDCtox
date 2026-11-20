@@ -1,4 +1,4 @@
-export const PROFILE_LABELS = ["REP", "DEV", "NEUROENDO", "IMM", "MET", "MITO", "REDOX"] as const;
+export const PROFILE_LABELS = ["REP", "DEV", "NEUROENDO", "THY", "IMM", "MET", "MITO", "REDOX"] as const;
 
 export type ProfileLabel = (typeof PROFILE_LABELS)[number];
 
@@ -6,10 +6,30 @@ export const DOMAIN_FULL_NAME: Record<ProfileLabel, string> = {
   REP: "Reproductive",
   DEV: "Developmental",
   NEUROENDO: "Neuroendocrine / HPA",
+  THY: "Thyroid",
   IMM: "Immune",
   MET: "Metabolic",
   MITO: "Mitochondrial",
   REDOX: "Redox",
+};
+
+/// Which of the site's two tracks each profile column belongs to. Editorial labelling for readers.
+/// It is not an input to any score and columns are never added across tracks, or within one.
+export const DOMAIN_TRACK: Record<ProfileLabel, "ENDOCRINE_DISRUPTION" | "CELLULAR_BIOENERGETIC"> = {
+  REP: "ENDOCRINE_DISRUPTION",
+  DEV: "ENDOCRINE_DISRUPTION",
+  NEUROENDO: "ENDOCRINE_DISRUPTION",
+  THY: "ENDOCRINE_DISRUPTION",
+  IMM: "ENDOCRINE_DISRUPTION",
+  MET: "ENDOCRINE_DISRUPTION",
+  MITO: "CELLULAR_BIOENERGETIC",
+  REDOX: "CELLULAR_BIOENERGETIC",
+};
+
+export const TRACK_LABEL: Record<string, string> = {
+  ENDOCRINE_DISRUPTION: "Endocrine disruption",
+  CELLULAR_BIOENERGETIC: "Mitochondrial and redox",
+  CONTEXTUAL: "Context",
 };
 
 export const HUMAN_LABEL: Record<string, string> = {

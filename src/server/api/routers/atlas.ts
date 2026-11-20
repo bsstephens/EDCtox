@@ -96,7 +96,7 @@ export const atlasRouter = createTRPCRouter({
     return getCompoundCached(input.slug);
   }),
 
-  // Compare renders only the seven domain cells, which is the index shape. Reading
+  // Compare renders only the profile domain cells, which is the index shape. Reading
   // them from the cached index costs no statements; the old per-slug full load was
   // 100–245 statements per view.
   compare: publicProcedure

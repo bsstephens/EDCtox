@@ -3,6 +3,21 @@ import { gutVascularMechanisms } from "./gutVascularMechanisms";
 
 export type ScorePolicy = "SCORABLE" | "RESEARCH_ONLY" | "GROUPING_ONLY";
 
+/// The ten key characteristics of EDCs (WHO/UNEP 2026, figure 3.2). Tagged only where the mapping
+/// is unambiguous. The report says plainly that they are not a checklist and that the number a
+/// chemical displays does not predict whether it is an EDC, so nothing here counts or scores them.
+export type KeyCharacteristic =
+  | "KC1_RECEPTOR_AGONIST"
+  | "KC2_RECEPTOR_ANTAGONIST"
+  | "KC3_RECEPTOR_EXPRESSION"
+  | "KC4_SIGNAL_TRANSDUCTION"
+  | "KC5_EPIGENETIC"
+  | "KC6_HORMONE_SYNTHESIS"
+  | "KC7_HORMONE_TRANSPORT"
+  | "KC8_HORMONE_DISTRIBUTION"
+  | "KC9_HORMONE_METABOLISM"
+  | "KC10_CELL_FATE";
+
 export type MechanismSeed = {
   code: string;
   domainCode: DomainCode;
@@ -14,6 +29,7 @@ export type MechanismSeed = {
   sortOrder: number;
   familyCode?: string;
   quantitativeScoreByDefault?: boolean;
+  keyCharacteristic?: KeyCharacteristic;
 };
 
 type Row = {
@@ -23,6 +39,7 @@ type Row = {
   parent?: string;
   policy?: ScorePolicy;
   description?: string;
+  kc?: KeyCharacteristic;
 };
 
 const descriptions: Record<string, string> = {
@@ -63,6 +80,7 @@ function block(domainCode: DomainCode, rows: Row[]): MechanismSeed[] {
     parentCode: row.parent,
     aggregationGroup: row.group,
     scorePolicy: row.policy ?? "SCORABLE",
+    keyCharacteristic: row.kc,
     sortOrder: index,
   }));
 }
@@ -82,30 +100,30 @@ export const mechanisms: MechanismSeed[] = [
     grouping("REP_STEROIDOGENESIS", "Steroidogenic enzymes", "REP_STEROIDOGENESIS"),
     grouping("REP_HPG", "Hypothalamic–pituitary–gonadal axis", "REP_HPG"),
     grouping("REP_GONADAL", "Gonadal function", "REP_GONADAL"),
-    { code: "ER_ALPHA_AGONISM", name: "ER-alpha agonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR" },
-    { code: "ER_ALPHA_ANTAGONISM", name: "ER-alpha antagonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR" },
-    { code: "ER_BETA_AGONISM", name: "ER-beta agonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR" },
-    { code: "ER_BETA_ANTAGONISM", name: "ER-beta antagonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR" },
-    { code: "GPER_SIGNALING", name: "GPER signalling", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR" },
-    { code: "ANDROGEN_RECEPTOR_AGONISM", name: "Androgen receptor agonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR" },
-    { code: "ANDROGEN_RECEPTOR_ANTAGONISM", name: "Androgen receptor antagonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR" },
+    { code: "ER_ALPHA_AGONISM", name: "ER-alpha agonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC1_RECEPTOR_AGONIST" },
+    { code: "ER_ALPHA_ANTAGONISM", name: "ER-alpha antagonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC2_RECEPTOR_ANTAGONIST" },
+    { code: "ER_BETA_AGONISM", name: "ER-beta agonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC1_RECEPTOR_AGONIST" },
+    { code: "ER_BETA_ANTAGONISM", name: "ER-beta antagonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC2_RECEPTOR_ANTAGONIST" },
+    { code: "GPER_SIGNALING", name: "GPER signalling", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC4_SIGNAL_TRANSDUCTION" },
+    { code: "ANDROGEN_RECEPTOR_AGONISM", name: "Androgen receptor agonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR", kc: "KC1_RECEPTOR_AGONIST" },
+    { code: "ANDROGEN_RECEPTOR_ANTAGONISM", name: "Androgen receptor antagonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR", kc: "KC2_RECEPTOR_ANTAGONIST" },
     { code: "PROGESTERONE_RECEPTOR", name: "Progesterone receptor", group: "PROGESTERONE_SIGNALING", parent: "REP_STEROIDOGENESIS" },
-    { code: "AROMATASE_CYP19A1", name: "Aromatase (CYP19A1)", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "STAR", name: "StAR", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "CYP11A1", name: "CYP11A1", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "CYP17A1", name: "CYP17A1", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "HSD3B", name: "3β-HSD", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "HSD17B", name: "17β-HSD", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
+    { code: "AROMATASE_CYP19A1", name: "Aromatase (CYP19A1)", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
+    { code: "STAR", name: "StAR", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
+    { code: "CYP11A1", name: "CYP11A1", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
+    { code: "CYP17A1", name: "CYP17A1", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
+    { code: "HSD3B", name: "3β-HSD", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
+    { code: "HSD17B", name: "17β-HSD", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC6_HORMONE_SYNTHESIS" },
     { code: "GNRH", name: "GnRH", group: "HPG_AXIS", parent: "REP_HPG" },
     { code: "KISSPEPTIN", name: "Kisspeptin", group: "HPG_AXIS", parent: "REP_HPG" },
     { code: "GNIH", name: "GnIH", group: "HPG_AXIS", parent: "REP_HPG" },
-    { code: "LH", name: "LH", group: "HPG_AXIS", parent: "REP_HPG" },
-    { code: "FSH", name: "FSH", group: "HPG_AXIS", parent: "REP_HPG" },
-    { code: "PROLACTIN", name: "Prolactin", group: "HPG_AXIS", parent: "REP_HPG" },
-    { code: "TESTOSTERONE", name: "Testosterone", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "ESTRADIOL", name: "Estradiol", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS" },
-    { code: "PROGESTERONE", name: "Progesterone", group: "PROGESTERONE_SIGNALING", parent: "REP_STEROIDOGENESIS" },
-    { code: "DHT", name: "DHT", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR" },
+    { code: "LH", name: "LH", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "FSH", name: "FSH", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "PROLACTIN", name: "Prolactin", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "TESTOSTERONE", name: "Testosterone", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "ESTRADIOL", name: "Estradiol", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "PROGESTERONE", name: "Progesterone", group: "PROGESTERONE_SIGNALING", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "DHT", name: "DHT", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "SPERMATOGENESIS", name: "Spermatogenesis", group: "GONADAL_FUNCTION", parent: "REP_GONADAL" },
     { code: "OOGENESIS", name: "Oogenesis", group: "GONADAL_FUNCTION", parent: "REP_GONADAL" },
     { code: "OVARIAN_FOLLICLE_RESERVE", name: "Ovarian follicle reserve", group: "GONADAL_FUNCTION", parent: "REP_GONADAL" },
@@ -126,13 +144,22 @@ export const mechanisms: MechanismSeed[] = [
     { code: "FETAL_OVARY", name: "Fetal ovary", group: "FETAL_OVARY", parent: "DEV_FETAL_GONAD" },
     { code: "ANOGENITAL_DISTANCE", name: "Anogenital distance", group: "DEVELOPMENTAL_MORPHOLOGY", parent: "DEV_DIFFERENTIATION" },
     { code: "BRAIN_SEXUAL_DIFFERENTIATION", name: "Brain sexual differentiation", group: "DEVELOPMENTAL_MORPHOLOGY", parent: "DEV_DIFFERENTIATION" },
+    {
+      code: "MAMMARY_GLAND_DEVELOPMENT",
+      name: "Mammary gland development",
+      group: "MAMMARY_DEVELOPMENT",
+      parent: "DEV_DIFFERENTIATION",
+      kc: "KC10_CELL_FATE",
+      description:
+        "Ductal and alveolar development of the mammary gland, including density and branching. A developmental change here is a recognised route to later susceptibility; it is not itself a cancer diagnosis. Unscored until curated.",
+    },
     { code: "THYROID_DEPENDENT_BRAIN_DEVELOPMENT", name: "Thyroid-dependent brain development", group: "THYROID_DEVELOPMENT", parent: "DEV_DIFFERENTIATION" },
     { code: "NEURODEVELOPMENT", name: "Neurodevelopment", group: "NEURODEVELOPMENT", parent: "DEV_DIFFERENTIATION" },
     { code: "PUBERTY_TIMING", name: "Puberty timing", group: "PUBERTY", parent: "DEV_PUBERTY_GROWTH" },
     { code: "MENARCHE", name: "Menarche", group: "PUBERTY", parent: "DEV_PUBERTY_GROWTH" },
     { code: "GROWTH", name: "Growth", group: "GROWTH", parent: "DEV_PUBERTY_GROWTH" },
-    { code: "EPIGENETIC_PROGRAMMING", name: "Epigenetic programming", group: "EPIGENETIC_PROGRAMMING", parent: "DEV_EPIGENETIC" },
-    { code: "GERMLINE_EPIGENETICS", name: "Germline epigenetics", group: "EPIGENETIC_PROGRAMMING", parent: "DEV_EPIGENETIC" },
+    { code: "EPIGENETIC_PROGRAMMING", name: "Epigenetic programming", group: "EPIGENETIC_PROGRAMMING", parent: "DEV_EPIGENETIC", kc: "KC5_EPIGENETIC" },
+    { code: "GERMLINE_EPIGENETICS", name: "Germline epigenetics", group: "EPIGENETIC_PROGRAMMING", parent: "DEV_EPIGENETIC", kc: "KC5_EPIGENETIC" },
     { code: "TRANSGENERATIONAL_SIGNAL", name: "Transgenerational signal", group: "EPIGENETIC_PROGRAMMING", parent: "DEV_EPIGENETIC" },
     { code: "DEVELOPMENTAL_METABOLIC_PROGRAMMING", name: "Developmental metabolic programming", group: "DEVELOPMENTAL_PROGRAMMING", parent: "DEV_EPIGENETIC" },
     { code: "DEVELOPMENTAL_IMMUNE_PROGRAMMING", name: "Developmental immune programming", group: "DEVELOPMENTAL_PROGRAMMING", parent: "DEV_EPIGENETIC" },
@@ -141,10 +168,9 @@ export const mechanisms: MechanismSeed[] = [
     grouping("NEU_HPA", "HPA axis", "NEU_HPA"),
     grouping("NEU_MELATONIN", "Melatonin receptors", "NEU_MELATONIN"),
     grouping("NEU_CIRCADIAN", "Circadian timing", "NEU_CIRCADIAN"),
-    grouping("NEU_THYROID", "Thyroid axis", "NEU_THYROID"),
     { code: "CRH", name: "CRH", group: "HPA", parent: "NEU_HPA" },
     { code: "ACTH", name: "ACTH", group: "HPA", parent: "NEU_HPA" },
-    { code: "CORTISOL", name: "Cortisol", group: "HPA", parent: "NEU_HPA" },
+    { code: "CORTISOL", name: "Cortisol", group: "HPA", parent: "NEU_HPA", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "GLUCOCORTICOID_RECEPTOR", name: "Glucocorticoid receptor", group: "GLUCOCORTICOID_RECEPTOR", parent: "NEU_HPA" },
     { code: "HPA_AXIS", name: "HPA axis", group: "HPA", parent: "NEU_HPA" },
     { code: "SYMPATHETIC_SIGNALING", name: "Sympathetic signalling", group: "SYMPATHETIC", parent: "NEU_HPA" },
@@ -159,9 +185,42 @@ export const mechanisms: MechanismSeed[] = [
     { code: "APPETITE_HYPOTHALAMUS", name: "Hypothalamic appetite signalling", group: "APPETITE", parent: "NEU_CIRCADIAN" },
     { code: "LEPTIN_SIGNALING", name: "Leptin signalling", group: "APPETITE", parent: "NEU_CIRCADIAN" },
     { code: "GH_IGF1_AXIS", name: "GH–IGF-1 axis", group: "GH_IGF1", parent: "NEU_HPA" },
-    { code: "TSH", name: "TSH", group: "THYROID_AXIS", parent: "NEU_THYROID" },
-    { code: "THYROID_HORMONE", name: "Thyroid hormone (T4/T3)", group: "THYROID_AXIS", parent: "NEU_THYROID" },
-    { code: "THYROID_RECEPTOR", name: "Thyroid hormone receptor", group: "THYROID_AXIS", parent: "NEU_THYROID" },
+  ]),
+  // Thyroid was part of the neuroendocrine domain until November 2026. The four rows below kept
+  // their codes and their aggregation group, so no assessment changed except the column it is
+  // read under. THYROID_DEPENDENT_BRAIN_DEVELOPMENT stays in the developmental domain.
+  ...block("THYROID", [
+    grouping("NEU_THYROID", "Thyroid axis", "NEU_THYROID"),
+    { code: "TSH", name: "TSH", group: "THYROID_AXIS", parent: "NEU_THYROID", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "THYROID_HORMONE", name: "Thyroid hormone (T4/T3)", group: "THYROID_AXIS", parent: "NEU_THYROID", kc: "KC8_HORMONE_DISTRIBUTION" },
+    { code: "THYROID_RECEPTOR", name: "Thyroid hormone receptor", group: "THYROID_AXIS", parent: "NEU_THYROID", kc: "KC1_RECEPTOR_AGONIST" },
+    {
+      code: "THYROID_HORMONE_SYNTHESIS",
+      name: "Thyroid hormone synthesis",
+      group: "THYROID_SYNTHESIS",
+      parent: "NEU_THYROID",
+      kc: "KC6_HORMONE_SYNTHESIS",
+      description:
+        "Iodide uptake, thyroperoxidase, and thyroglobulin steps that produce thyroid hormone. Perchlorate is the report's example of a chemical with strong evidence for this characteristic and little else. Unscored until curated.",
+    },
+    {
+      code: "THYROID_HORMONE_TRANSPORT",
+      name: "Thyroid hormone transport and distribution",
+      group: "THYROID_TRANSPORT",
+      parent: "NEU_THYROID",
+      kc: "KC7_HORMONE_TRANSPORT",
+      description:
+        "Serum binding proteins and membrane transporters that move thyroid hormone to tissue. Displacement from a binding protein is not the same as reduced synthesis. Unscored until curated.",
+    },
+    {
+      code: "THYROID_HORMONE_METABOLISM",
+      name: "Thyroid hormone metabolism and clearance",
+      group: "THYROID_METABOLISM",
+      parent: "NEU_THYROID",
+      kc: "KC9_HORMONE_METABOLISM",
+      description:
+        "Deiodinases, glucuronidation, and sulfation that activate or clear thyroid hormone. A clearance change can lower circulating hormone without touching synthesis. Unscored until curated.",
+    },
   ]),
   ...block("IMMUNOLOGY_IMMUNOENDOCRINOLOGY", [
     grouping("IMM_ADAPTIVE", "Adaptive immunity", "IMM_ADAPTIVE"),
@@ -266,6 +325,7 @@ export const mechanisms: MechanismSeed[] = [
     grouping("RED_ROS", "Reactive species", "RED_ROS"),
     grouping("RED_ANTIOXIDANT", "Antioxidant systems", "RED_ANTIOXIDANT"),
     grouping("RED_DAMAGE", "Oxidative damage", "RED_DAMAGE"),
+    grouping("RED_CELL_FATE", "Cell fate and genomic integrity", "RED_CELL_FATE"),
     { code: "SUPEROXIDE", name: "Superoxide", group: "ROS_GENERATION", parent: "RED_ROS" },
     { code: "HYDROGEN_PEROXIDE", name: "Hydrogen peroxide", group: "ROS_GENERATION", parent: "RED_ROS" },
     { code: "HYDROXYL_RADICAL", name: "Hydroxyl radical", group: "ROS_GENERATION", parent: "RED_ROS" },
@@ -296,6 +356,23 @@ export const mechanisms: MechanismSeed[] = [
     { code: "FERROPTOSIS", name: "Ferroptosis", group: "CELL_DEATH", parent: "RED_DAMAGE" },
     { code: "AUTOPHAGY", name: "Autophagy", group: "CELL_DEATH", parent: "RED_DAMAGE" },
     { code: "OXIDATIVE_DAMAGE", name: "Oxidative damage", group: "OXIDATIVE_DAMAGE", parent: "RED_DAMAGE" },
+    {
+      code: "HORMONE_DEPENDENT_PROLIFERATION",
+      name: "Hormone-dependent cell proliferation",
+      group: "CELL_PROLIFERATION",
+      parent: "RED_CELL_FATE",
+      kc: "KC10_CELL_FATE",
+      description:
+        "Proliferation of hormone-responsive cells, for example mammary, endometrial, prostatic, or thyroid epithelium. This is the step that carries a receptor signal towards a hormone-related cancer. A proliferation result is not a tumour and is never scored as one. Unscored until curated.",
+    },
+    {
+      code: "DNA_DAMAGE_REPAIR",
+      name: "DNA damage and repair",
+      group: "DNA_INTEGRITY",
+      parent: "RED_CELL_FATE",
+      description:
+        "Strand breaks, adducts, and repair capacity, beyond the oxidative lesions recorded under DNA oxidation and 8-OHdG. Genotoxicity is a distinct hazard from endocrine disruption and the two are not merged. Unscored until curated.",
+    },
   ]),
   ...block("EXPOSURE_DEVELOPMENTAL_MODIFIERS", [
     grouping("EXP_CONTEXT", "Exposure context", "EXP_CONTEXT"),

@@ -11,14 +11,14 @@
 // require a user.
 
 generator client {
-    provider = "prisma-client-js"
-    output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -27,22 +27,22 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 enum UserRole {
-    READER
-    CURATOR
-    ADMIN
+  READER
+  CURATOR
+  ADMIN
 }
 
 model User {
-    id             String   @id @default(uuid()) @db.Uuid
-    email          String?  @unique
-    name           String?
-    role           UserRole @default(READER)
-    /// Later Clerk, Supabase Auth, or similar subject id. Scientific tables do not join through this.
-    externalAuthId String?  @unique
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String?  @unique
+  name           String?
+  role           UserRole @default(READER)
+  /// Later Clerk, Supabase Auth, or similar subject id. Scientific tables do not join through this.
+  externalAuthId String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-    revisions AssessmentRevision[]
+  revisions AssessmentRevision[]
 }
 
 // ---------------------------------------------------------------------------
@@ -50,201 +50,201 @@ model User {
 // ---------------------------------------------------------------------------
 
 enum CompoundType {
-    PHARMACEUTICAL
-    HORMONE
-    PESTICIDE
-    HERBICIDE
-    FUNGICIDE
-    INSECTICIDE
-    PLASTICISER
-    BISPHENOL
-    PFAS
-    FLAME_RETARDANT
-    INDUSTRIAL_CHEMICAL
-    METABOLITE
-    POLLUTANT
-    COSMETIC_INGREDIENT
-    OTHER
+  PHARMACEUTICAL
+  HORMONE
+  PESTICIDE
+  HERBICIDE
+  FUNGICIDE
+  INSECTICIDE
+  PLASTICISER
+  BISPHENOL
+  PFAS
+  FLAME_RETARDANT
+  INDUSTRIAL_CHEMICAL
+  METABOLITE
+  POLLUTANT
+  COSMETIC_INGREDIENT
+  OTHER
 }
 
 enum CurrentUseStatus {
-    IN_CURRENT_USE
-    RESTRICTED
-    BANNED_OR_WITHDRAWN
-    LEGACY
-    RESEARCH_ONLY
-    ENDOGENOUS
-    CLASS_PLACEHOLDER
-    UNKNOWN
+  IN_CURRENT_USE
+  RESTRICTED
+  BANNED_OR_WITHDRAWN
+  LEGACY
+  RESEARCH_ONLY
+  ENDOGENOUS
+  CLASS_PLACEHOLDER
+  UNKNOWN
 }
 
 /// Specific chemical, a named stand-in for a class, an unscored category shell, or a formulated product.
 enum RecordKind {
-    SPECIFIC_COMPOUND
-    REPRESENTATIVE_STAND_IN
-    CLASS_PLACEHOLDER
-    /// A product or mixture whose evidence must not be copied onto the pure active ingredient.
-    FORMULATION
+  SPECIFIC_COMPOUND
+  REPRESENTATIVE_STAND_IN
+  CLASS_PLACEHOLDER
+  /// A product or mixture whose evidence must not be copied onto the pure active ingredient.
+  FORMULATION
 }
 
 enum AliasType {
-    COMMON_NAME
-    IUPAC
-    ABBREVIATION
-    TRADE_NAME
-    CAS_NAME
-    SYNONYM
-    FORMER_NAME
+  COMMON_NAME
+  IUPAC
+  ABBREVIATION
+  TRADE_NAME
+  CAS_NAME
+  SYNONYM
+  FORMER_NAME
 }
 
 model Compound {
-    id                        String           @id @default(uuid()) @db.Uuid
-    slug                      String           @unique
-    canonicalName             String
-    displayName               String
-    description               String
-    compoundType              CompoundType
-    /// Finer class than compoundType, e.g. "SSRI" or "SDHI fungicide". Free text so classes are not forced into the enum.
-    primaryCategory           String
-    currentUseStatus          CurrentUseStatus @default(UNKNOWN)
-    recordKind                RecordKind       @default(SPECIFIC_COMPOUND)
-    /// Convenience copy. Authoritative crosswalks live on ExternalIdentifier. CAS is not a global unique key.
-    casNumber                 String?
-    pubChemCid                Int?
-    /// Optional structure fields. Blank until a verified source supplies them.
-    inchi                     String?          @db.Text
-    inchiKey                  String?
-    canonicalSmiles           String?          @db.Text
-    molecularFormula          String?
-    molarMass                 Decimal?         @db.Decimal(12, 4)
-    parentCompoundId          String?          @db.Uuid
-    isMetabolite              Boolean          @default(false)
-    isMixture                 Boolean          @default(false)
-    isEndogenous              Boolean          @default(false)
-    isPharmaceutical          Boolean          @default(false)
-    isEnvironmentalChemical   Boolean          @default(false)
-    legacyChemical            Boolean          @default(false)
-    notes                     String           @default("")
-    /// Judgment about curation progress. Accepted and rejected paper counts are queried, not stored here.
-    curationStatus            CompoundCurationStatus @default(UNREVIEWED)
-    lastEvidenceSearchAt      DateTime?
-    lastManualReviewAt        DateTime?
-    evidenceCutoffAt          DateTime?
-    curationNotes             String           @default("")
-    createdAt                 DateTime         @default(now())
-    updatedAt                 DateTime         @updatedAt
+  id                      String                 @id @default(uuid()) @db.Uuid
+  slug                    String                 @unique
+  canonicalName           String
+  displayName             String
+  description             String
+  compoundType            CompoundType
+  /// Finer class than compoundType, e.g. "SSRI" or "SDHI fungicide". Free text so classes are not forced into the enum.
+  primaryCategory         String
+  currentUseStatus        CurrentUseStatus       @default(UNKNOWN)
+  recordKind              RecordKind             @default(SPECIFIC_COMPOUND)
+  /// Convenience copy. Authoritative crosswalks live on ExternalIdentifier. CAS is not a global unique key.
+  casNumber               String?
+  pubChemCid              Int?
+  /// Optional structure fields. Blank until a verified source supplies them.
+  inchi                   String?                @db.Text
+  inchiKey                String?
+  canonicalSmiles         String?                @db.Text
+  molecularFormula        String?
+  molarMass               Decimal?               @db.Decimal(12, 4)
+  parentCompoundId        String?                @db.Uuid
+  isMetabolite            Boolean                @default(false)
+  isMixture               Boolean                @default(false)
+  isEndogenous            Boolean                @default(false)
+  isPharmaceutical        Boolean                @default(false)
+  isEnvironmentalChemical Boolean                @default(false)
+  legacyChemical          Boolean                @default(false)
+  notes                   String                 @default("")
+  /// Judgment about curation progress. Accepted and rejected paper counts are queried, not stored here.
+  curationStatus          CompoundCurationStatus @default(UNREVIEWED)
+  lastEvidenceSearchAt    DateTime?
+  lastManualReviewAt      DateTime?
+  evidenceCutoffAt        DateTime?
+  curationNotes           String                 @default("")
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
 
-    parentCompound Compound?  @relation("CompoundParent", fields: [parentCompoundId], references: [id])
-    metabolites    Compound[] @relation("CompoundParent")
+  parentCompound Compound?  @relation("CompoundParent", fields: [parentCompoundId], references: [id])
+  metabolites    Compound[] @relation("CompoundParent")
 
-    aliases              CompoundAlias[]
-    exposureContexts     ExposureContext[]
-    mechanismAssessments MechanismAssessment[]
-    outcomeAssessments   CompoundOutcomeAssessment[]
-    regulatoryAssessments RegulatoryAssessment[]
-    relationshipsFrom    CompoundRelationship[] @relation("RelationshipSource")
-    relationshipsTo      CompoundRelationship[] @relation("RelationshipTarget")
-    interactionsAsA      CompoundInteraction[]  @relation("InteractionA")
-    interactionsAsB      CompoundInteraction[]  @relation("InteractionB")
-    findings             EvidenceFinding[]
-    dataGaps             DataGap[]
-    transformationsAsParent  MetabolicTransformation[] @relation("TransformationParent")
-    transformationsAsProduct MetabolicTransformation[] @relation("TransformationProduct")
-    externalIdentifiers      ExternalIdentifier[]
-    externalRecords          ExternalRecord[]
-    identityResolutionAttempts IdentityResolutionAttempt[]
-    assayObservations    AssayObservation[]
-    literatureSearchRuns LiteratureSearchRun[]
-    screeningDecisions   LiteratureScreeningDecision[]
-    mechanisticClaims    MechanisticClaim[]
+  aliases                    CompoundAlias[]
+  exposureContexts           ExposureContext[]
+  mechanismAssessments       MechanismAssessment[]
+  outcomeAssessments         CompoundOutcomeAssessment[]
+  regulatoryAssessments      RegulatoryAssessment[]
+  relationshipsFrom          CompoundRelationship[]        @relation("RelationshipSource")
+  relationshipsTo            CompoundRelationship[]        @relation("RelationshipTarget")
+  interactionsAsA            CompoundInteraction[]         @relation("InteractionA")
+  interactionsAsB            CompoundInteraction[]         @relation("InteractionB")
+  findings                   EvidenceFinding[]
+  dataGaps                   DataGap[]
+  transformationsAsParent    MetabolicTransformation[]     @relation("TransformationParent")
+  transformationsAsProduct   MetabolicTransformation[]     @relation("TransformationProduct")
+  externalIdentifiers        ExternalIdentifier[]
+  externalRecords            ExternalRecord[]
+  identityResolutionAttempts IdentityResolutionAttempt[]
+  assayObservations          AssayObservation[]
+  literatureSearchRuns       LiteratureSearchRun[]
+  screeningDecisions         LiteratureScreeningDecision[]
+  mechanisticClaims          MechanisticClaim[]
 
-    @@index([compoundType])
-    @@index([casNumber])
-    @@index([inchiKey])
-    @@index([recordKind])
-    @@index([legacyChemical])
+  @@index([compoundType])
+  @@index([casNumber])
+  @@index([inchiKey])
+  @@index([recordKind])
+  @@index([legacyChemical])
 }
 
 model CompoundAlias {
-    id          String    @id @default(uuid()) @db.Uuid
-    compoundId  String    @db.Uuid
-    name        String
-    aliasType   AliasType
-    compound    Compound  @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid()) @db.Uuid
+  compoundId String    @db.Uuid
+  name       String
+  aliasType  AliasType
+  compound   Compound  @relation(fields: [compoundId], references: [id], onDelete: Cascade)
 
-    @@unique([compoundId, name])
-    @@index([name])
+  @@unique([compoundId, name])
+  @@index([name])
 }
 
 enum RelationshipType {
-    METABOLITE_OF
-    BREAKDOWN_PRODUCT_OF
-    REPLACEMENT_FOR
-    ANALOG_OF
-    ISOMER_OF
-    CO_FORMULANT_WITH
-    ANTAGONIZES_TOXICITY_OF
-    POTENTIATES_TOXICITY_OF
-    PROTECTS_AGAINST
-    SYNERGIZES_WITH
-    /// Source record contains the target compound. Used for formulations.
-    CONTAINS
-    /// Source compound is an active ingredient of the target formulation.
-    ACTIVE_INGREDIENT_OF
+  METABOLITE_OF
+  BREAKDOWN_PRODUCT_OF
+  REPLACEMENT_FOR
+  ANALOG_OF
+  ISOMER_OF
+  CO_FORMULANT_WITH
+  ANTAGONIZES_TOXICITY_OF
+  POTENTIATES_TOXICITY_OF
+  PROTECTS_AGAINST
+  SYNERGIZES_WITH
+  /// Source record contains the target compound. Used for formulations.
+  CONTAINS
+  /// Source compound is an active ingredient of the target formulation.
+  ACTIVE_INGREDIENT_OF
 }
 
 model CompoundRelationship {
-    id                String           @id @default(uuid()) @db.Uuid
-    sourceCompoundId  String           @db.Uuid
-    targetCompoundId  String           @db.Uuid
-    relationshipType  RelationshipType
-    description       String
-    sourceCompound    Compound         @relation("RelationshipSource", fields: [sourceCompoundId], references: [id], onDelete: Cascade)
-    targetCompound    Compound         @relation("RelationshipTarget", fields: [targetCompoundId], references: [id], onDelete: Cascade)
+  id               String           @id @default(uuid()) @db.Uuid
+  sourceCompoundId String           @db.Uuid
+  targetCompoundId String           @db.Uuid
+  relationshipType RelationshipType
+  description      String
+  sourceCompound   Compound         @relation("RelationshipSource", fields: [sourceCompoundId], references: [id], onDelete: Cascade)
+  targetCompound   Compound         @relation("RelationshipTarget", fields: [targetCompoundId], references: [id], onDelete: Cascade)
 
-    @@unique([sourceCompoundId, targetCompoundId, relationshipType])
-    @@index([targetCompoundId])
+  @@unique([sourceCompoundId, targetCompoundId, relationshipType])
+  @@index([targetCompoundId])
 }
 
 enum InteractionType {
-    PROTECTS_AGAINST
-    POTENTIATES
-    SYNERGIZES
-    ANTAGONIZES
-    MIXED
-    UNKNOWN
+  PROTECTS_AGAINST
+  POTENTIATES
+  SYNERGIZES
+  ANTAGONIZES
+  MIXED
+  UNKNOWN
 }
 
 model CompoundInteraction {
-    id                String              @id @default(uuid()) @db.Uuid
-    /// Idempotent seed/admin key. Not a scientific identifier.
-    stableKey         String              @unique
-    compoundAId       String              @db.Uuid
-    compoundBId       String              @db.Uuid
-    interactionType   InteractionType
-    domainId          String?             @db.Uuid
-    mechanismId       String?             @db.Uuid
-    exposureContextId String?             @db.Uuid
-    biologicalContextId String?           @db.Uuid
-    /// Nullable. Experimental protection is not a clinical benefit score.
-    effectScore       Int?
-    confidence        EvidenceConfidence
-    humanRelevance    HumanRelevance
-    summary           String
-    limitations       String
-    curationStatus    CurationStatus      @default(SEED_HYPOTHESIS)
-    createdAt         DateTime            @default(now())
-    updatedAt         DateTime            @updatedAt
+  id                  String             @id @default(uuid()) @db.Uuid
+  /// Idempotent seed/admin key. Not a scientific identifier.
+  stableKey           String             @unique
+  compoundAId         String             @db.Uuid
+  compoundBId         String             @db.Uuid
+  interactionType     InteractionType
+  domainId            String?            @db.Uuid
+  mechanismId         String?            @db.Uuid
+  exposureContextId   String?            @db.Uuid
+  biologicalContextId String?            @db.Uuid
+  /// Nullable. Experimental protection is not a clinical benefit score.
+  effectScore         Int?
+  confidence          EvidenceConfidence
+  humanRelevance      HumanRelevance
+  summary             String
+  limitations         String
+  curationStatus      CurationStatus     @default(SEED_HYPOTHESIS)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
-    compoundA Compound         @relation("InteractionA", fields: [compoundAId], references: [id], onDelete: Cascade)
-    compoundB Compound         @relation("InteractionB", fields: [compoundBId], references: [id], onDelete: Cascade)
-    domain    BiologicalDomain? @relation(fields: [domainId], references: [id])
-    mechanism Mechanism?       @relation(fields: [mechanismId], references: [id])
-    exposureContext   ExposureContext?   @relation(fields: [exposureContextId], references: [id])
-    biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
+  compoundA         Compound           @relation("InteractionA", fields: [compoundAId], references: [id], onDelete: Cascade)
+  compoundB         Compound           @relation("InteractionB", fields: [compoundBId], references: [id], onDelete: Cascade)
+  domain            BiologicalDomain?  @relation(fields: [domainId], references: [id])
+  mechanism         Mechanism?         @relation(fields: [mechanismId], references: [id])
+  exposureContext   ExposureContext?   @relation(fields: [exposureContextId], references: [id])
+  biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
 
-    @@index([compoundAId])
-    @@index([compoundBId])
+  @@index([compoundAId])
+  @@index([compoundBId])
 }
 
 // ---------------------------------------------------------------------------
@@ -252,116 +252,115 @@ model CompoundInteraction {
 // ---------------------------------------------------------------------------
 
 enum ExposureRoute {
-    ORAL
-    DERMAL
-    INHALATION
-    INJECTION
-    TRANSPLACENTAL
-    LACTATIONAL
-    ENVIRONMENTAL_MEDIA
-    MULTIPLE
-    UNSPECIFIED
+  ORAL
+  DERMAL
+  INHALATION
+  INJECTION
+  TRANSPLACENTAL
+  LACTATIONAL
+  ENVIRONMENTAL_MEDIA
+  MULTIPLE
+  UNSPECIFIED
 }
 
 enum LifeStage {
-    PRECONCEPTION
-    GAMETE
-    EMBRYO
-    FETUS
-    NEONATAL
-    INFANT
-    EARLY_CHILDHOOD
-    CHILDHOOD
-    PUBERTY
-    ADOLESCENCE
-    ADULT
-    PREGNANCY
-    OLDER_ADULT
+  PRECONCEPTION
+  GAMETE
+  EMBRYO
+  FETUS
+  NEONATAL
+  INFANT
+  EARLY_CHILDHOOD
+  CHILDHOOD
+  PUBERTY
+  ADOLESCENCE
+  ADULT
+  PREGNANCY
+  OLDER_ADULT
 }
 
 enum ExposureType {
-    THERAPEUTIC
-    ENVIRONMENTAL
-    DIETARY
-    OCCUPATIONAL
-    ACCIDENTAL
-    RECREATIONAL
-    EXPERIMENTAL
+  THERAPEUTIC
+  ENVIRONMENTAL
+  DIETARY
+  OCCUPATIONAL
+  ACCIDENTAL
+  RECREATIONAL
+  EXPERIMENTAL
 }
 
 enum TherapeuticVsEnvironmental {
-    THERAPEUTIC
-    ENVIRONMENTAL
-    BOTH
-    NEITHER
-    UNKNOWN
+  THERAPEUTIC
+  ENVIRONMENTAL
+  BOTH
+  NEITHER
+  UNKNOWN
 }
 
 enum RealWorldRelevance {
-    VERY_LOW
-    LOW
-    MODERATE
-    HIGH
-    VERY_HIGH
-    UNCERTAIN
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+  UNCERTAIN
 }
 
 /// What kind of dose or concentration a number would mean. Not a converted common unit.
 enum DoseMetricType {
-    ADMINISTERED_DOSE
-    PRESCRIBED_DOSE
-    INTERNAL_CONCENTRATION
-    SERUM_CONCENTRATION
-    PLASMA_CONCENTRATION
-    URINARY_BIOMARKER
-    TISSUE_CONCENTRATION
-    ENVIRONMENTAL_CONCENTRATION
-    DIETARY_CONCENTRATION
-    AIR_CONCENTRATION
-    WATER_CONCENTRATION
-    BODY_BURDEN
-    EXTERNAL_CONCENTRATION
-    IN_VITRO_CONCENTRATION
-    OTHER
-    UNKNOWN
+  ADMINISTERED_DOSE
+  PRESCRIBED_DOSE
+  INTERNAL_CONCENTRATION
+  SERUM_CONCENTRATION
+  PLASMA_CONCENTRATION
+  URINARY_BIOMARKER
+  TISSUE_CONCENTRATION
+  ENVIRONMENTAL_CONCENTRATION
+  DIETARY_CONCENTRATION
+  AIR_CONCENTRATION
+  WATER_CONCENTRATION
+  BODY_BURDEN
+  EXTERNAL_CONCENTRATION
+  IN_VITRO_CONCENTRATION
+  OTHER
+  UNKNOWN
 }
 
 model ExposureContext {
-    id                         String                     @id @default(uuid()) @db.Uuid
-    compoundId                 String                     @db.Uuid
-    /// Stable per compound, used for idempotent upserts.
-    contextKey                 String
-    route                      ExposureRoute              @default(UNSPECIFIED)
-    population                 String
-    lifeStage                  LifeStage
-    exposureType               ExposureType
-    doseMetricType             DoseMetricType             @default(UNKNOWN)
-    doseValue                  Decimal?                   @db.Decimal(24, 8)
-    doseUnit                   String?
-    doseRangeText              String?
-    frequency                  String?
-    duration                   String?
-    therapeuticVsEnvironmental TherapeuticVsEnvironmental @default(UNKNOWN)
-    occupational               Boolean                    @default(false)
-    /// Finer than lifeStage, e.g. "first trimester" or "gestational day 15–18".
-    developmentalWindow        String?
-    maternalExposure           Boolean                    @default(false)
-    realWorldRelevance         RealWorldRelevance         @default(UNCERTAIN)
-    notes                      String                     @default("")
-    createdAt                  DateTime                   @default(now())
-    updatedAt                  DateTime                   @updatedAt
+  id                         String                     @id @default(uuid()) @db.Uuid
+  compoundId                 String                     @db.Uuid
+  /// Stable per compound, used for idempotent upserts.
+  contextKey                 String
+  route                      ExposureRoute              @default(UNSPECIFIED)
+  population                 String
+  lifeStage                  LifeStage
+  exposureType               ExposureType
+  doseMetricType             DoseMetricType             @default(UNKNOWN)
+  doseValue                  Decimal?                   @db.Decimal(24, 8)
+  doseUnit                   String?
+  doseRangeText              String?
+  frequency                  String?
+  duration                   String?
+  therapeuticVsEnvironmental TherapeuticVsEnvironmental @default(UNKNOWN)
+  occupational               Boolean                    @default(false)
+  /// Finer than lifeStage, e.g. "first trimester" or "gestational day 15–18".
+  developmentalWindow        String?
+  maternalExposure           Boolean                    @default(false)
+  realWorldRelevance         RealWorldRelevance         @default(UNCERTAIN)
+  notes                      String                     @default("")
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
 
-    compound              Compound                   @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanismAssessments  MechanismAssessment[]
-    outcomeAssessments    CompoundOutcomeAssessment[]
-    findings              EvidenceFinding[]
-    interactions          CompoundInteraction[]
+  compound             Compound                    @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  mechanismAssessments MechanismAssessment[]
+  outcomeAssessments   CompoundOutcomeAssessment[]
+  findings             EvidenceFinding[]
+  interactions         CompoundInteraction[]
 
-    @@index([doseMetricType])
-
-    @@unique([compoundId, contextKey])
-    @@index([lifeStage])
-    @@index([exposureType])
+  @@unique([compoundId, contextKey])
+  @@index([doseMetricType])
+  @@index([lifeStage])
+  @@index([exposureType])
 }
 
 // ---------------------------------------------------------------------------
@@ -370,53 +369,53 @@ model ExposureContext {
 
 /// Where an effect was observed. Species of the study stays on the finding.
 model BiologicalContext {
-    id                     String   @id @default(uuid()) @db.Uuid
-    stableKey              String   @unique
-    organ                  String?
-    tissue                 String?
-    cellType               String?
-    subcellularCompartment String?
-    /// Only when the context itself is species-bound, such as a named cell line. Study species stays on the finding.
-    speciesContext         String?
-    developmentalDetail    String?
-    notes                  String   @default("")
-    createdAt              DateTime @default(now())
-    updatedAt              DateTime @updatedAt
+  id                     String   @id @default(uuid()) @db.Uuid
+  stableKey              String   @unique
+  organ                  String?
+  tissue                 String?
+  cellType               String?
+  subcellularCompartment String?
+  /// Only when the context itself is species-bound, such as a named cell line. Study species stays on the finding.
+  speciesContext         String?
+  developmentalDetail    String?
+  notes                  String   @default("")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-    mechanismAssessments MechanismAssessment[]
-    outcomeAssessments   CompoundOutcomeAssessment[]
-    findings             EvidenceFinding[]
-    interactions         CompoundInteraction[]
-    transformations      MetabolicTransformation[]
+  mechanismAssessments MechanismAssessment[]
+  outcomeAssessments   CompoundOutcomeAssessment[]
+  findings             EvidenceFinding[]
+  interactions         CompoundInteraction[]
+  transformations      MetabolicTransformation[]
 
-    @@index([organ])
-    @@index([cellType])
+  @@index([organ])
+  @@index([cellType])
 }
 
 /// Richer than CompoundRelationship.METABOLITE_OF. The graph edge remains.
 model MetabolicTransformation {
-    id                      String   @id @default(uuid()) @db.Uuid
-    stableKey               String   @unique
-    parentCompoundId        String   @db.Uuid
-    productCompoundId       String   @db.Uuid
-    enzyme                  String?
-    enzymeFamily            String?
-    biologicalContextId     String?  @db.Uuid
-    transformationType      String
-    activeMetabolite        Boolean?
-    reactiveMetabolite      Boolean?
-    toxicologicallyRelevant Boolean  @default(false)
-    summary                 String
-    notes                   String   @default("")
-    createdAt               DateTime @default(now())
-    updatedAt               DateTime @updatedAt
+  id                      String   @id @default(uuid()) @db.Uuid
+  stableKey               String   @unique
+  parentCompoundId        String   @db.Uuid
+  productCompoundId       String   @db.Uuid
+  enzyme                  String?
+  enzymeFamily            String?
+  biologicalContextId     String?  @db.Uuid
+  transformationType      String
+  activeMetabolite        Boolean?
+  reactiveMetabolite      Boolean?
+  toxicologicallyRelevant Boolean  @default(false)
+  summary                 String
+  notes                   String   @default("")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-    parentCompound    Compound           @relation("TransformationParent", fields: [parentCompoundId], references: [id], onDelete: Cascade)
-    productCompound   Compound           @relation("TransformationProduct", fields: [productCompoundId], references: [id], onDelete: Cascade)
-    biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
+  parentCompound    Compound           @relation("TransformationParent", fields: [parentCompoundId], references: [id], onDelete: Cascade)
+  productCompound   Compound           @relation("TransformationProduct", fields: [productCompoundId], references: [id], onDelete: Cascade)
+  biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
 
-    @@index([parentCompoundId])
-    @@index([productCompoundId])
+  @@index([parentCompoundId])
+  @@index([productCompoundId])
 }
 
 // ---------------------------------------------------------------------------
@@ -424,156 +423,193 @@ model MetabolicTransformation {
 // ---------------------------------------------------------------------------
 
 enum ScorePolicy {
-    /// May carry a signed effect score when evidence supports a number.
-    SCORABLE
-    /// Kept so the field exists. Must not receive a score without direct evidence.
-    RESEARCH_ONLY
-    /// Organizational parent. Not a scoreable observation.
-    GROUPING_ONLY
+  /// May carry a signed effect score when evidence supports a number.
+  SCORABLE
+  /// Kept so the field exists. Must not receive a score without direct evidence.
+  RESEARCH_ONLY
+  /// Organizational parent. Not a scoreable observation.
+  GROUPING_ONLY
 }
 
 model BiologicalDomain {
-    id                    String   @id @default(uuid()) @db.Uuid
-    code                  String   @unique
-    name                  String
-    /// REP, DEV, NEUROENDO, IMM, MET, MITO, REDOX are the profile columns. EXPOSURE and VASCULAR are not.
-    shortLabel            String   @unique
-    description           String
-    /// Profile-domain flag. False domains are stored and can be assessed, and they do not enter the seven headline columns.
-    contributesToProfile  Boolean  @default(true)
-    sortOrder             Int
-    mechanisms            Mechanism[]
-    interactions          CompoundInteraction[]
-    dataGaps              DataGap[]
+  id                   String                @id @default(uuid()) @db.Uuid
+  code                 String                @unique
+  name                 String
+  /// REP, DEV, NEUROENDO, THY, IMM, MET, MITO, REDOX are the profile columns. EXPOSURE and VASCULAR are not.
+  shortLabel           String                @unique
+  description          String
+  /// Profile-domain flag. False domains are stored and can be assessed, and they do not enter the headline columns.
+  contributesToProfile Boolean               @default(true)
+  /// Which of the site's two tracks this domain belongs to. A label for readers, not an input to any score.
+  track                DomainTrack           @default(ENDOCRINE_DISRUPTION)
+  sortOrder            Int
+  mechanisms           Mechanism[]
+  interactions         CompoundInteraction[]
+  dataGaps             DataGap[]
 
-    @@index([sortOrder])
+  @@index([sortOrder])
 }
 
 /// Cross-cutting family. It is not a headline column. Domain still decides where a score would appear.
 model MechanismFamily {
-    id          String   @id @default(uuid()) @db.Uuid
-    code        String   @unique
-    name        String
-    description String   @default("")
-    sortOrder   Int      @default(0)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  description String   @default("")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-    mechanisms Mechanism[]
+  mechanisms Mechanism[]
 }
 
 model Mechanism {
-    id                 String      @id @default(uuid()) @db.Uuid
-    domainId           String      @db.Uuid
-    familyId           String?     @db.Uuid
-    code               String      @unique
-    name               String
-    description        String
-    parentMechanismId  String?     @db.Uuid
-    /// Mechanisms that share a group are one causal cluster. Their scores are not added.
-    /// This group, not causal-pathway membership, is what stops a chain from inflating a domain headline.
-    aggregationGroup   String
-    scorePolicy        ScorePolicy @default(SCORABLE)
-    /// False for diversity, composition, and generic dysbiosis. A signed score then requires quantitativeScoreSupported on the assessment.
-    quantitativeScoreByDefault Boolean @default(true)
-    sortOrder          Int         @default(0)
+  id                         String             @id @default(uuid()) @db.Uuid
+  domainId                   String             @db.Uuid
+  familyId                   String?            @db.Uuid
+  code                       String             @unique
+  name                       String
+  description                String
+  parentMechanismId          String?            @db.Uuid
+  /// Mechanisms that share a group are one causal cluster. Their scores are not added.
+  /// This group, not causal-pathway membership, is what stops a chain from inflating a domain headline.
+  aggregationGroup           String
+  scorePolicy                ScorePolicy        @default(SCORABLE)
+  /// False for diversity, composition, and generic dysbiosis. A signed score then requires quantitativeScoreSupported on the assessment.
+  quantitativeScoreByDefault Boolean            @default(true)
+  /// Which key characteristic of EDCs this mechanism represents, where the mapping is unambiguous.
+  /// Null means it was not assigned, never that the mechanism lacks endocrine relevance.
+  keyCharacteristic          KeyCharacteristic?
+  sortOrder                  Int                @default(0)
 
-    domain       BiologicalDomain @relation(fields: [domainId], references: [id])
-    family       MechanismFamily? @relation(fields: [familyId], references: [id], onDelete: SetNull)
-    parent       Mechanism?       @relation("MechanismTree", fields: [parentMechanismId], references: [id])
-    children     Mechanism[]      @relation("MechanismTree")
-    assessments  MechanismAssessment[]
-    interactions CompoundInteraction[]
-    dataGaps     DataGap[]
-    ontologyMappings ExternalOntologyMapping[]
-    mechanisticClaims MechanisticClaim[] @relation("CurrentClaimMechanism")
-    machineSuggestedClaims MechanisticClaim[] @relation("MachineClaimMechanism")
-    mappingEventsFrom ClaimMappingEvent[] @relation("MappingEventFrom")
-    mappingEventsTo ClaimMappingEvent[] @relation("MappingEventTo")
+  domain                 BiologicalDomain          @relation(fields: [domainId], references: [id])
+  family                 MechanismFamily?          @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  parent                 Mechanism?                @relation("MechanismTree", fields: [parentMechanismId], references: [id])
+  children               Mechanism[]               @relation("MechanismTree")
+  assessments            MechanismAssessment[]
+  interactions           CompoundInteraction[]
+  dataGaps               DataGap[]
+  ontologyMappings       ExternalOntologyMapping[]
+  mechanisticClaims      MechanisticClaim[]        @relation("CurrentClaimMechanism")
+  machineSuggestedClaims MechanisticClaim[]        @relation("MachineClaimMechanism")
+  mappingEventsFrom      ClaimMappingEvent[]       @relation("MappingEventFrom")
+  mappingEventsTo        ClaimMappingEvent[]       @relation("MappingEventTo")
+  pathwaySteps           CausalPathwayStep[]
 
-    @@index([domainId, sortOrder])
-    @@index([familyId])
-    @@index([aggregationGroup])
-    @@index([parentMechanismId])
+  @@index([domainId, sortOrder])
+  @@index([familyId])
+  @@index([aggregationGroup])
+  @@index([parentMechanismId])
 }
 
 /// A named chain that may cross domains. Membership explains the profile.
 /// It is never summed into one toxicity number.
 /// Aggregation groups, not pathway membership alone, stop correlated steps from inflating a domain headline.
 model CausalPathway {
-    id          String   @id @default(uuid()) @db.Uuid
-    code        String   @unique
-    name        String
-    description String
-    assessments MechanismAssessment[]
-    ontologyMappings ExternalOntologyMapping[]
+  id               String                    @id @default(uuid()) @db.Uuid
+  code             String                    @unique
+  name             String
+  description      String
+  /// The adverse outcome this pathway ends at, when it has one. A pathway may exist purely as an
+  /// anti-double-count cluster with no outcome, which is what the phase 1 pathways are.
+  outcomeId        String?                   @db.Uuid
+  /// The AOP-Wiki identifier this pathway mirrors, for example "AOP 503". A crosswalk, not a claim
+  /// that any EDCtox compound traverses it.
+  aopWikiId        String?
+  assessments      MechanismAssessment[]
+  ontologyMappings ExternalOntologyMapping[]
+  outcome          Outcome?                  @relation(fields: [outcomeId], references: [id])
+  steps            CausalPathwayStep[]
+
+  @@index([outcomeId])
+}
+
+/// An ordered mechanism in a pathway, so a reader can go from an outcome down to the mechanisms
+/// that bear on it and from there to the claims and assessments on each. A step is a route for
+/// reading evidence. It is not evidence, and it never contributes to a domain headline: the
+/// aggregation group on Mechanism remains the only thing that stops a chain inflating a score.
+model CausalPathwayStep {
+  id          String  @id @default(uuid()) @db.Uuid
+  pathwayId   String  @db.Uuid
+  mechanismId String  @db.Uuid
+  /// Position in the pathway, lowest first. The molecular initiating event is normally 0.
+  stepOrder   Int
+  /// What this step contributes, in the pathway's own terms.
+  note        String?
+
+  pathway   CausalPathway @relation(fields: [pathwayId], references: [id], onDelete: Cascade)
+  mechanism Mechanism     @relation(fields: [mechanismId], references: [id])
+
+  @@unique([pathwayId, mechanismId])
+  @@index([pathwayId, stepOrder])
+  @@index([mechanismId])
 }
 
 enum EffectDirection {
-    PROTECTIVE
-    DISRUPTIVE
-    PHYSIOLOGICAL
-    BIPHASIC
-    CONTEXT_DEPENDENT
-    MIXED
-    UNKNOWN
+  PROTECTIVE
+  DISRUPTIVE
+  PHYSIOLOGICAL
+  BIPHASIC
+  CONTEXT_DEPENDENT
+  MIXED
+  UNKNOWN
 }
 
 enum ActivityMagnitude {
-    NONE
-    LOW
-    MODERATE
-    HIGH
-    VERY_HIGH
-    UNKNOWN
+  NONE
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+  UNKNOWN
 }
 
 enum EvidenceConfidence {
-    VERY_LOW
-    LOW
-    MODERATE
-    HIGH
-    VERY_HIGH
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
 }
 
 enum HumanRelevance {
-    H0
-    H1
-    H2
-    H3
-    H4
+  H0
+  H1
+  H2
+  H3
+  H4
 }
 
 enum DevelopmentalSensitivity {
-    NONE
-    LOW
-    MODERATE
-    HIGH
-    CRITICAL
-    UNKNOWN
+  NONE
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+  UNKNOWN
 }
 
 enum DoseResponse {
-    MONOTONIC
-    NON_MONOTONIC
-    BIPHASIC
-    THRESHOLD
-    UNKNOWN
+  MONOTONIC
+  NON_MONOTONIC
+  BIPHASIC
+  THRESHOLD
+  UNKNOWN
 }
 
 enum Reversibility {
-    REVERSIBLE
-    PARTIALLY_REVERSIBLE
-    POTENTIALLY_IRREVERSIBLE
-    IRREVERSIBLE
-    UNKNOWN
+  REVERSIBLE
+  PARTIALLY_REVERSIBLE
+  POTENTIALLY_IRREVERSIBLE
+  IRREVERSIBLE
+  UNKNOWN
 }
 
 enum CurationStatus {
-    SEED_HYPOTHESIS
-    CURATED
-    CONFLICTING
-    INSUFFICIENT
+  SEED_HYPOTHESIS
+  CURATED
+  CONFLICTING
+  INSUFFICIENT
 }
 
 /// Central scientific table.
@@ -581,52 +617,52 @@ enum CurationStatus {
 /// effectScore is the interpreted protective or disruptive consequence, and stays null when that interpretation is not justified.
 /// PHYSIOLOGICAL activity uses a null effectScore. A high magnitude is not a toxicity score.
 model MechanismAssessment {
-    id                              String                   @id @default(uuid()) @db.Uuid
-    compoundId                      String                   @db.Uuid
-    mechanismId                     String                   @db.Uuid
-    exposureContextId               String?                  @db.Uuid
-    biologicalContextId             String?                  @db.Uuid
-    causalPathwayId                 String?                  @db.Uuid
-    /// Distinguishes default vs exposure-specific rows. Required so Postgres NULL uniqueness cannot duplicate the default row.
-    assessmentKey                   String                   @default("default")
-    /// -4 protective through +4 disruptive. Null means no protective or disruptive consequence is scored.
-    effectScore                     Int?
-    effectDirection                 EffectDirection
-    /// Strength of the biological change. Independent of whether that change is harmful.
-    activityMagnitude               ActivityMagnitude
-    evidenceConfidence              EvidenceConfidence
-    humanRelevance                  HumanRelevance
-    developmentalSensitivity        DevelopmentalSensitivity @default(UNKNOWN)
-    doseResponse                    DoseResponse             @default(UNKNOWN)
-    reversibility                   Reversibility            @default(UNKNOWN)
-    conflictingEvidence             Boolean                  @default(false)
-    insufficientHumanEvidence       Boolean                  @default(false)
-    doseRelevanceUncertain          Boolean                  @default(false)
-    developmentalRelevanceUncertain Boolean                  @default(false)
-    /// False when the row is an evidence note without a manufactured number.
-    quantitativeScoreSupported      Boolean                  @default(false)
-    curationStatus                  CurationStatus           @default(SEED_HYPOTHESIS)
-    effectSummary                   String
-    mechanismSummary                String
-    limitations                     String
-    reviewVersion                   Int                      @default(1)
-    lastReviewedAt                  DateTime?
-    createdAt                       DateTime                 @default(now())
-    updatedAt                       DateTime                 @updatedAt
+  id                              String                   @id @default(uuid()) @db.Uuid
+  compoundId                      String                   @db.Uuid
+  mechanismId                     String                   @db.Uuid
+  exposureContextId               String?                  @db.Uuid
+  biologicalContextId             String?                  @db.Uuid
+  causalPathwayId                 String?                  @db.Uuid
+  /// Distinguishes default vs exposure-specific rows. Required so Postgres NULL uniqueness cannot duplicate the default row.
+  assessmentKey                   String                   @default("default")
+  /// -4 protective through +4 disruptive. Null means no protective or disruptive consequence is scored.
+  effectScore                     Int?
+  effectDirection                 EffectDirection
+  /// Strength of the biological change. Independent of whether that change is harmful.
+  activityMagnitude               ActivityMagnitude
+  evidenceConfidence              EvidenceConfidence
+  humanRelevance                  HumanRelevance
+  developmentalSensitivity        DevelopmentalSensitivity @default(UNKNOWN)
+  doseResponse                    DoseResponse             @default(UNKNOWN)
+  reversibility                   Reversibility            @default(UNKNOWN)
+  conflictingEvidence             Boolean                  @default(false)
+  insufficientHumanEvidence       Boolean                  @default(false)
+  doseRelevanceUncertain          Boolean                  @default(false)
+  developmentalRelevanceUncertain Boolean                  @default(false)
+  /// False when the row is an evidence note without a manufactured number.
+  quantitativeScoreSupported      Boolean                  @default(false)
+  curationStatus                  CurationStatus           @default(SEED_HYPOTHESIS)
+  effectSummary                   String
+  mechanismSummary                String
+  limitations                     String
+  reviewVersion                   Int                      @default(1)
+  lastReviewedAt                  DateTime?
+  createdAt                       DateTime                 @default(now())
+  updatedAt                       DateTime                 @updatedAt
 
-    compound          Compound           @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanism         Mechanism          @relation(fields: [mechanismId], references: [id])
-    exposureContext   ExposureContext?   @relation(fields: [exposureContextId], references: [id])
-    biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
-    causalPathway     CausalPathway?     @relation(fields: [causalPathwayId], references: [id])
-    findings          EvidenceFinding[]
-    revisions         AssessmentRevision[]
+  compound          Compound             @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  mechanism         Mechanism            @relation(fields: [mechanismId], references: [id])
+  exposureContext   ExposureContext?     @relation(fields: [exposureContextId], references: [id])
+  biologicalContext BiologicalContext?   @relation(fields: [biologicalContextId], references: [id])
+  causalPathway     CausalPathway?       @relation(fields: [causalPathwayId], references: [id])
+  findings          EvidenceFinding[]
+  revisions         AssessmentRevision[]
 
-    @@unique([compoundId, mechanismId, assessmentKey])
-    @@index([mechanismId])
-    @@index([exposureContextId])
-    @@index([biologicalContextId])
-    @@index([curationStatus])
+  @@unique([compoundId, mechanismId, assessmentKey])
+  @@index([mechanismId])
+  @@index([exposureContextId])
+  @@index([biologicalContextId])
+  @@index([curationStatus])
 }
 
 // ---------------------------------------------------------------------------
@@ -634,65 +670,110 @@ model MechanismAssessment {
 // ---------------------------------------------------------------------------
 
 enum OutcomeCategory {
-    REPRODUCTIVE
-    DEVELOPMENTAL
-    NEUROENDOCRINE
-    IMMUNE
-    METABOLIC
-    MITOCHONDRIAL
-    REDOX
-    GASTROINTESTINAL
-    VASCULAR
-    OTHER
+  REPRODUCTIVE
+  DEVELOPMENTAL
+  NEUROENDOCRINE
+  IMMUNE
+  METABOLIC
+  MITOCHONDRIAL
+  REDOX
+  GASTROINTESTINAL
+  VASCULAR
+  OTHER
+  /// Thyroid outcomes left NEUROENDOCRINE when thyroid became a profile domain.
+  THYROID
+  /// Cognition, behaviour, and attention. Separate from the morphological developmental outcomes.
+  NEURODEVELOPMENTAL
+  /// Hormone-related cancers. A cancer outcome is never inferred from a receptor assay.
+  CANCER
+}
+
+/// The site's two tracks. Track membership is editorial. It never enters a score.
+enum DomainTrack {
+  /// Endocrine disruption in the sense of the WHO/IPCS definition.
+  ENDOCRINE_DISRUPTION
+  /// Mitochondrial, bioenergetic, and redox harm. Recorded because it is mechanistically real,
+  /// not because the endocrine assessments treat it as endocrine disruption.
+  CELLULAR_BIOENERGETIC
+  /// Exposure and vascular context. Neither track's headline.
+  CONTEXTUAL
+}
+
+/// The ten key characteristics of EDCs (WHO/UNEP 2026, figure 3.2). A tag on a mechanism records
+/// which molecular initiating event it represents. The report is explicit that the key
+/// characteristics are not a checklist and that the number a chemical displays does not predict
+/// whether it is an EDC, so nothing in EDCtox counts or scores these.
+enum KeyCharacteristic {
+  /// Interacts with or activates a hormone receptor.
+  KC1_RECEPTOR_AGONIST
+  /// Blocks an endogenous hormone from binding or activating its receptor.
+  KC2_RECEPTOR_ANTAGONIST
+  /// Alters hormone receptor expression.
+  KC3_RECEPTOR_EXPRESSION
+  /// Alters signal transduction in hormone-responsive cells.
+  KC4_SIGNAL_TRANSDUCTION
+  /// Induces epigenetic modifications in hormone-producing or hormone-responsive cells.
+  KC5_EPIGENETIC
+  /// Alters hormone synthesis.
+  KC6_HORMONE_SYNTHESIS
+  /// Alters hormone transport across cell membranes.
+  KC7_HORMONE_TRANSPORT
+  /// Alters hormone distribution or circulating hormone levels.
+  KC8_HORMONE_DISTRIBUTION
+  /// Alters hormone metabolism or clearance.
+  KC9_HORMONE_METABOLISM
+  /// Alters the fate of hormone-producing or hormone-responsive cells.
+  KC10_CELL_FATE
 }
 
 model Outcome {
-    id          String          @id @default(uuid()) @db.Uuid
-    code        String          @unique
-    name        String
-    category    OutcomeCategory
-    description String
-    assessments CompoundOutcomeAssessment[]
-    ontologyMappings ExternalOntologyMapping[]
+  id               String                      @id @default(uuid()) @db.Uuid
+  code             String                      @unique
+  name             String
+  category         OutcomeCategory
+  description      String
+  assessments      CompoundOutcomeAssessment[]
+  ontologyMappings ExternalOntologyMapping[]
+  causalPathways   CausalPathway[]
 }
 
 model CompoundOutcomeAssessment {
-    id                              String                   @id @default(uuid()) @db.Uuid
-    compoundId                      String                   @db.Uuid
-    outcomeId                       String                   @db.Uuid
-    exposureContextId               String?                  @db.Uuid
-    biologicalContextId             String?                  @db.Uuid
-    assessmentKey                   String                   @default("default")
-    effectScore                     Int?
-    effectDirection                 EffectDirection
-    activityMagnitude               ActivityMagnitude
-    evidenceConfidence              EvidenceConfidence
-    humanRelevance                  HumanRelevance
-    lifeStage                       LifeStage?
-    developmentalSensitivity        DevelopmentalSensitivity @default(UNKNOWN)
-    conflictingEvidence             Boolean                  @default(false)
-    insufficientHumanEvidence       Boolean                  @default(false)
-    doseRelevanceUncertain          Boolean                  @default(false)
-    developmentalRelevanceUncertain Boolean                  @default(false)
-    quantitativeScoreSupported      Boolean                  @default(false)
-    curationStatus                  CurationStatus           @default(SEED_HYPOTHESIS)
-    effectSummary                   String
-    limitations                     String
-    reviewVersion                   Int                      @default(1)
-    lastReviewedAt                  DateTime?
-    createdAt                       DateTime                 @default(now())
-    updatedAt                       DateTime                 @updatedAt
+  id                              String                   @id @default(uuid()) @db.Uuid
+  compoundId                      String                   @db.Uuid
+  outcomeId                       String                   @db.Uuid
+  exposureContextId               String?                  @db.Uuid
+  biologicalContextId             String?                  @db.Uuid
+  assessmentKey                   String                   @default("default")
+  effectScore                     Int?
+  effectDirection                 EffectDirection
+  activityMagnitude               ActivityMagnitude
+  evidenceConfidence              EvidenceConfidence
+  humanRelevance                  HumanRelevance
+  lifeStage                       LifeStage?
+  developmentalSensitivity        DevelopmentalSensitivity @default(UNKNOWN)
+  conflictingEvidence             Boolean                  @default(false)
+  insufficientHumanEvidence       Boolean                  @default(false)
+  doseRelevanceUncertain          Boolean                  @default(false)
+  developmentalRelevanceUncertain Boolean                  @default(false)
+  quantitativeScoreSupported      Boolean                  @default(false)
+  curationStatus                  CurationStatus           @default(SEED_HYPOTHESIS)
+  effectSummary                   String
+  limitations                     String
+  reviewVersion                   Int                      @default(1)
+  lastReviewedAt                  DateTime?
+  createdAt                       DateTime                 @default(now())
+  updatedAt                       DateTime                 @updatedAt
 
-    compound          Compound           @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    outcome           Outcome            @relation(fields: [outcomeId], references: [id])
-    exposureContext   ExposureContext?   @relation(fields: [exposureContextId], references: [id])
-    biologicalContext BiologicalContext? @relation(fields: [biologicalContextId], references: [id])
-    findings          EvidenceFinding[]
-    revisions         AssessmentRevision[]
+  compound          Compound             @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  outcome           Outcome              @relation(fields: [outcomeId], references: [id])
+  exposureContext   ExposureContext?     @relation(fields: [exposureContextId], references: [id])
+  biologicalContext BiologicalContext?   @relation(fields: [biologicalContextId], references: [id])
+  findings          EvidenceFinding[]
+  revisions         AssessmentRevision[]
 
-    @@unique([compoundId, outcomeId, assessmentKey])
-    @@index([outcomeId])
-    @@index([biologicalContextId])
+  @@unique([compoundId, outcomeId, assessmentKey])
+  @@index([outcomeId])
+  @@index([biologicalContextId])
 }
 
 // ---------------------------------------------------------------------------
@@ -700,564 +781,564 @@ model CompoundOutcomeAssessment {
 // ---------------------------------------------------------------------------
 
 enum EvidenceType {
-    IN_VITRO
-    CELLULAR
-    EX_VIVO
-    ANIMAL
-    HUMAN_OBSERVATIONAL
-    HUMAN_PROSPECTIVE
-    RANDOMIZED_TRIAL
-    META_ANALYSIS
-    SYSTEMATIC_REVIEW
-    REGULATORY_ASSESSMENT
-    MECHANISTIC_REVIEW
-    /// Literature search candidates are not classified until screening.
-    UNSPECIFIED
+  IN_VITRO
+  CELLULAR
+  EX_VIVO
+  ANIMAL
+  HUMAN_OBSERVATIONAL
+  HUMAN_PROSPECTIVE
+  RANDOMIZED_TRIAL
+  META_ANALYSIS
+  SYSTEMATIC_REVIEW
+  REGULATORY_ASSESSMENT
+  MECHANISTIC_REVIEW
+  /// Literature search candidates are not classified until screening.
+  UNSPECIFIED
 }
 
 enum BiologicalSex {
-    MALE
-    FEMALE
-    MIXED
-    INTERSEX_OR_VARIANT
-    NOT_APPLICABLE
-    UNSPECIFIED
+  MALE
+  FEMALE
+  MIXED
+  INTERSEX_OR_VARIANT
+  NOT_APPLICABLE
+  UNSPECIFIED
 }
 
 enum StudyQuality {
-    VERY_LOW
-    LOW
-    MODERATE
-    HIGH
-    VERY_HIGH
-    NOT_ASSESSED
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+  NOT_ASSESSED
 }
 
 enum EffectSizeType {
-    MEAN_DIFFERENCE
-    STANDARDIZED_MEAN_DIFFERENCE
-    RISK_RATIO
-    ODDS_RATIO
-    HAZARD_RATIO
-    CORRELATION
-    REGRESSION_COEFFICIENT
-    FOLD_CHANGE
-    OTHER
+  MEAN_DIFFERENCE
+  STANDARDIZED_MEAN_DIFFERENCE
+  RISK_RATIO
+  ODDS_RATIO
+  HAZARD_RATIO
+  CORRELATION
+  REGRESSION_COEFFICIENT
+  FOLD_CHANGE
+  OTHER
 }
 
 enum StudyDesign {
-    IN_VITRO_ASSAY
-    CELL_CULTURE
-    EX_VIVO
-    ACUTE_ANIMAL
-    REPEATED_DOSE_ANIMAL
-    DEVELOPMENTAL_ANIMAL
-    MULTIGENERATIONAL_ANIMAL
-    CROSS_SECTIONAL
-    CASE_CONTROL
-    COHORT
-    RANDOMIZED_TRIAL
-    META_ANALYSIS
-    SYSTEMATIC_REVIEW
-    REGULATORY_REVIEW
-    MECHANISTIC_SUMMARY
-    OTHER
-    UNKNOWN
+  IN_VITRO_ASSAY
+  CELL_CULTURE
+  EX_VIVO
+  ACUTE_ANIMAL
+  REPEATED_DOSE_ANIMAL
+  DEVELOPMENTAL_ANIMAL
+  MULTIGENERATIONAL_ANIMAL
+  CROSS_SECTIONAL
+  CASE_CONTROL
+  COHORT
+  RANDOMIZED_TRIAL
+  META_ANALYSIS
+  SYSTEMATIC_REVIEW
+  REGULATORY_REVIEW
+  MECHANISTIC_SUMMARY
+  OTHER
+  UNKNOWN
 }
 
 model EvidenceSource {
-    id               String       @id @default(uuid()) @db.Uuid
-    /// Idempotent key for seed and later imports. Not shown as a citation.
-    stableKey        String       @unique
-    title            String
-    authors          String?
-    journalOrPublisher String
-    year             Int
-    publicationDate  DateTime?
-    doi              String?
-    pmid             String?
-    url              String       @default("")
-    sourceType       EvidenceType
-    peerReviewed     Boolean      @default(false)
-    /// False for schema demonstrators. Those rows must not increment scientific finding counts.
-    countsAsScientificEvidence Boolean @default(true)
-    regulatoryBody   String?
-    citationText     String?
-    /// Internal screening copy when PubMed or Europe PMC returned it. Public pages must not render this verbatim.
-    abstractText     String?      @db.Text
-    notes            String       @default("")
-    retrievedAt      DateTime?
-    lastVerifiedAt   DateTime?
-    retracted        Boolean      @default(false)
-    correctionNotice String?
-    openAccess       Boolean?
-    /// Null on the structural seed. Search imports set this. It is not a score.
-    publicationStatus PublicationCurationStatus?
-    pmcid             String?
-    /// Unstructured extras only. Searchable scientific fields stay relational.
-    supplemental     Json?
-    createdAt        DateTime     @default(now())
+  id                         String                     @id @default(uuid()) @db.Uuid
+  /// Idempotent key for seed and later imports. Not shown as a citation.
+  stableKey                  String                     @unique
+  title                      String
+  authors                    String?
+  journalOrPublisher         String
+  year                       Int
+  publicationDate            DateTime?
+  doi                        String?
+  pmid                       String?
+  url                        String                     @default("")
+  sourceType                 EvidenceType
+  peerReviewed               Boolean                    @default(false)
+  /// False for schema demonstrators. Those rows must not increment scientific finding counts.
+  countsAsScientificEvidence Boolean                    @default(true)
+  regulatoryBody             String?
+  citationText               String?
+  /// Internal screening copy when PubMed or Europe PMC returned it. Public pages must not render this verbatim.
+  abstractText               String?                    @db.Text
+  notes                      String                     @default("")
+  retrievedAt                DateTime?
+  lastVerifiedAt             DateTime?
+  retracted                  Boolean                    @default(false)
+  correctionNotice           String?
+  openAccess                 Boolean?
+  /// Null on the structural seed. Search imports set this. It is not a score.
+  publicationStatus          PublicationCurationStatus?
+  pmcid                      String?
+  /// Unstructured extras only. Searchable scientific fields stay relational.
+  supplemental               Json?
+  createdAt                  DateTime                   @default(now())
 
-    findings           EvidenceFinding[]
-    revisions          AssessmentRevision[]
-    searchHits         LiteratureSearchHit[]
-    screeningDecisions LiteratureScreeningDecision[]
-    mechanisticClaims  MechanisticClaim[]
+  findings           EvidenceFinding[]
+  revisions          AssessmentRevision[]
+  searchHits         LiteratureSearchHit[]
+  screeningDecisions LiteratureScreeningDecision[]
+  mechanisticClaims  MechanisticClaim[]
 
-    @@index([year])
-    @@index([sourceType])
-    @@index([doi])
-    @@index([pmid])
-    @@index([publicationStatus])
+  @@index([year])
+  @@index([sourceType])
+  @@index([doi])
+  @@index([pmid])
+  @@index([publicationStatus])
 }
 
 enum CompoundCurationStatus {
-    UNREVIEWED
-    IDENTITY_VERIFIED
-    EVIDENCE_GATHERING
-    EVIDENCE_TRIAGED
-    EVIDENCE_REVIEWED
-    SCORES_CURATED
-    NEEDS_UPDATE
+  UNREVIEWED
+  IDENTITY_VERIFIED
+  EVIDENCE_GATHERING
+  EVIDENCE_TRIAGED
+  EVIDENCE_REVIEWED
+  SCORES_CURATED
+  NEEDS_UPDATE
 }
 
 /// Bibliographic state of the publication. Include, exclude, and uncertain are contextual screening decisions, not values here.
 /// Bibliographic state of the publication. Include, exclude, and uncertain are contextual screening decisions, not values written by this queue.
 enum PublicationCurationStatus {
-    DISCOVERED
-    SCREENING_PENDING
-    INCLUDED
-    EXCLUDED
-    DUPLICATE
-    RETRACTED
+  DISCOVERED
+  SCREENING_PENDING
+  INCLUDED
+  EXCLUDED
+  DUPLICATE
+  RETRACTED
 }
 
 enum LiteratureProvider {
-    PUBMED
-    EUROPE_PMC
+  PUBMED
+  EUROPE_PMC
 }
 
 enum LiteratureSearchPurpose {
-    SYSTEMATIC_REVIEWS
-    HUMAN_REPRODUCTIVE
-    CONTRADICTORY_OR_NULL
+  SYSTEMATIC_REVIEWS
+  HUMAN_REPRODUCTIVE
+  CONTRADICTORY_OR_NULL
 }
 
 enum LiteratureSearchStatus {
-    STARTED
-    SUCCEEDED
-    PARTIAL
-    FAILED
+  STARTED
+  SUCCEEDED
+  PARTIAL
+  FAILED
 }
 
 enum LiteratureHitDisposition {
-    INSERTED
-    DUPLICATE
-    CONFLICT
-    SKIPPED
+  INSERTED
+  DUPLICATE
+  CONFLICT
+  SKIPPED
 }
 
 /// One provider call. The exact query is stored so the run can be reconstructed.
 model LiteratureSearchRun {
-    id                     String                   @id @default(uuid()) @db.Uuid
-    compoundId             String                   @db.Uuid
-    provider               LiteratureProvider
-    queryText              String                   @db.Text
-    queryVersion           String
-    /// relevance or recent. The two windows are unioned and then deduplicated.
-    resultWindow           String                   @default("recent")
-    /// Provider sort parameter. Empty means Europe PMC's relevance default.
-    sortMode               String                   @default("pub_date")
-    purpose                LiteratureSearchPurpose
-    startedAt              DateTime
-    completedAt            DateTime?
-    /// Records processed from this response, not a stored tally of screening decisions.
-    resultCount            Int                      @default(0)
-    providerReportedCount  Int?
-    insertedCount          Int                      @default(0)
-    duplicateCount         Int                      @default(0)
-    conflictCount          Int                      @default(0)
-    skippedCount           Int                      @default(0)
-    status                 LiteratureSearchStatus
-    errorText              String?                  @db.Text
-    createdAt              DateTime                 @default(now())
+  id                    String                  @id @default(uuid()) @db.Uuid
+  compoundId            String                  @db.Uuid
+  provider              LiteratureProvider
+  queryText             String                  @db.Text
+  queryVersion          String
+  /// relevance or recent. The two windows are unioned and then deduplicated.
+  resultWindow          String                  @default("recent")
+  /// Provider sort parameter. Empty means Europe PMC's relevance default.
+  sortMode              String                  @default("pub_date")
+  purpose               LiteratureSearchPurpose
+  startedAt             DateTime
+  completedAt           DateTime?
+  /// Records processed from this response, not a stored tally of screening decisions.
+  resultCount           Int                     @default(0)
+  providerReportedCount Int?
+  insertedCount         Int                     @default(0)
+  duplicateCount        Int                     @default(0)
+  conflictCount         Int                     @default(0)
+  skippedCount          Int                     @default(0)
+  status                LiteratureSearchStatus
+  errorText             String?                 @db.Text
+  createdAt             DateTime                @default(now())
 
-    compound Compound              @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    hits     LiteratureSearchHit[]
+  compound Compound              @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  hits     LiteratureSearchHit[]
 
-    @@index([compoundId])
-    @@index([purpose])
-    @@index([status])
+  @@index([compoundId])
+  @@index([purpose])
+  @@index([status])
 }
 
 model LiteratureSearchHit {
-    id           String                   @id @default(uuid()) @db.Uuid
-    searchRunId  String                   @db.Uuid
-    sourceId     String?                  @db.Uuid
-    doi          String?
-    pmid         String?
-    pmcid        String?
-    title        String                   @default("")
-    year         Int?
-    disposition  LiteratureHitDisposition
-    detail       String                   @default("")
-    createdAt    DateTime                 @default(now())
+  id          String                   @id @default(uuid()) @db.Uuid
+  searchRunId String                   @db.Uuid
+  sourceId    String?                  @db.Uuid
+  doi         String?
+  pmid        String?
+  pmcid       String?
+  title       String                   @default("")
+  year        Int?
+  disposition LiteratureHitDisposition
+  detail      String                   @default("")
+  createdAt   DateTime                 @default(now())
 
-    searchRun LiteratureSearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
-    source    EvidenceSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  searchRun LiteratureSearchRun @relation(fields: [searchRunId], references: [id], onDelete: Cascade)
+  source    EvidenceSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
-    @@index([searchRunId])
-    @@index([sourceId])
-    @@index([doi])
-    @@index([pmid])
+  @@index([searchRunId])
+  @@index([sourceId])
+  @@index([doi])
+  @@index([pmid])
 }
 
 enum ScreeningDecision {
-    INCLUDE
-    EXCLUDE
-    UNCERTAIN
+  INCLUDE
+  EXCLUDE
+  UNCERTAIN
 }
 
 enum ScreeningReason {
-    DIRECT_HUMAN_EVIDENCE
-    DIRECT_EXPERIMENTAL_EVIDENCE
-    SYSTEMATIC_REVIEW
-    META_ANALYSIS
-    REGULATORY_REVIEW
-    MECHANISTIC_RELEVANCE
-    DEVELOPMENTAL_RELEVANCE
-    REPRODUCTIVE_RELEVANCE
-    WRONG_COMPOUND
-    WRONG_BISPHENOL
-    WRONG_DOMAIN
-    EXPOSURE_ONLY
-    ANIMAL_ONLY
-    IN_VITRO_ONLY
-    MIXED_OR_UNCLEAR
-    COMMENTARY_OR_EDITORIAL
-    NARRATIVE_REVIEW_ONLY
-    METHOD_ONLY
-    NON_RELEVANT_OUTCOME
-    IRRELEVANT_KEYWORD_MATCH
-    DUPLICATE_PUBLICATION
-    RETRACTED
-    FULL_TEXT_NEEDED
-    OTHER
+  DIRECT_HUMAN_EVIDENCE
+  DIRECT_EXPERIMENTAL_EVIDENCE
+  SYSTEMATIC_REVIEW
+  META_ANALYSIS
+  REGULATORY_REVIEW
+  MECHANISTIC_RELEVANCE
+  DEVELOPMENTAL_RELEVANCE
+  REPRODUCTIVE_RELEVANCE
+  WRONG_COMPOUND
+  WRONG_BISPHENOL
+  WRONG_DOMAIN
+  EXPOSURE_ONLY
+  ANIMAL_ONLY
+  IN_VITRO_ONLY
+  MIXED_OR_UNCLEAR
+  COMMENTARY_OR_EDITORIAL
+  NARRATIVE_REVIEW_ONLY
+  METHOD_ONLY
+  NON_RELEVANT_OUTCOME
+  IRRELEVANT_KEYWORD_MATCH
+  DUPLICATE_PUBLICATION
+  RETRACTED
+  FULL_TEXT_NEEDED
+  OTHER
 }
 
 /// Confidence in the screening classification. Not study quality and not assessment confidence.
 enum ScreeningConfidence {
-    LOW
-    MODERATE
-    HIGH
+  LOW
+  MODERATE
+  HIGH
 }
 
 /// One advisory or curator pass. Machine fields and curator fields are written separately.
 model CurationAgentRun {
-    id            String   @id @default(uuid()) @db.Uuid
-    taskType      String
-    provider      String
-    model         String
-    promptVersion String
-    /// Source ids and task parameters. Not abstracts and not chain-of-thought.
-    inputRefs     Json
-    outputRefs    Json
-    status        String
-    createdAt     DateTime @default(now())
-    reviewedAt    DateTime?
+  id            String    @id @default(uuid()) @db.Uuid
+  taskType      String
+  provider      String
+  model         String
+  promptVersion String
+  /// Source ids and task parameters. Not abstracts and not chain-of-thought.
+  inputRefs     Json
+  outputRefs    Json
+  status        String
+  createdAt     DateTime  @default(now())
+  reviewedAt    DateTime?
 
-    decisions LiteratureScreeningDecision[]
-    claims    MechanisticClaim[]
+  decisions LiteratureScreeningDecision[]
+  claims    MechanisticClaim[]
 
-    @@index([taskType])
-    @@index([createdAt])
+  @@index([taskType])
+  @@index([createdAt])
 }
 
 /// Contextual triage. Uniqueness is publication + compound + domain. Search purpose is provenance.
 model LiteratureScreeningDecision {
-    id                String                @id @default(uuid()) @db.Uuid
-    evidenceSourceId  String                @db.Uuid
-    compoundId        String                @db.Uuid
-    /// Screening workflow domain, such as "reproductive". Not a mechanism-domain score.
-    domainCode        String
-    searchPurpose     LiteratureSearchPurpose?
-    machineDecision   ScreeningDecision?
-    machineReason     ScreeningReason?
-    machineConfidence ScreeningConfidence?
-    machineRationale  String?               @db.Text
-    curatorDecision   ScreeningDecision?
-    curatorReasonCode ScreeningReason?
-    curatorNotes      String?               @db.Text
-    screenedBy        String?
-    screenedAt        DateTime?
-    agentRunId        String?               @db.Uuid
-    createdAt         DateTime              @default(now())
-    updatedAt         DateTime              @updatedAt
+  id                String                   @id @default(uuid()) @db.Uuid
+  evidenceSourceId  String                   @db.Uuid
+  compoundId        String                   @db.Uuid
+  /// Screening workflow domain, such as "reproductive". Not a mechanism-domain score.
+  domainCode        String
+  searchPurpose     LiteratureSearchPurpose?
+  machineDecision   ScreeningDecision?
+  machineReason     ScreeningReason?
+  machineConfidence ScreeningConfidence?
+  machineRationale  String?                  @db.Text
+  curatorDecision   ScreeningDecision?
+  curatorReasonCode ScreeningReason?
+  curatorNotes      String?                  @db.Text
+  screenedBy        String?
+  screenedAt        DateTime?
+  agentRunId        String?                  @db.Uuid
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-    evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
-    compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
 
-    @@unique([evidenceSourceId, compoundId, domainCode])
-    @@index([compoundId, domainCode])
-    @@index([curatorDecision])
-    @@index([machineDecision])
+  @@unique([evidenceSourceId, compoundId, domainCode])
+  @@index([compoundId, domainCode])
+  @@index([curatorDecision])
+  @@index([machineDecision])
 }
 
 /// One directed edge a machine read from a stored abstract or title.
 /// A claim is not a finding, a measurement row, or a score.
 enum ClaimNodeType {
-    CHEMICAL
-    RECEPTOR
-    ENZYME
-    GENE
-    PROTEIN
-    BIOMARKER
-    CELL
-    TISSUE
-    ORGAN
-    PHYSIOLOGICAL_PROCESS
-    CELLULAR_PROCESS
-    PHENOTYPE
-    OUTCOME
-    OTHER
+  CHEMICAL
+  RECEPTOR
+  ENZYME
+  GENE
+  PROTEIN
+  BIOMARKER
+  CELL
+  TISSUE
+  ORGAN
+  PHYSIOLOGICAL_PROCESS
+  CELLULAR_PROCESS
+  PHENOTYPE
+  OUTCOME
+  OTHER
 }
 
 enum MechanisticRelation {
-    BINDS
-    AGONIZES
-    ANTAGONIZES
-    INHIBITS
-    ACTIVATES
-    INCREASES_EXPRESSION
-    DECREASES_EXPRESSION
-    INCREASES_LEVEL
-    DECREASES_LEVEL
-    IMPAIRS_FUNCTION
-    ENHANCES_FUNCTION
-    CONTRIBUTES_TO
-    ASSOCIATED_WITH
-    NO_EFFECT
-    OTHER
+  BINDS
+  AGONIZES
+  ANTAGONIZES
+  INHIBITS
+  ACTIVATES
+  INCREASES_EXPRESSION
+  DECREASES_EXPRESSION
+  INCREASES_LEVEL
+  DECREASES_LEVEL
+  IMPAIRS_FUNCTION
+  ENHANCES_FUNCTION
+  CONTRIBUTES_TO
+  ASSOCIATED_WITH
+  NO_EFFECT
+  OTHER
 }
 
 /// How directly the cited text supports the edge. Not a score direction.
 enum EvidenceDirectness {
-    DIRECTLY_DEMONSTRATED
-    STRONGLY_SUPPORTED
-    CONSISTENT_WITH
-    INFERRED
-    HYPOTHESIZED
-    UNKNOWN
+  DIRECTLY_DEMONSTRATED
+  STRONGLY_SUPPORTED
+  CONSISTENT_WITH
+  INFERRED
+  HYPOTHESIZED
+  UNKNOWN
 }
 
 /// Extraction confidence. VERIFIED is not a confidence value.
 enum ExtractionConfidence {
-    LOW
-    MODERATE
-    HIGH
+  LOW
+  MODERATE
+  HIGH
 }
 
 enum ClaimMappingState {
-    UNMAPPED
-    CANDIDATE
-    VERIFIED
+  UNMAPPED
+  CANDIDATE
+  VERIFIED
 }
 
 /// Curator action on a claim-to-mechanism link. This is not a score change.
 enum ClaimMappingAction {
-    VERIFY
-    REMAP
-    UNMAP
+  VERIFY
+  REMAP
+  UNMAP
 }
 
 /// Review priority only. AUTO_ACCEPT_LOW_RISK is not scientific acceptance.
 enum ClaimReviewPriority {
-    AUTO_ACCEPT_LOW_RISK
-    REVIEW_RECOMMENDED
-    REVIEW_REQUIRED
+  AUTO_ACCEPT_LOW_RISK
+  REVIEW_RECOMMENDED
+  REVIEW_REQUIRED
 }
 
 enum ClaimTextOrigin {
-    ABSTRACT
-    FULL_TEXT
+  ABSTRACT
+  FULL_TEXT
 }
 
 model MechanisticClaim {
-    id                   String                @id @default(uuid()) @db.Uuid
-    /// source + subject + relation + object. Re-runs update machine fields only.
-    stableKey            String                @unique
-    evidenceSourceId     String                @db.Uuid
-    compoundId           String                @db.Uuid
-    /// Workflow domain such as "reproductive". Provenance, not part of the unique key.
-    domainCode           String
-    subjectType          ClaimNodeType
-    subjectText          String
-    relation             MechanisticRelation
-    objectType           ClaimNodeType
-    objectText           String
-    machineDirectness    EvidenceDirectness
-    machineConfidence    ExtractionConfidence
-    machineRationale     String                @db.Text
-    /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
-    machineMappingState  ClaimMappingState
-    /// Current ontology link. A curator remap or unmap changes this pointer.
-    mechanismId          String?               @db.Uuid
-    /// Frozen machine suggestion. Curator actions and later re-extraction of the current link do not erase it.
-    machineMechanismId   String?               @db.Uuid
-    curatorDirectness    EvidenceDirectness?
-    curatorMappingState  ClaimMappingState?
-    curatorVerified      Boolean               @default(false)
-    curatorNote          String?               @db.Text
-    speciesText          String?
-    tissueText           String?
-    cellTypeText         String?
-    doseText             String?
-    measureType          String?
-    /// Printed token from the text, such as an IC50. Not a converted number.
-    measureValue         String?
-    measureUnit          String?
-    textOrigin           ClaimTextOrigin
-    sourceSection        String
-    /// One supporting sentence. Not the stored abstract.
-    quotedSupport        String?               @db.Text
-    reviewPriority       ClaimReviewPriority
-    reviewDerived        Boolean               @default(false)
-    provider             String
-    modelName            String
-    promptVersion        String
-    agentRunId           String?               @db.Uuid
-    createdAt            DateTime              @default(now())
-    updatedAt            DateTime              @updatedAt
+  id                  String               @id @default(uuid()) @db.Uuid
+  /// source + subject + relation + object. Re-runs update machine fields only.
+  stableKey           String               @unique
+  evidenceSourceId    String               @db.Uuid
+  compoundId          String               @db.Uuid
+  /// Workflow domain such as "reproductive". Provenance, not part of the unique key.
+  domainCode          String
+  subjectType         ClaimNodeType
+  subjectText         String
+  relation            MechanisticRelation
+  objectType          ClaimNodeType
+  objectText          String
+  machineDirectness   EvidenceDirectness
+  machineConfidence   ExtractionConfidence
+  machineRationale    String               @db.Text
+  /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
+  machineMappingState ClaimMappingState
+  /// Current ontology link. A curator remap or unmap changes this pointer.
+  mechanismId         String?              @db.Uuid
+  /// Frozen machine suggestion. Curator actions and later re-extraction of the current link do not erase it.
+  machineMechanismId  String?              @db.Uuid
+  curatorDirectness   EvidenceDirectness?
+  curatorMappingState ClaimMappingState?
+  curatorVerified     Boolean              @default(false)
+  curatorNote         String?              @db.Text
+  speciesText         String?
+  tissueText          String?
+  cellTypeText        String?
+  doseText            String?
+  measureType         String?
+  /// Printed token from the text, such as an IC50. Not a converted number.
+  measureValue        String?
+  measureUnit         String?
+  textOrigin          ClaimTextOrigin
+  sourceSection       String
+  /// One supporting sentence. Not the stored abstract.
+  quotedSupport       String?              @db.Text
+  reviewPriority      ClaimReviewPriority
+  reviewDerived       Boolean              @default(false)
+  provider            String
+  modelName           String
+  promptVersion       String
+  agentRunId          String?              @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-    evidenceSource EvidenceSource    @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
-    compound       Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanism      Mechanism?        @relation("CurrentClaimMechanism", fields: [mechanismId], references: [id], onDelete: SetNull)
-    machineMechanism Mechanism?     @relation("MachineClaimMechanism", fields: [machineMechanismId], references: [id], onDelete: SetNull)
-    agentRun       CurationAgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
-    mappingEvents  ClaimMappingEvent[]
+  evidenceSource   EvidenceSource      @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  compound         Compound            @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  mechanism        Mechanism?          @relation("CurrentClaimMechanism", fields: [mechanismId], references: [id], onDelete: SetNull)
+  machineMechanism Mechanism?          @relation("MachineClaimMechanism", fields: [machineMechanismId], references: [id], onDelete: SetNull)
+  agentRun         CurationAgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  mappingEvents    ClaimMappingEvent[]
 
-    @@index([evidenceSourceId])
-    @@index([compoundId])
-    @@index([mechanismId])
-    @@index([machineMechanismId])
-    @@index([agentRunId])
+  @@index([evidenceSourceId])
+  @@index([compoundId])
+  @@index([mechanismId])
+  @@index([machineMechanismId])
+  @@index([agentRunId])
 }
 
 /// Append-only record of a curator mapping decision. Machine extraction does not write these rows.
 model ClaimMappingEvent {
-    id               String             @id @default(uuid()) @db.Uuid
-    claimId          String             @db.Uuid
-    action           ClaimMappingAction
-    fromMechanismId  String?            @db.Uuid
-    toMechanismId    String?            @db.Uuid
-    fromState        ClaimMappingState
-    toState          ClaimMappingState
-    note             String?            @db.Text
-    actor            String
-    createdAt        DateTime           @default(now())
+  id              String             @id @default(uuid()) @db.Uuid
+  claimId         String             @db.Uuid
+  action          ClaimMappingAction
+  fromMechanismId String?            @db.Uuid
+  toMechanismId   String?            @db.Uuid
+  fromState       ClaimMappingState
+  toState         ClaimMappingState
+  note            String?            @db.Text
+  actor           String
+  createdAt       DateTime           @default(now())
 
-    claim          MechanisticClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-    fromMechanism  Mechanism?       @relation("MappingEventFrom", fields: [fromMechanismId], references: [id], onDelete: SetNull)
-    toMechanism    Mechanism?       @relation("MappingEventTo", fields: [toMechanismId], references: [id], onDelete: SetNull)
+  claim         MechanisticClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  fromMechanism Mechanism?       @relation("MappingEventFrom", fields: [fromMechanismId], references: [id], onDelete: SetNull)
+  toMechanism   Mechanism?       @relation("MappingEventTo", fields: [toMechanismId], references: [id], onDelete: SetNull)
 
-    @@index([claimId])
-    @@index([fromMechanismId])
-    @@index([toMechanismId])
+  @@index([claimId])
+  @@index([fromMechanismId])
+  @@index([toMechanismId])
 }
 
 model EvidenceFinding {
-    id                     String            @id @default(uuid()) @db.Uuid
-    stableKey              String            @unique
-    sourceId               String            @db.Uuid
-    compoundId             String            @db.Uuid
-    mechanismAssessmentId  String?           @db.Uuid
-    outcomeAssessmentId    String?           @db.Uuid
-    exposureContextId      String?           @db.Uuid
-    biologicalContextId    String?           @db.Uuid
-    /// Study organism as reported. Not a taxonomy service.
-    species                String
-    speciesCommonName      String?
-    speciesNcbiTaxId       Int?
-    sex                    BiologicalSex     @default(UNSPECIFIED)
-    sexDetail              String?
-    sampleSize             Int?
-    studyDesign            StudyDesign       @default(UNKNOWN)
-    studyDesignDetail      String?
-    /// Observation class. A review source can hold both animal and human findings.
-    evidenceClass          EvidenceType
-    /// Quality of this evidence item. Distinct from MechanismAssessment.evidenceConfidence.
-    studyQuality                StudyQuality @default(NOT_ASSESSED)
-    exposureAssessmentQuality   StudyQuality @default(NOT_ASSESSED)
-    confoundingControlQuality   StudyQuality @default(NOT_ASSESSED)
-    outcomeMeasurementQuality   StudyQuality @default(NOT_ASSESSED)
-    riskOfBiasSummary           String?
-    doseMetricType         DoseMetricType    @default(UNKNOWN)
-    /// Provenance link. Importing an external record does not create or change a mechanism score.
-    externalRecordId       String?           @db.Uuid
-    doseText               String
-    durationText           String
-    findingSummary         String
-    effectDirection        EffectDirection
-    statisticalResult      String?
-    authorsConclusion      String?
-    ourInterpretation      String?
-    limitations            String?
-    /// 0–4: how directly this finding bears on the linked assessment. Not the H0–H4 scale.
-    relevanceScore         Int
-    supplemental           Json?
-    createdAt              DateTime          @default(now())
-    updatedAt              DateTime          @updatedAt
+  id                        String          @id @default(uuid()) @db.Uuid
+  stableKey                 String          @unique
+  sourceId                  String          @db.Uuid
+  compoundId                String          @db.Uuid
+  mechanismAssessmentId     String?         @db.Uuid
+  outcomeAssessmentId       String?         @db.Uuid
+  exposureContextId         String?         @db.Uuid
+  biologicalContextId       String?         @db.Uuid
+  /// Study organism as reported. Not a taxonomy service.
+  species                   String
+  speciesCommonName         String?
+  speciesNcbiTaxId          Int?
+  sex                       BiologicalSex   @default(UNSPECIFIED)
+  sexDetail                 String?
+  sampleSize                Int?
+  studyDesign               StudyDesign     @default(UNKNOWN)
+  studyDesignDetail         String?
+  /// Observation class. A review source can hold both animal and human findings.
+  evidenceClass             EvidenceType
+  /// Quality of this evidence item. Distinct from MechanismAssessment.evidenceConfidence.
+  studyQuality              StudyQuality    @default(NOT_ASSESSED)
+  exposureAssessmentQuality StudyQuality    @default(NOT_ASSESSED)
+  confoundingControlQuality StudyQuality    @default(NOT_ASSESSED)
+  outcomeMeasurementQuality StudyQuality    @default(NOT_ASSESSED)
+  riskOfBiasSummary         String?
+  doseMetricType            DoseMetricType  @default(UNKNOWN)
+  /// Provenance link. Importing an external record does not create or change a mechanism score.
+  externalRecordId          String?         @db.Uuid
+  doseText                  String
+  durationText              String
+  findingSummary            String
+  effectDirection           EffectDirection
+  statisticalResult         String?
+  authorsConclusion         String?
+  ourInterpretation         String?
+  limitations               String?
+  /// 0–4: how directly this finding bears on the linked assessment. Not the H0–H4 scale.
+  relevanceScore            Int
+  supplemental              Json?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
 
-    source               EvidenceSource             @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-    compound             Compound                   @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanismAssessment  MechanismAssessment?       @relation(fields: [mechanismAssessmentId], references: [id])
-    outcomeAssessment    CompoundOutcomeAssessment? @relation(fields: [outcomeAssessmentId], references: [id])
-    exposureContext      ExposureContext?           @relation(fields: [exposureContextId], references: [id])
-    biologicalContext    BiologicalContext?         @relation(fields: [biologicalContextId], references: [id])
-    externalRecord       ExternalRecord?            @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
-    measurements         EvidenceMeasurement[]
-    studyMetadata        StudyMetadata?
-    microbiomeMetadata   MicrobiomeStudyMetadata?
-    assayObservations    AssayObservation[]
+  source              EvidenceSource             @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  compound            Compound                   @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  mechanismAssessment MechanismAssessment?       @relation(fields: [mechanismAssessmentId], references: [id])
+  outcomeAssessment   CompoundOutcomeAssessment? @relation(fields: [outcomeAssessmentId], references: [id])
+  exposureContext     ExposureContext?           @relation(fields: [exposureContextId], references: [id])
+  biologicalContext   BiologicalContext?         @relation(fields: [biologicalContextId], references: [id])
+  externalRecord      ExternalRecord?            @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
+  measurements        EvidenceMeasurement[]
+  studyMetadata       StudyMetadata?
+  microbiomeMetadata  MicrobiomeStudyMetadata?
+  assayObservations   AssayObservation[]
 
-    @@index([compoundId])
-    @@index([sourceId])
-    @@index([evidenceClass])
-    @@index([mechanismAssessmentId])
-    @@index([outcomeAssessmentId])
-    @@index([biologicalContextId])
-    @@index([sex])
-    @@index([studyQuality])
-    @@index([doseMetricType])
-    @@index([externalRecordId])
+  @@index([compoundId])
+  @@index([sourceId])
+  @@index([evidenceClass])
+  @@index([mechanismAssessmentId])
+  @@index([outcomeAssessmentId])
+  @@index([biologicalContextId])
+  @@index([sex])
+  @@index([studyQuality])
+  @@index([doseMetricType])
+  @@index([externalRecordId])
 }
 
 /// Machine-readable numbers for one finding. Prose on the finding stays the faithful record.
 model EvidenceMeasurement {
-    id                     String          @id @default(uuid()) @db.Uuid
-    findingId              String          @db.Uuid
-    endpoint               String
-    analyte                String?
-    value                  Decimal?        @db.Decimal(24, 8)
-    unit                   String?
-    comparatorValue        Decimal?        @db.Decimal(24, 8)
-    comparatorUnit         String?
-    effectSize             Decimal?        @db.Decimal(24, 8)
-    effectSizeType         EffectSizeType?
-    percentChange          Decimal?        @db.Decimal(12, 4)
-    /// Exact reported p-value only. Inequalities such as p < 0.05 stay in EvidenceFinding.statisticalResult.
-    pValue                 Decimal?        @db.Decimal(24, 12)
-    confidenceIntervalLow  Decimal?        @db.Decimal(24, 8)
-    confidenceIntervalHigh Decimal?        @db.Decimal(24, 8)
-    sampleTimepoint        String?
-    notes                  String          @default("")
-    createdAt              DateTime        @default(now())
+  id                     String          @id @default(uuid()) @db.Uuid
+  findingId              String          @db.Uuid
+  endpoint               String
+  analyte                String?
+  value                  Decimal?        @db.Decimal(24, 8)
+  unit                   String?
+  comparatorValue        Decimal?        @db.Decimal(24, 8)
+  comparatorUnit         String?
+  effectSize             Decimal?        @db.Decimal(24, 8)
+  effectSizeType         EffectSizeType?
+  percentChange          Decimal?        @db.Decimal(12, 4)
+  /// Exact reported p-value only. Inequalities such as p < 0.05 stay in EvidenceFinding.statisticalResult.
+  pValue                 Decimal?        @db.Decimal(24, 12)
+  confidenceIntervalLow  Decimal?        @db.Decimal(24, 8)
+  confidenceIntervalHigh Decimal?        @db.Decimal(24, 8)
+  sampleTimepoint        String?
+  notes                  String          @default("")
+  createdAt              DateTime        @default(now())
 
-    finding EvidenceFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  finding EvidenceFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
 
-    @@index([findingId])
-    @@index([endpoint])
+  @@index([findingId])
+  @@index([endpoint])
 }
 
 // ---------------------------------------------------------------------------
@@ -1265,51 +1346,51 @@ model EvidenceMeasurement {
 // ---------------------------------------------------------------------------
 
 enum RegulatoryAgency {
-    EFSA
-    ECHA
-    EPA
-    TGA
-    FDA
-    WHO
-    IARC
-    NASEM
-    AICIS
-    APVMA
-    OTHER
+  EFSA
+  ECHA
+  EPA
+  TGA
+  FDA
+  WHO
+  IARC
+  NASEM
+  AICIS
+  APVMA
+  OTHER
 }
 
 model RegulatoryAssessment {
-    id                 String           @id @default(uuid()) @db.Uuid
-    stableKey          String           @unique
-    compoundId         String           @db.Uuid
-    agency             RegulatoryAgency
-    agencyOther        String?
-    jurisdiction       String
-    assessmentDate     DateTime?
-    /// Hazard value, endocrine-disruptor conclusion, inventory listing, and registration status stay distinct.
-    conclusionKind     RegulatoryConclusionKind @default(OTHER)
-    classification     String
-    referenceDoseKind  ReferenceDoseKind @default(UNSPECIFIED)
-    referenceDose      Decimal?         @db.Decimal(24, 8)
-    referenceDoseUnit  String?
-    /// Composite factors such as "10 × 10" stay text. They are not a second score.
-    uncertaintyFactor  String?
-    populationBasis    String?
-    criticalEndpoint   String?
-    externalRecordId   String?          @db.Uuid
-    summary            String
-    url                String           @default("")
-    current            Boolean          @default(true)
-    createdAt          DateTime         @default(now())
-    updatedAt          DateTime         @updatedAt
+  id                String                   @id @default(uuid()) @db.Uuid
+  stableKey         String                   @unique
+  compoundId        String                   @db.Uuid
+  agency            RegulatoryAgency
+  agencyOther       String?
+  jurisdiction      String
+  assessmentDate    DateTime?
+  /// Hazard value, endocrine-disruptor conclusion, inventory listing, and registration status stay distinct.
+  conclusionKind    RegulatoryConclusionKind @default(OTHER)
+  classification    String
+  referenceDoseKind ReferenceDoseKind        @default(UNSPECIFIED)
+  referenceDose     Decimal?                 @db.Decimal(24, 8)
+  referenceDoseUnit String?
+  /// Composite factors such as "10 × 10" stay text. They are not a second score.
+  uncertaintyFactor String?
+  populationBasis   String?
+  criticalEndpoint  String?
+  externalRecordId  String?                  @db.Uuid
+  summary           String
+  url               String                   @default("")
+  current           Boolean                  @default(true)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-    compound       Compound        @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    externalRecord ExternalRecord? @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
+  compound       Compound        @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  externalRecord ExternalRecord? @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
 
-    @@index([compoundId, current])
-    @@index([agency])
-    @@index([conclusionKind])
-    @@index([externalRecordId])
+  @@index([compoundId, current])
+  @@index([agency])
+  @@index([conclusionKind])
+  @@index([externalRecordId])
 }
 
 // ---------------------------------------------------------------------------
@@ -1317,29 +1398,29 @@ model RegulatoryAssessment {
 // ---------------------------------------------------------------------------
 
 model AssessmentRevision {
-    id                      String              @id @default(uuid()) @db.Uuid
-    mechanismAssessmentId   String?             @db.Uuid
-    outcomeAssessmentId     String?             @db.Uuid
-    previousEffectScore     Int?
-    newEffectScore          Int?
-    previousConfidence      EvidenceConfidence?
-    newConfidence           EvidenceConfidence?
-    /// Direction, human relevance, magnitude, and curation status at the time of the change.
-    previousSnapshot        Json?
-    newSnapshot             Json?
-    reason                  String
-    changedAt               DateTime            @default(now())
-    changedByUserId         String?             @db.Uuid
-    evidenceSourceId        String?             @db.Uuid
+  id                    String              @id @default(uuid()) @db.Uuid
+  mechanismAssessmentId String?             @db.Uuid
+  outcomeAssessmentId   String?             @db.Uuid
+  previousEffectScore   Int?
+  newEffectScore        Int?
+  previousConfidence    EvidenceConfidence?
+  newConfidence         EvidenceConfidence?
+  /// Direction, human relevance, magnitude, and curation status at the time of the change.
+  previousSnapshot      Json?
+  newSnapshot           Json?
+  reason                String
+  changedAt             DateTime            @default(now())
+  changedByUserId       String?             @db.Uuid
+  evidenceSourceId      String?             @db.Uuid
 
-    mechanismAssessment MechanismAssessment?       @relation(fields: [mechanismAssessmentId], references: [id], onDelete: Cascade)
-    outcomeAssessment   CompoundOutcomeAssessment? @relation(fields: [outcomeAssessmentId], references: [id], onDelete: Cascade)
-    changedBy           User?                      @relation(fields: [changedByUserId], references: [id])
-    evidenceSource      EvidenceSource?            @relation(fields: [evidenceSourceId], references: [id])
+  mechanismAssessment MechanismAssessment?       @relation(fields: [mechanismAssessmentId], references: [id], onDelete: Cascade)
+  outcomeAssessment   CompoundOutcomeAssessment? @relation(fields: [outcomeAssessmentId], references: [id], onDelete: Cascade)
+  changedBy           User?                      @relation(fields: [changedByUserId], references: [id])
+  evidenceSource      EvidenceSource?            @relation(fields: [evidenceSourceId], references: [id])
 
-    @@index([mechanismAssessmentId])
-    @@index([outcomeAssessmentId])
-    @@index([changedAt])
+  @@index([mechanismAssessmentId])
+  @@index([outcomeAssessmentId])
+  @@index([changedAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -1347,40 +1428,40 @@ model AssessmentRevision {
 // ---------------------------------------------------------------------------
 
 enum DataGapPriority {
-    LOW
-    MODERATE
-    HIGH
-    CRITICAL
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
 }
 
 enum DataGapReason {
-    UNKNOWN_EFFECT
-    CONFLICTING_EVIDENCE
-    INSUFFICIENT_HUMAN_EVIDENCE
-    DOSE_RELEVANCE_UNCERTAIN
-    DEVELOPMENTAL_RELEVANCE_UNCERTAIN
-    NOT_YET_CURATED
-    OTHER
+  UNKNOWN_EFFECT
+  CONFLICTING_EVIDENCE
+  INSUFFICIENT_HUMAN_EVIDENCE
+  DOSE_RELEVANCE_UNCERTAIN
+  DEVELOPMENTAL_RELEVANCE_UNCERTAIN
+  NOT_YET_CURATED
+  OTHER
 }
 
 model DataGap {
-    id                 String          @id @default(uuid()) @db.Uuid
-    stableKey          String          @unique
-    compoundId         String          @db.Uuid
-    mechanismId        String?         @db.Uuid
-    domainId           String?         @db.Uuid
-    priority           DataGapPriority
-    reason             DataGapReason
-    description        String
-    suggestedResearch  String
-    createdAt          DateTime        @default(now())
+  id                String          @id @default(uuid()) @db.Uuid
+  stableKey         String          @unique
+  compoundId        String          @db.Uuid
+  mechanismId       String?         @db.Uuid
+  domainId          String?         @db.Uuid
+  priority          DataGapPriority
+  reason            DataGapReason
+  description       String
+  suggestedResearch String
+  createdAt         DateTime        @default(now())
 
-    compound  Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    mechanism Mechanism?        @relation(fields: [mechanismId], references: [id])
-    domain    BiologicalDomain? @relation(fields: [domainId], references: [id])
+  compound  Compound          @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  mechanism Mechanism?        @relation(fields: [mechanismId], references: [id])
+  domain    BiologicalDomain? @relation(fields: [domainId], references: [id])
 
-    @@index([compoundId])
-    @@index([priority])
+  @@index([compoundId])
+  @@index([priority])
 }
 
 // ---------------------------------------------------------------------------
@@ -1389,390 +1470,390 @@ model DataGap {
 // ---------------------------------------------------------------------------
 
 enum ExternalAccessType {
-    API
-    BULK_DOWNLOAD
-    WEB_ONLY
-    FEDERATED_PORTAL
-    MANUAL_CURATED
-    UNKNOWN
+  API
+  BULK_DOWNLOAD
+  WEB_ONLY
+  FEDERATED_PORTAL
+  MANUAL_CURATED
+  UNKNOWN
 }
 
 /// What EDCtox will do with a provider. This is not the same as accessType, which describes what the provider offers.
 enum ExternalAccessMode {
-    LINK_ONLY
-    LIVE_API
-    SNAPSHOT_CACHE
-    CURATED_IMPORT
-    BULK_REFERENCE
-    MANUAL_REVIEW
+  LINK_ONLY
+  LIVE_API
+  SNAPSHOT_CACHE
+  CURATED_IMPORT
+  BULK_REFERENCE
+  MANUAL_REVIEW
 }
 
 enum IdentityResolutionStatus {
-    VERIFIED
-    PROBABLE
-    AMBIGUOUS
-    CONFLICT
-    NOT_FOUND
-    MANUAL_REVIEW_REQUIRED
+  VERIFIED
+  PROBABLE
+  AMBIGUOUS
+  CONFLICT
+  NOT_FOUND
+  MANUAL_REVIEW_REQUIRED
 }
 
 enum ExternalDatasetRole {
-    IDENTITY
-    STRUCTURE
-    ASSAY
-    IN_VIVO
-    REGULATORY
-    EXPOSURE
-    ENDOCRINE
-    FEDERATED
-    /// OECD harmonised templates and IUCLID are a reporting format, not a substance inventory.
-    STUDY_FORMAT
-    ONTOLOGY
+  IDENTITY
+  STRUCTURE
+  ASSAY
+  IN_VIVO
+  REGULATORY
+  EXPOSURE
+  ENDOCRINE
+  FEDERATED
+  /// OECD harmonised templates and IUCLID are a reporting format, not a substance inventory.
+  STUDY_FORMAT
+  ONTOLOGY
 }
 
 model ExternalDataset {
-    id               String               @id @default(uuid()) @db.Uuid
-    code             String               @unique
-    name             String
-    organisation     String
-    jurisdiction     String?
-    description      String               @default("")
-    baseUrl          String?
-    apiUrl           String?
-    documentationUrl String?
-    version          String?
-    /// Short pointer to the provider's own terms. This seed does not grant a licence.
-    licence          String?
-    accessType       ExternalAccessType
-    /// EDCtox policy for this provider. Link-only providers are not fetched.
-    accessMode       ExternalAccessMode   @default(LINK_ONLY)
-    requiresApiKey   Boolean              @default(false)
-    roles            ExternalDatasetRole[] @default([])
-    lastCheckedAt    DateTime?
-    lastSyncedAt     DateTime?
-    active           Boolean              @default(true)
-    notes            String               @default("")
-    createdAt        DateTime             @default(now())
-    updatedAt        DateTime             @updatedAt
+  id               String                @id @default(uuid()) @db.Uuid
+  code             String                @unique
+  name             String
+  organisation     String
+  jurisdiction     String?
+  description      String                @default("")
+  baseUrl          String?
+  apiUrl           String?
+  documentationUrl String?
+  version          String?
+  /// Short pointer to the provider's own terms. This seed does not grant a licence.
+  licence          String?
+  accessType       ExternalAccessType
+  /// EDCtox policy for this provider. Link-only providers are not fetched.
+  accessMode       ExternalAccessMode    @default(LINK_ONLY)
+  requiresApiKey   Boolean               @default(false)
+  roles            ExternalDatasetRole[] @default([])
+  lastCheckedAt    DateTime?
+  lastSyncedAt     DateTime?
+  active           Boolean               @default(true)
+  notes            String                @default("")
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
-    records          ExternalRecord[]
-    identifiers      ExternalIdentifier[]
-    ontologyMappings ExternalOntologyMapping[]
-    importRuns       ExternalImportRun[]
-    resolutionAttempts IdentityResolutionAttempt[]
+  records            ExternalRecord[]
+  identifiers        ExternalIdentifier[]
+  ontologyMappings   ExternalOntologyMapping[]
+  importRuns         ExternalImportRun[]
+  resolutionAttempts IdentityResolutionAttempt[]
 }
 
 /// Substance and structure keys. DOI, PMID, and AOP ids are not stored here.
 enum ExternalIdentifierNamespace {
-    DTXSID
-    CAS_RN
-    PUBCHEM_CID
-    INCHI
-    INCHIKEY
-    CANONICAL_SMILES
-    EC_NUMBER
-    ECHA_SUBSTANCE_ID
-    IUCLID_UUID
-    AICIS_ID
-    APVMA_ACTIVE_ID
-    EFSA_ID
-    OTHER
+  DTXSID
+  CAS_RN
+  PUBCHEM_CID
+  INCHI
+  INCHIKEY
+  CANONICAL_SMILES
+  EC_NUMBER
+  ECHA_SUBSTANCE_ID
+  IUCLID_UUID
+  AICIS_ID
+  APVMA_ACTIVE_ID
+  EFSA_ID
+  OTHER
 }
 
 model ExternalIdentifier {
-    id         String                      @id @default(uuid()) @db.Uuid
-    stableKey  String                      @unique
-    compoundId String                      @db.Uuid
-    datasetId  String?                     @db.Uuid
-    namespace  ExternalIdentifierNamespace
-    value      String
-    /// One preferred key per namespace for this compound. A disagreement is a second row, not an overwrite.
-    canonical  Boolean                     @default(false)
-    disputed   Boolean                     @default(false)
-    resolutionStatus IdentityResolutionStatus?
-    verifiedAt DateTime?
-    sourceUrl  String?
-    notes      String                      @default("")
-    createdAt  DateTime                    @default(now())
-    updatedAt  DateTime                    @updatedAt
+  id               String                      @id @default(uuid()) @db.Uuid
+  stableKey        String                      @unique
+  compoundId       String                      @db.Uuid
+  datasetId        String?                     @db.Uuid
+  namespace        ExternalIdentifierNamespace
+  value            String
+  /// One preferred key per namespace for this compound. A disagreement is a second row, not an overwrite.
+  canonical        Boolean                     @default(false)
+  disputed         Boolean                     @default(false)
+  resolutionStatus IdentityResolutionStatus?
+  verifiedAt       DateTime?
+  sourceUrl        String?
+  notes            String                      @default("")
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
 
-    compound Compound         @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    dataset  ExternalDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  compound Compound         @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  dataset  ExternalDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
 
-    @@unique([namespace, value, compoundId])
-    @@index([namespace, value])
-    @@index([compoundId])
+  @@unique([namespace, value, compoundId])
+  @@index([namespace, value])
+  @@index([compoundId])
 }
 
 enum ExternalImportStatus {
-    NOT_IMPORTED
-    METADATA_ONLY
-    IMPORTED
-    PARTIAL
-    NEEDS_REVIEW
-    REJECTED
+  NOT_IMPORTED
+  METADATA_ONLY
+  IMPORTED
+  PARTIAL
+  NEEDS_REVIEW
+  REJECTED
 }
 
 model ExternalRecord {
-    id             String               @id @default(uuid()) @db.Uuid
-    datasetId      String               @db.Uuid
-    compoundId     String?              @db.Uuid
-    importRunId    String?              @db.Uuid
-    externalId     String
-    recordType     String?
-    externalUrl    String?
-    sourceVersion  String?
-    retrievedAt      DateTime?
-    sourceModifiedAt DateTime?
-    expiresAt        DateTime?
-    etag             String?
-    checksum         String?
-    /// Source cache only. Scientific claims belong in findings, assays, and assessments.
-    rawData        Json?
-    importStatus   ExternalImportStatus @default(NOT_IMPORTED)
-    notes          String               @default("")
-    createdAt      DateTime             @default(now())
-    updatedAt      DateTime             @updatedAt
+  id               String               @id @default(uuid()) @db.Uuid
+  datasetId        String               @db.Uuid
+  compoundId       String?              @db.Uuid
+  importRunId      String?              @db.Uuid
+  externalId       String
+  recordType       String?
+  externalUrl      String?
+  sourceVersion    String?
+  retrievedAt      DateTime?
+  sourceModifiedAt DateTime?
+  expiresAt        DateTime?
+  etag             String?
+  checksum         String?
+  /// Source cache only. Scientific claims belong in findings, assays, and assessments.
+  rawData          Json?
+  importStatus     ExternalImportStatus @default(NOT_IMPORTED)
+  notes            String               @default("")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-    dataset          ExternalDataset        @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-    compound         Compound?              @relation(fields: [compoundId], references: [id], onDelete: SetNull)
-    importRun        ExternalImportRun?     @relation(fields: [importRunId], references: [id], onDelete: SetNull)
-    findings         EvidenceFinding[]
-    regulatoryAssessments RegulatoryAssessment[]
-    assayObservations AssayObservation[]
+  dataset               ExternalDataset        @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  compound              Compound?              @relation(fields: [compoundId], references: [id], onDelete: SetNull)
+  importRun             ExternalImportRun?     @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  findings              EvidenceFinding[]
+  regulatoryAssessments RegulatoryAssessment[]
+  assayObservations     AssayObservation[]
 
-    @@unique([datasetId, externalId])
-    @@index([compoundId])
-    @@index([importStatus])
+  @@unique([datasetId, externalId])
+  @@index([compoundId])
+  @@index([importStatus])
 }
 
 enum ImportRunStatus {
-    STARTED
-    SUCCEEDED
-    PARTIAL
-    FAILED
+  STARTED
+  SUCCEEDED
+  PARTIAL
+  FAILED
 }
 
 model ExternalImportRun {
-    id              String          @id @default(uuid()) @db.Uuid
-    datasetId       String          @db.Uuid
-    startedAt       DateTime        @default(now())
-    completedAt     DateTime?
-    sourceVersion   String?
-    status          ImportRunStatus @default(STARTED)
-    recordsSeen     Int             @default(0)
-    recordsCreated  Int             @default(0)
-    recordsUpdated  Int             @default(0)
-    recordsRejected Int             @default(0)
-    notes           String          @default("")
+  id              String          @id @default(uuid()) @db.Uuid
+  datasetId       String          @db.Uuid
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  sourceVersion   String?
+  status          ImportRunStatus @default(STARTED)
+  recordsSeen     Int             @default(0)
+  recordsCreated  Int             @default(0)
+  recordsUpdated  Int             @default(0)
+  recordsRejected Int             @default(0)
+  notes           String          @default("")
 
-    dataset ExternalDataset  @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-    records ExternalRecord[]
-    resolutionAttempts IdentityResolutionAttempt[]
+  dataset            ExternalDataset             @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  records            ExternalRecord[]
+  resolutionAttempts IdentityResolutionAttempt[]
 
-    @@index([datasetId, startedAt])
+  @@index([datasetId, startedAt])
 }
 
 /// One query to one provider for one compound. An ambiguous result has no selected identifier.
 model IdentityResolutionAttempt {
-    id                 String                   @id @default(uuid()) @db.Uuid
-    compoundId         String                   @db.Uuid
-    datasetId          String                   @db.Uuid
-    importRunId        String?                  @db.Uuid
-    queryType          String
-    queryValue         String
-    candidateIds       String[]                 @default([])
-    selectedExternalId String?
-    resolutionStatus   IdentityResolutionStatus
-    reason             String                   @default("")
-    reviewedAt         DateTime?
-    createdAt          DateTime                 @default(now())
+  id                 String                   @id @default(uuid()) @db.Uuid
+  compoundId         String                   @db.Uuid
+  datasetId          String                   @db.Uuid
+  importRunId        String?                  @db.Uuid
+  queryType          String
+  queryValue         String
+  candidateIds       String[]                 @default([])
+  selectedExternalId String?
+  resolutionStatus   IdentityResolutionStatus
+  reason             String                   @default("")
+  reviewedAt         DateTime?
+  createdAt          DateTime                 @default(now())
 
-    compound  Compound           @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    dataset   ExternalDataset    @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-    importRun ExternalImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  compound  Compound           @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  dataset   ExternalDataset    @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  importRun ExternalImportRun? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
 
-    @@index([compoundId, createdAt])
-    @@index([datasetId])
+  @@index([compoundId, createdAt])
+  @@index([datasetId])
 }
 
 enum ExternalTermType {
-    AOP
-    MOLECULAR_INITIATING_EVENT
-    KEY_EVENT
-    ADVERSE_OUTCOME
-    ASSAY
-    ENDPOINT
-    ONTOLOGY_TERM
-    OTHER
+  AOP
+  MOLECULAR_INITIATING_EVENT
+  KEY_EVENT
+  ADVERSE_OUTCOME
+  ASSAY
+  ENDPOINT
+  ONTOLOGY_TERM
+  OTHER
 }
 
 enum OntologyMappingType {
-    EXACT
-    CLOSE
-    BROADER
-    NARROWER
-    RELATED
-    MANUAL_REVIEW_REQUIRED
+  EXACT
+  CLOSE
+  BROADER
+  NARROWER
+  RELATED
+  MANUAL_REVIEW_REQUIRED
 }
 
 /// A crosswalk to an external term. It is not evidence that a chemical causes the outcome.
 /// Database check ExternalOntologyMapping_one_target requires a mechanism, outcome, or pathway.
 model ExternalOntologyMapping {
-    id               String              @id @default(uuid()) @db.Uuid
-    stableKey        String              @unique
-    datasetId        String              @db.Uuid
-    mechanismId      String?             @db.Uuid
-    outcomeId        String?             @db.Uuid
-    causalPathwayId  String?             @db.Uuid
-    externalTermId   String
-    externalTermType ExternalTermType
-    externalLabel    String?
-    externalUrl      String?
-    mappingType      OntologyMappingType
-    confidence       EvidenceConfidence
-    notes            String              @default("")
-    createdAt        DateTime            @default(now())
-    updatedAt        DateTime            @updatedAt
+  id               String              @id @default(uuid()) @db.Uuid
+  stableKey        String              @unique
+  datasetId        String              @db.Uuid
+  mechanismId      String?             @db.Uuid
+  outcomeId        String?             @db.Uuid
+  causalPathwayId  String?             @db.Uuid
+  externalTermId   String
+  externalTermType ExternalTermType
+  externalLabel    String?
+  externalUrl      String?
+  mappingType      OntologyMappingType
+  confidence       EvidenceConfidence
+  notes            String              @default("")
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-    dataset       ExternalDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-    mechanism     Mechanism?      @relation(fields: [mechanismId], references: [id], onDelete: Restrict)
-    outcome       Outcome?        @relation(fields: [outcomeId], references: [id], onDelete: Restrict)
-    causalPathway CausalPathway?  @relation(fields: [causalPathwayId], references: [id], onDelete: Restrict)
+  dataset       ExternalDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  mechanism     Mechanism?      @relation(fields: [mechanismId], references: [id], onDelete: Restrict)
+  outcome       Outcome?        @relation(fields: [outcomeId], references: [id], onDelete: Restrict)
+  causalPathway CausalPathway?  @relation(fields: [causalPathwayId], references: [id], onDelete: Restrict)
 
-    @@index([datasetId, externalTermId])
-    @@index([mechanismId])
-    @@index([outcomeId])
-    @@index([causalPathwayId])
+  @@index([datasetId, externalTermId])
+  @@index([mechanismId])
+  @@index([outcomeId])
+  @@index([causalPathwayId])
 }
 
 /// Assay bioactivity or a named model output. A hit is not an adverse effect and has no effect score.
 model AssayObservation {
-    id                String   @id @default(uuid()) @db.Uuid
-    stableKey         String   @unique
-    compoundId        String   @db.Uuid
-    externalRecordId  String?  @db.Uuid
-    evidenceFindingId String?  @db.Uuid
-    assaySource       String
-    assayId           String?
-    assayName         String
-    targetGene        String?
-    targetFamily      String?
-    modeOfAction      String?
-    /// Null means the call was not imported. False means the source reported no hit.
-    hitCall           Boolean?
-    ac50              Decimal? @db.Decimal(24, 8)
-    ac50Unit          String?
-    activityDirection String?
-    qcFlag            String?
-    modelDerived      Boolean  @default(false)
-    modelName         String?
-    notes             String   @default("")
-    createdAt         DateTime @default(now())
-    updatedAt         DateTime @updatedAt
+  id                String   @id @default(uuid()) @db.Uuid
+  stableKey         String   @unique
+  compoundId        String   @db.Uuid
+  externalRecordId  String?  @db.Uuid
+  evidenceFindingId String?  @db.Uuid
+  assaySource       String
+  assayId           String?
+  assayName         String
+  targetGene        String?
+  targetFamily      String?
+  modeOfAction      String?
+  /// Null means the call was not imported. False means the source reported no hit.
+  hitCall           Boolean?
+  ac50              Decimal? @db.Decimal(24, 8)
+  ac50Unit          String?
+  activityDirection String?
+  qcFlag            String?
+  modelDerived      Boolean  @default(false)
+  modelName         String?
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-    compound       Compound         @relation(fields: [compoundId], references: [id], onDelete: Cascade)
-    externalRecord ExternalRecord?  @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
-    finding        EvidenceFinding? @relation(fields: [evidenceFindingId], references: [id], onDelete: SetNull)
+  compound       Compound         @relation(fields: [compoundId], references: [id], onDelete: Cascade)
+  externalRecord ExternalRecord?  @relation(fields: [externalRecordId], references: [id], onDelete: SetNull)
+  finding        EvidenceFinding? @relation(fields: [evidenceFindingId], references: [id], onDelete: SetNull)
 
-    @@index([compoundId])
-    @@index([evidenceFindingId])
-    @@index([modelName])
+  @@index([compoundId])
+  @@index([evidenceFindingId])
+  @@index([modelName])
 }
 
 enum GlpStatus {
-    GLP
-    NON_GLP
-    NOT_REPORTED
-    UNKNOWN
+  GLP
+  NON_GLP
+  NOT_REPORTED
+  UNKNOWN
 }
 
 /// OECD Klimisch codes. They are not copied into StudyQuality.
 enum KlimischReliability {
-    K1
-    K2
-    K3
-    K4
-    NOT_ASSESSED
+  K1
+  K2
+  K3
+  K4
+  NOT_ASSESSED
 }
 
 enum StudyPurpose {
-    KEY_STUDY
-    SUPPORTING
-    WEIGHT_OF_EVIDENCE
-    SCREENING
-    UNSPECIFIED
+  KEY_STUDY
+  SUPPORTING
+  WEIGHT_OF_EVIDENCE
+  SCREENING
+  UNSPECIFIED
 }
 
 enum RegulatoryConclusionKind {
-    HAZARD_VALUE
-    ED_CONCLUSION
-    ED_ACTIVITY_ONLY
-    INVENTORY_LISTING
-    REGISTRATION_STATUS
-    OTHER
+  HAZARD_VALUE
+  ED_CONCLUSION
+  ED_ACTIVITY_ONLY
+  INVENTORY_LISTING
+  REGISTRATION_STATUS
+  OTHER
 }
 
 enum ReferenceDoseKind {
-    ADI
-    TDI
-    ARFD
-    RFD
-    OTHER
-    UNSPECIFIED
+  ADI
+  TDI
+  ARFD
+  RFD
+  OTHER
+  UNSPECIFIED
 }
 
 /// OECD-style study fields that are not already columns on the finding.
 model StudyMetadata {
-    id                   String               @id @default(uuid()) @db.Uuid
-    findingId            String               @unique @db.Uuid
-    testGuideline        String?
-    oecdGuidelineNumber  String?
-    glpStatus            GlpStatus            @default(NOT_REPORTED)
-    klimischReliability  KlimischReliability  @default(NOT_ASSESSED)
-    studyPurpose         StudyPurpose         @default(UNSPECIFIED)
-    strain               String?
-    assaySystem          String?
-    comparator           String?
-    notes                String               @default("")
-    createdAt            DateTime             @default(now())
-    updatedAt            DateTime             @updatedAt
+  id                  String              @id @default(uuid()) @db.Uuid
+  findingId           String              @unique @db.Uuid
+  testGuideline       String?
+  oecdGuidelineNumber String?
+  glpStatus           GlpStatus           @default(NOT_REPORTED)
+  klimischReliability KlimischReliability @default(NOT_ASSESSED)
+  studyPurpose        StudyPurpose        @default(UNSPECIFIED)
+  strain              String?
+  assaySystem         String?
+  comparator          String?
+  notes               String              @default("")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-    finding EvidenceFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  finding EvidenceFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
 }
 
 enum MicrobiomeSequencingMethod {
-    CULTURE
-    QPCR
-    SIXTEEN_S_RRNA
-    SHOTGUN_METAGENOMICS
-    METATRANSCRIPTOMICS
-    METAPROTEOMICS
-    METABOLOMICS
-    MULTI_OMICS
-    OTHER
-    UNKNOWN
+  CULTURE
+  QPCR
+  SIXTEEN_S_RRNA
+  SHOTGUN_METAGENOMICS
+  METATRANSCRIPTOMICS
+  METAPROTEOMICS
+  METABOLOMICS
+  MULTI_OMICS
+  OTHER
+  UNKNOWN
 }
 
 /// Method context for a microbiome finding. A method is not a quality grade.
 /// Null control fields mean the study did not report that control, not that it was absent.
 model MicrobiomeStudyMetadata {
-    id                    String                       @id @default(uuid()) @db.Uuid
-    evidenceFindingId     String                       @unique @db.Uuid
-    sampleSite            String?
-    sampleType            String?
-    sequencingMethod      MicrobiomeSequencingMethod?
-    taxonomicResolution   String?
-    functionalProfiling   Boolean?
-    metabolomicsAvailable Boolean?
-    dietControlled        Boolean?
-    antibioticControlled  Boolean?
-    probioticControlled   Boolean?
-    batchEffectsAddressed Boolean?
-    longitudinal          Boolean?
-    notes                 String                       @default("")
-    createdAt             DateTime                     @default(now())
-    updatedAt             DateTime                     @updatedAt
+  id                    String                      @id @default(uuid()) @db.Uuid
+  evidenceFindingId     String                      @unique @db.Uuid
+  sampleSite            String?
+  sampleType            String?
+  sequencingMethod      MicrobiomeSequencingMethod?
+  taxonomicResolution   String?
+  functionalProfiling   Boolean?
+  metabolomicsAvailable Boolean?
+  dietControlled        Boolean?
+  antibioticControlled  Boolean?
+  probioticControlled   Boolean?
+  batchEffectsAddressed Boolean?
+  longitudinal          Boolean?
+  notes                 String                      @default("")
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
 
-    finding EvidenceFinding @relation(fields: [evidenceFindingId], references: [id], onDelete: Cascade)
+  finding EvidenceFinding @relation(fields: [evidenceFindingId], references: [id], onDelete: Cascade)
 }

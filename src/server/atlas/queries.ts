@@ -154,6 +154,7 @@ function cellsFor(compound: LoadedCompound): Record<string, DomainCell> {
     ["REPRODUCTIVE_ENDOCRINOLOGY", "REP", true],
     ["DEVELOPMENTAL_ENDOCRINOLOGY", "DEV", true],
     ["NEUROENDOCRINE_HPA_CIRCADIAN", "NEUROENDO", true],
+    ["THYROID", "THY", true],
     ["IMMUNOLOGY_IMMUNOENDOCRINOLOGY", "IMM", true],
     ["SYSTEMIC_METABOLISM", "MET", true],
     ["MITOCHONDRIAL_BIOENERGETICS", "MITO", true],
