@@ -51,6 +51,10 @@ esac
 
 echo "Production seed target: $host"
 echo "Matching seeded assessment keys will be written back to the seed values."
+echo
+echo "After this finishes, redeploy. Public pages read through a one-day cache whose key"
+echo "includes the deployment id, so a page cached between the last deploy and this seed"
+echo "will keep serving pre-seed data until that day is up. A redeploy changes the key."
 printf "Type seed to continue: "
 read -r answer
 if [[ "$answer" != "seed" ]]; then

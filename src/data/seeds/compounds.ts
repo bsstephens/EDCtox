@@ -1491,11 +1491,11 @@ export const compounds: CompoundSeed[] = [
     compoundType: "COSMETIC_INGREDIENT",
     primaryCategory: "UV filter",
     currentUseStatus: "IN_CURRENT_USE",
-    casNumber: "38102-62-4",
+    casNumber: "36861-47-9",
     molecularFormula: "C18H22O",
     isEnvironmentalChemical: true,
     notes:
-      "PubChem lists more than one CAS number for this substance because of its stereochemistry. The one stored here is the registry number PubChem returns first for the enzacamene record. Treat it as a query anchor, not a verified identifier, until the identity resolver confirms it.",
+      "Stereochemistry gives this substance several registry numbers. The one stored here is the racemic form, which is what the European Union list of identified endocrine disruptors carries. That list separately names seven isomer-specific numbers, and PubChem returns others again. Evidence recorded against one isomer should say so.",
     aliases: [
       { name: "Enzacamene", aliasType: "COMMON_NAME" },
       { name: "4-MBC", aliasType: "ABBREVIATION" },

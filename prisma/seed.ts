@@ -5,6 +5,12 @@ import { externalAccessPolicy, externalDatasets } from "../src/data/seeds/extern
 import { compounds } from "../src/data/seeds/compounds";
 import { domains } from "../src/data/seeds/domains";
 import {
+  EU_ED_LIST_RETRIEVED,
+  EU_ED_LIST_SOURCE,
+  EU_ED_LIST_URL,
+  euIdentifiedCas,
+} from "../src/data/seeds/euIdentifiedEdcs";
+import {
   dataGaps,
   evidenceFindings,
   evidenceSources,
@@ -723,12 +729,40 @@ async function main() {
     });
   }
 
+  // European Union endocrine-disruptor identifications. Deterministic: a compound gets a row only
+  // when its stored registry number is on the list, and the row records a regulatory conclusion,
+  // never a score. A compound that is not on the list gets no row, because the list says nothing
+  // about it either way.
+  for (const compound of await db.compound.findMany({
+    where: { casNumber: { not: null } },
+    select: { id: true, slug: true, casNumber: true },
+  })) {
+    const listedName = compound.casNumber ? euIdentifiedCas.get(compound.casNumber) : undefined;
+    if (!listedName) continue;
+    const row = {
+      compoundId: compound.id,
+      agency: "ECHA" as const,
+      jurisdiction: "European Union",
+      conclusionKind: "ED_CONCLUSION" as const,
+      classification: "Identified as an endocrine disruptor",
+      summary: `Listed as "${listedName}" (CAS ${compound.casNumber}) among the substances the European Union has identified as endocrine disruptors. The list combines the Plant Protection Products Regulation, the Biocidal Products Regulation, and REACH's Candidate List of substances of very high concern, and does not say which applies to each entry. This is a regulatory conclusion about hazard identification. It is not a potency statement, not a claim about a particular health outcome, and it does not set or change any EDCtox score. Transcribed from ${EU_ED_LIST_SOURCE}, retrieved ${EU_ED_LIST_RETRIEVED}.`,
+      url: EU_ED_LIST_URL,
+      current: true,
+    };
+    await db.regulatoryAssessment.upsert({
+      where: { stableKey: `eu-ed-list-i-${compound.slug}` },
+      update: row,
+      create: { stableKey: `eu-ed-list-i-${compound.slug}`, ...row },
+    });
+  }
+
   const counts = {
     compounds: await db.compound.count(),
     mechanisms: await db.mechanism.count(),
     mechanismAssessments: await db.mechanismAssessment.count(),
     findings: await db.evidenceFinding.count(),
     sources: await db.evidenceSource.count(),
+    regulatoryAssessments: await db.regulatoryAssessment.count(),
     externalDatasets: await db.externalDataset.count(),
     externalRecords: await db.externalRecord.count(),
     externalIdentifiers: await db.externalIdentifier.count(),

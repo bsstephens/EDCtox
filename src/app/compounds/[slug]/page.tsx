@@ -149,6 +149,17 @@ type Compound = NonNullable<Awaited<ReturnType<typeof api.atlas.bySlug>>>;
 function Overview({ compound, coverage }: { compound: Compound; coverage: CompoundCoverage }) {
   return (
     <div className="space-y-6">
+      {compound.regulatory.some((assessment) => assessment.conclusionKind === "ED_CONCLUSION" && assessment.current) ? (
+        <div className="rounded border border-stone-300 bg-white p-3 text-sm">
+          <h2 className="font-medium">Regulatory identification</h2>
+          <p className="mt-1 text-stone-600">
+            An authority has formally identified this compound as an endocrine disruptor. That is a
+            conclusion about hazard identification reached outside EDCtox. It does not set or change
+            any score on this page, and it is not a statement about potency or about exposure. The
+            Regulatory tab has the listing and its source.
+          </p>
+        </div>
+      ) : null}
       <DomainBars domains={compound.domains} />
       <MechanismCoverage coverage={coverage} />
       {compound.pathwayNotes.length > 0 ? (
@@ -492,6 +503,13 @@ function Regulatory({ compound }: { compound: Compound }) {
             </p>
           ) : null}
           <p className="mt-1 text-stone-600">{assessment.summary}</p>
+          {assessment.url ? (
+            <p className="mt-1">
+              <a className="underline" href={assessment.url} target="_blank" rel="noopener noreferrer">
+                Source
+              </a>
+            </p>
+          ) : null}
         </article>
       ))}
     </div>
