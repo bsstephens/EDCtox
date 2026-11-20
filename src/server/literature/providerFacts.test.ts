@@ -115,3 +115,25 @@ test("the provider never upgrades a paper into evidence", () => {
   const facts = readFileSync(join(import.meta.dirname, "providerFacts.ts"), "utf8");
   assert.doesNotMatch(facts, /effectScore|curator|assessment/i);
 });
+
+test("a role heading is not a compound claim", () => {
+  // The first real run flagged a review that named bisphenol A, phthalates and flame retardants
+  // while MeSH carried only "Endocrine Disruptors". The model was more specific than the indexer,
+  // not in conflict with it, so headings that name a role rather than a chemical yield unknown.
+  const roleOnly = providerFacts({
+    publicationTypes: ["journal article"],
+    meshDescriptors: ["Humans", "Female"],
+    meshSubstances: ["Endocrine Disruptors", "Environmental Pollutants"],
+    indexedAt: "2011-01-01",
+  });
+  assert.equal(substancesSupport(roleOnly, ["Bisphenol A", "phthalates"]), null);
+  // One specific heading beside the role labels makes the check meaningful again.
+  const withSpecific = providerFacts({
+    publicationTypes: ["journal article"],
+    meshDescriptors: ["Humans"],
+    meshSubstances: ["Endocrine Disruptors", "Bisphenol A Compounds"],
+    indexedAt: "2011-01-01",
+  });
+  assert.equal(substancesSupport(withSpecific, ["Bisphenol A"]), true);
+  assert.equal(substancesSupport(withSpecific, ["Rotenone"]), false);
+});

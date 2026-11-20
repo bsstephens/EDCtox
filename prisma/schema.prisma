@@ -726,6 +726,49 @@ enum KeyCharacteristic {
   KC10_CELL_FATE
 }
 
+/// Layer 1 of docs/SCREENING_REDESIGN.md: one model read per paper, ever.
+///
+/// What the paper is about, recorded on the paper rather than on a compound-and-domain context,
+/// so routing can derive every context from it without reading the paper again. Adding a
+/// compound then costs nothing.
+///
+/// A profile is a machine reading, not evidence and not a curator's judgement. Nothing here
+/// carries a score, and nothing here decides that a publication counts: that stays with
+/// EvidenceSource.countsAsScientificEvidence and a curator. Keyed by prompt version, so
+/// improving the prompt re-reads papers deliberately rather than silently.
+model PaperProfile {
+  id               String   @id @default(uuid()) @db.Uuid
+  evidenceSourceId String   @db.Uuid
+  promptVersion    String
+  model            String
+  /// SHA-256 of the exact prompt that produced this, so a changed prompt cannot replay a stale read.
+  promptSha256     String
+  /// Compounds the paper studies, as the paper names them. Resolved to records during routing,
+  /// not here: this is what was read, not what it matched.
+  compoundsStudied String[]
+  /// Outcomes and endpoints reported, in the paper's own words.
+  outcomesReported String[]
+  /// Species as stated. "Humans", "Sprague-Dawley rat", "zebrafish".
+  speciesStudied   String[]
+  /// Exposure route, dose framing, and life stage where the paper gives them.
+  exposureNotes    String?
+  /// Study design beyond what the publication type already says.
+  studyDesign      String?
+  /// False when the paper measures exposure and no outcome, which screening excludes.
+  measuresOutcome  Boolean?
+  /// What the paper is not about, where the title would mislead a reader or a keyword query.
+  notAbout         String?
+  /// One paragraph, capped. No chain of thought is requested or stored.
+  rationale        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  evidenceSource EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([evidenceSourceId, promptVersion])
+  @@index([promptVersion])
+}
+
 model Outcome {
   id               String                      @id @default(uuid()) @db.Uuid
   code             String                      @unique
@@ -893,6 +936,7 @@ model EvidenceSource {
   revisions          AssessmentRevision[]
   searchHits         LiteratureSearchHit[]
   screeningDecisions LiteratureScreeningDecision[]
+  profiles           PaperProfile[]
   mechanisticClaims  MechanisticClaim[]
 
   @@index([year])

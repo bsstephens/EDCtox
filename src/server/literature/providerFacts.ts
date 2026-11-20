@@ -105,15 +105,42 @@ export function normaliseSubstance(value: string): string {
 }
 
 /**
+ * MeSH substance headings that name a role rather than a chemical. An indexer applies these to a
+ * paper about any number of specific chemicals, so they carry no identity information and cannot
+ * support or contradict a claim about which compound a paper studies.
+ */
+const GENERIC_SUBSTANCE_HEADINGS = new Set([
+  "endocrine disruptors",
+  "environmental pollutants",
+  "water pollutants chemical",
+  "air pollutants",
+  "xenobiotics",
+  "hazardous substances",
+  "carcinogens",
+  "biomarkers",
+  "environmental biomarkers",
+  "teratogens",
+  "estrogens non steroidal",
+  "estrogens",
+  "antioxidants",
+]);
+
+/**
  * Whether the provider's substance headings support this paper being about this compound.
  *
- * Returns null when the record is not indexed, which is the common case for recent papers and
- * must not be read as disagreement. A false is a real flag: the indexer listed chemicals and
- * none of them matched, which is how "bisphenol S paper filed under BPA" gets caught.
+ * Returns null when the record is not indexed, and also when the only headings are role labels
+ * such as "Endocrine Disruptors". Neither is disagreement: a model naming bisphenol A under that
+ * heading is being more specific than the indexer, not contradicting it. A false is a real flag:
+ * the indexer named chemicals and none of them matched, which is how a bisphenol S paper filed
+ * under bisphenol A gets caught.
  */
 export function substancesSupport(facts: ProviderFacts, names: readonly string[]): boolean | null {
   if (facts.substances.length === 0) return null;
-  const headings = facts.substances.map(normaliseSubstance);
+  const specific = facts.substances.filter(
+    (value) => !GENERIC_SUBSTANCE_HEADINGS.has(normaliseSubstance(value)),
+  );
+  if (specific.length === 0) return null;
+  const headings = specific.map(normaliseSubstance);
   return names.some((name) => {
     const target = normaliseSubstance(name);
     if (!target) return false;
