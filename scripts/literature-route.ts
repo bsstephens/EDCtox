@@ -64,7 +64,10 @@ async function main() {
         orderBy: { createdAt: "asc" },
       }),
       db.compound.findMany({
-        select: { slug: true, displayName: true, canonicalName: true, casNumber: true, aliases: { select: { name: true } } },
+        select: {
+          slug: true, displayName: true, canonicalName: true, casNumber: true, recordKind: true,
+          aliases: { select: { name: true } },
+        },
       }),
       db.outcome.findMany({ select: { name: true, category: true } }),
       db.mechanism.findMany({ select: { name: true, domain: { select: { shortLabel: true } } } }),
@@ -76,6 +79,7 @@ async function main() {
       canonicalName: row.canonicalName,
       casNumber: row.casNumber,
       aliases: row.aliases.map((alias) => alias.name),
+      recordKind: row.recordKind,
     }));
     const ontology = buildOntologyIndex({
       outcomes,
@@ -86,6 +90,7 @@ async function main() {
     const byDomain = new Map<string, number>();
     const byCompound = new Map<string, number>();
     const unmatched = new Map<string, number>();
+    const unmatchedClasses = new Map<string, number>();
     const unmapped = new Map<string, number>();
     let contexts = 0;
     let routedNowhere = 0;
@@ -109,6 +114,9 @@ async function main() {
       for (const name of result.unmatchedCompounds) {
         unmatched.set(name, (unmatched.get(name) ?? 0) + 1);
       }
+      for (const term of result.unmatchedClasses) {
+        unmatchedClasses.set(term.toLowerCase(), (unmatchedClasses.get(term.toLowerCase()) ?? 0) + 1);
+      }
       for (const term of result.unmappedTerms) unmapped.set(term, (unmapped.get(term) ?? 0) + 1);
     }
 
@@ -117,7 +125,8 @@ async function main() {
     console.log(`  ${routedNowhere} report an outcome but matched no compound or no domain.`);
     console.log(`\nContexts by domain:  ${top(byDomain, 12)}`);
     console.log(`Contexts by compound: ${top(byCompound, 10)}`);
-    console.log(`\nCompounds named with no record (candidates to add):\n  ${top(unmatched, 18)}`);
+    console.log(`\nChemical classes with no placeholder record:\n  ${top(unmatchedClasses, 14)}`);
+    console.log(`\nCompound names no record matched:\n  ${top(unmatched, 14)}`);
     console.log(`\nIndexed terms the ontology does not hold (gap signal):\n  ${top(unmapped, 18)}`);
     console.log(`\nNothing was written. Routing is derived and can be re-run at any time for nothing.`);
   } finally {

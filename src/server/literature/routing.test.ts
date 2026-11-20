@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { MESH_DOMAIN, MESH_NOT_A_DOMAIN, MESH_OUTCOME } from "../../data/seeds/meshCrosswalk";
+import { CLASS_TERM_PLACEHOLDER, MESH_DOMAIN, MESH_NOT_A_DOMAIN, MESH_OUTCOME } from "../../data/seeds/meshCrosswalk";
 import { domains } from "../../data/seeds/domains";
 import { outcomeSeeds } from "../../data/seeds/outcomes";
 import { EMPTY_PROVIDER_METADATA } from "./dedup";
@@ -15,10 +15,15 @@ import {
 } from "./routing";
 
 const compounds: CompoundRecord[] = [
-  { slug: "bpa", displayName: "BPA", canonicalName: "Bisphenol A", casNumber: "80-05-7", aliases: ["Bisphenol A"] },
-  { slug: "bps", displayName: "BPS", canonicalName: "Bisphenol S", casNumber: "80-09-1", aliases: ["Bisphenol S"] },
-  { slug: "dehp", displayName: "DEHP", canonicalName: "Bis(2-ethylhexyl) phthalate", casNumber: "117-81-7", aliases: ["DEHP"] },
+  { slug: "bpa", displayName: "BPA", canonicalName: "Bisphenol A", casNumber: "80-05-7", aliases: ["Bisphenol A"], recordKind: "SPECIFIC_COMPOUND" },
+  { slug: "bps", displayName: "BPS", canonicalName: "Bisphenol S", casNumber: "80-09-1", aliases: ["Bisphenol S"], recordKind: "SPECIFIC_COMPOUND" },
+  { slug: "dehp", displayName: "DEHP", canonicalName: "Bis(2-ethylhexyl) phthalate", casNumber: "117-81-7", aliases: ["DEHP"], recordKind: "SPECIFIC_COMPOUND" },
 ];
+
+
+function slugOf(match: ReturnType<typeof matchCompound>): string | null {
+  return match.kind === "specific" || match.kind === "class" ? match.record.slug : null;
+}
 
 const ontology = buildOntologyIndex({
   outcomes: outcomeSeeds.map((row) => ({ name: row.name, category: row.category })),
@@ -36,20 +41,20 @@ function facts(descriptors: string[], substances: string[] = []) {
 }
 
 test("a compound matches on an exact name, an alias or a registry number", () => {
-  assert.equal(matchCompound("Bisphenol A", compounds)?.slug, "bpa");
-  assert.equal(matchCompound("bisphenol a (BPA)", compounds)?.slug, "bpa");
-  assert.equal(matchCompound("Bisphenol A Compounds", compounds)?.slug, "bpa");
-  assert.equal(matchCompound("80-05-7", compounds)?.slug, "bpa");
-  assert.equal(matchCompound("DEHP", compounds)?.slug, "dehp");
+  assert.equal(slugOf(matchCompound("Bisphenol A", compounds)), "bpa");
+  assert.equal(slugOf(matchCompound("bisphenol a (BPA)", compounds)), "bpa");
+  assert.equal(slugOf(matchCompound("Bisphenol A Compounds", compounds)), "bpa");
+  assert.equal(slugOf(matchCompound("80-05-7", compounds)), "bpa");
+  assert.equal(slugOf(matchCompound("DEHP", compounds)), "dehp");
 });
 
 test("matching never slides from one bisphenol to another", () => {
   // A substring rule would match bisphenol S against bisphenol A, which is the single mistake
   // the keyword screener made most often.
-  assert.equal(matchCompound("Bisphenol S", compounds)?.slug, "bps");
-  assert.equal(matchCompound("bisphenol F", compounds), null);
-  assert.equal(matchCompound("bisphenol", compounds), null);
-  assert.equal(matchCompound("tetrabromobisphenol A", compounds), null);
+  assert.equal(slugOf(matchCompound("Bisphenol S", compounds)), "bps");
+  assert.equal(slugOf(matchCompound("bisphenol F", compounds)), null);
+  assert.equal(slugOf(matchCompound("bisphenol", compounds)), null);
+  assert.equal(slugOf(matchCompound("tetrabromobisphenol A", compounds)), null);
 });
 
 test("an unmatched compound is reported, never forced onto the nearest record", () => {
@@ -190,5 +195,47 @@ test("every outcome mapping has a domain to route through", () => {
       MESH_DOMAIN[descriptor],
       `${descriptor} maps to an outcome but to no domain, so routing would drop it`,
     );
+  }
+});
+
+test("a class term can only ever reach a placeholder", () => {
+  const withClass: CompoundRecord[] = [
+    ...compounds,
+    { slug: "parabens", displayName: "Parabens", canonicalName: "Parabens", casNumber: null, aliases: [], recordKind: "CLASS_PLACEHOLDER" },
+    { slug: "butylparaben", displayName: "Butylparaben", canonicalName: "Butyl 4-hydroxybenzoate", casNumber: "94-26-8", aliases: ["Butylparaben"], recordKind: "SPECIFIC_COMPOUND" },
+  ];
+  // The class reaches the placeholder and stops. It must not pull in the member, because a paper
+  // about parabens as a class is not a paper about butylparaben.
+  const asClass = matchCompound("parabens", withClass);
+  assert.equal(asClass.kind, "class");
+  assert.equal(asClass.kind === "class" ? asClass.record.slug : null, "parabens");
+  // The member is still reachable by its own name.
+  assert.equal(slugOf(matchCompound("Butylparaben", withClass)), "butylparaben");
+});
+
+test("a class with no placeholder is a distinct kind of gap", () => {
+  // "phthalates" is a recognised class and EDCtox has no record for it. That is a different
+  // problem from an unrecognised chemical name, and it must not quietly match DEHP.
+  const result = routeProfile({
+    profile: { compoundsStudied: ["phthalates", "bisphenol A", "wibblium"], outcomesReported: [], measuresOutcome: true },
+    facts: facts(["Spermatozoa", "Humans"]),
+    compounds,
+    ontology,
+  });
+  assert.deepEqual(result.unmatchedClasses, ["phthalates"]);
+  assert.deepEqual(result.unmatchedCompounds, ["wibblium"]);
+  assert.deepEqual([...new Set(result.contexts.map((c) => c.compoundSlug))], ["bpa"]);
+});
+
+test("no class term is also a specific compound name", () => {
+  // A term in both tables would make matching depend on which check ran first.
+  const specific = new Set(
+    compounds.filter((row) => row.recordKind === "SPECIFIC_COMPOUND").flatMap((row) => [
+      row.displayName.toLowerCase(),
+      row.canonicalName.toLowerCase(),
+    ]),
+  );
+  for (const term of Object.keys(CLASS_TERM_PLACEHOLDER)) {
+    assert.ok(!specific.has(term), `${term} is both a class term and a specific compound name`);
   }
 });

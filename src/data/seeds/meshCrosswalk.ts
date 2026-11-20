@@ -254,3 +254,50 @@ export const MESH_NOT_A_DOMAIN = new Set([
   "Boston", "United States", "China", "Europe", "Denmark", "Japan", "Korea", "Taiwan",
   "Public Health", "Government Regulation", "Environmental Policy",
 ]);
+
+/**
+ * Chemical class terms, and the class placeholder record each one belongs to.
+ *
+ * A paper about phthalates as a class is not a paper about DEHP. So a class term may match a
+ * record whose kind is CLASS_PLACEHOLDER and may never match a specific compound, however close
+ * the names look. A class term with no placeholder stays unmatched and is reported as such,
+ * which is a different and more actionable signal than an unrecognised chemical name.
+ */
+export const CLASS_TERM_PLACEHOLDER: Record<string, string | null> = {
+  // Terms with a placeholder record.
+  microplastics: "micro-nanoplastics",
+  nanoplastics: "micro-nanoplastics",
+  "micro and nanoplastics": "micro-nanoplastics",
+  "microplastics and nanoplastics": "micro-nanoplastics",
+  parabens: "parabens",
+  pcbs: "pcbs",
+  "polychlorinated biphenyls": "pcbs",
+  dioxins: "dioxin-like-compounds",
+  "dioxin like compounds": "dioxin-like-compounds",
+  benzophenones: "benzophenone-uv-filters",
+  "benzophenone uv filters": "benzophenone-uv-filters",
+  "uv filters": "benzophenone-uv-filters",
+
+  // Terms the corpus uses that have no placeholder record yet. Listing them here is what turns
+  // "an unrecognised chemical" into "a class this database has nowhere to put".
+  phthalates: null,
+  "phthalate esters": null,
+  bisphenols: null,
+  "bisphenol analogues": null,
+  "bpa analogs": null,
+  "bpa analogues": null,
+  pfas: null,
+  "per and polyfluoroalkyl substances": null,
+  "perfluoroalkyl substances": null,
+  pesticides: null,
+  "organophosphate pesticides": null,
+  "organochlorine pesticides": null,
+  "flame retardants": null,
+  "brominated flame retardants": null,
+  "heavy metals": null,
+  "endocrine disrupting chemicals": null,
+  "endocrine disruptors": null,
+  edcs: null,
+  "persistent organic pollutants": null,
+  "alkylphenols": null,
+};

@@ -1,4 +1,5 @@
 import {
+  CLASS_TERM_PLACEHOLDER,
   MESH_DOMAIN,
   MESH_NOT_A_DOMAIN,
   MESH_OUTCOME,
@@ -21,7 +22,22 @@ export type CompoundRecord = {
   canonicalName: string;
   casNumber: string | null;
   aliases: string[];
+  /** SPECIFIC_COMPOUND, CLASS_PLACEHOLDER, REPRESENTATIVE_STAND_IN or FORMULATION. */
+  recordKind: string;
 };
+
+/**
+ * What one name the paper used resolved to.
+ *
+ * "class-without-record" is deliberately not the same as "none". The first says this database
+ * has nowhere to put a recognised chemical class; the second says a name was not recognised at
+ * all. They call for different responses, so routing keeps them apart.
+ */
+export type CompoundMatch =
+  | { kind: "specific"; record: CompoundRecord }
+  | { kind: "class"; record: CompoundRecord }
+  | { kind: "class-without-record"; term: string }
+  | { kind: "none" };
 
 export type RoutedContext = {
   compoundSlug: string;
@@ -36,6 +52,8 @@ export type RoutingResult = {
   contexts: RoutedContext[];
   /** Compounds the paper names that no record matched. Candidates for a new compound record. */
   unmatchedCompounds: string[];
+  /** Recognised chemical classes with no placeholder record. A different gap from the above. */
+  unmatchedClasses: string[];
   /** Indexed terms that are neither a known domain nor a known non-domain. Ontology gap signal. */
   unmappedTerms: string[];
   /** Set when the paper measures exposure and reports no outcome, so it routes nowhere. */
@@ -59,25 +77,40 @@ function normalise(value: string): string {
  * fuzzy: "bisphenol S" must not match "bisphenol A", and a substring rule would do exactly that.
  * A name that matches nothing is returned as unmatched rather than forced onto the nearest record.
  */
-export function matchCompound(name: string, records: readonly CompoundRecord[]): CompoundRecord | null {
+export function matchCompound(name: string, records: readonly CompoundRecord[]): CompoundMatch {
+  const target = normalise(name);
+
+  // A class term resolves to a placeholder or to nothing. It never reaches a specific compound,
+  // however close the names look, because a paper about phthalates is not a paper about DEHP.
+  if (target in CLASS_TERM_PLACEHOLDER) {
+    const slug = CLASS_TERM_PLACEHOLDER[target];
+    if (!slug) return { kind: "class-without-record", term: name };
+    const record = records.find((candidate) => candidate.slug === slug);
+    return record ? { kind: "class", record } : { kind: "class-without-record", term: name };
+  }
+
   const cas = CAS.exec(name)?.[0];
   if (cas) {
     const byCas = records.find((record) => record.casNumber === cas);
-    if (byCas) return byCas;
+    if (byCas) return { kind: "specific", record: byCas };
   }
-  const target = normalise(name);
-  if (!target) return null;
+  if (!target) return { kind: "none" };
+
   for (const record of records) {
     const names = [record.displayName, record.canonicalName, record.slug, ...record.aliases];
-    if (names.some((candidate) => normalise(candidate) === target)) return record;
+    if (names.some((candidate) => normalise(candidate) === target)) {
+      return { kind: record.recordKind === "CLASS_PLACEHOLDER" ? "class" : "specific", record };
+    }
   }
   // A MeSH-style plural heading, "Bisphenol A Compounds", names the same substance.
   const stripped = normaliseSubstance(name);
   for (const record of records) {
     const names = [record.displayName, record.canonicalName, ...record.aliases];
-    if (names.some((candidate) => normaliseSubstance(candidate) === stripped)) return record;
+    if (names.some((candidate) => normaliseSubstance(candidate) === stripped)) {
+      return { kind: record.recordKind === "CLASS_PLACEHOLDER" ? "class" : "specific", record };
+    }
   }
-  return null;
+  return { kind: "none" };
 }
 
 /** Domains the indexing and the profile between them put this paper in, with the reason for each. */
@@ -144,10 +177,13 @@ export function routeProfile(input: {
 }): RoutingResult {
   const matched: CompoundRecord[] = [];
   const unmatchedCompounds: string[] = [];
+  const unmatchedClasses: string[] = [];
   for (const name of input.profile.compoundsStudied) {
-    const record = matchCompound(name, input.compounds);
-    if (record) {
-      if (!matched.some((existing) => existing.slug === record.slug)) matched.push(record);
+    const match = matchCompound(name, input.compounds);
+    if (match.kind === "specific" || match.kind === "class") {
+      if (!matched.some((existing) => existing.slug === match.record.slug)) matched.push(match.record);
+    } else if (match.kind === "class-without-record") {
+      unmatchedClasses.push(match.term);
     } else {
       unmatchedCompounds.push(name);
     }
@@ -173,6 +209,7 @@ export function routeProfile(input: {
   return {
     contexts,
     unmatchedCompounds,
+    unmatchedClasses,
     unmappedTerms: [...new Set(unmapped)].sort(),
     exposureOnly,
   };
