@@ -218,7 +218,7 @@ function Overview({ compound, coverage }: { compound: Compound; coverage: Compou
           const cell = compound.domains[label];
           if (!cell) return null;
           return (
-            <article key={label} className="rounded border border-stone-300 bg-white p-3">
+            <article key={label} id={label} className="scroll-mt-4 rounded border border-stone-300 bg-white p-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-medium">
                   {label} · {DOMAIN_FULL_NAME[label]}

@@ -67,12 +67,32 @@ export type ClusterTrace = {
   reason: string;
 };
 
+/**
+ * Why a domain has no headline number although assessments are stored. Reporting only:
+ * nothing here enters a score, and a null headline stays null whatever the reason.
+ */
+export type UnscoredReason =
+  /** Activity is physiological. A high magnitude is not a toxicity score. */
+  | "PHYSIOLOGICAL"
+  /** Rows exist and no quantitative consequence was justified, such as a range crossing zero. */
+  | "NO_NUMBER_JUSTIFIED"
+  /** Every stored row is research-only or grouping-only, so none may enter a headline. */
+  | "OUTSIDE_HEADLINE";
+
 export type DomainSummary = {
   domainCode: string;
   shortLabel: string;
   contributesToProfile: boolean;
   dominantDirection: string;
   maximumEvidenceSupportedEffect: number | null;
+  /**
+   * Assessments stored in this domain, whatever their score policy. Zero means nobody has
+   * looked. It is the only way a reader can tell an absence of work from an absence of effect,
+   * and it is not a measure of how much effect there is.
+   */
+  assessedMechanismCount: number;
+  /** Set only when assessments exist and the headline is still null. */
+  unscoredReason: UnscoredReason | null;
   physiologicalMagnitude: string | null;
   confidence: Confidence | null;
   confidenceAdjusted: boolean;
@@ -172,6 +192,8 @@ export function summarizeDomain(input: {
     contributesToProfile: input.contributesToProfile,
     dominantDirection: "UNKNOWN",
     maximumEvidenceSupportedEffect: null,
+    assessedMechanismCount: input.assessments.length,
+    unscoredReason: null,
     physiologicalMagnitude: null,
     confidence: null,
     confidenceAdjusted: false,
@@ -265,9 +287,15 @@ export function summarizeDomain(input: {
   if (!winner) {
     if (base.physiologicalMagnitude) {
       base.dominantDirection = "PHYSIOLOGICAL";
+      base.unscoredReason = "PHYSIOLOGICAL";
       sentences.unshift(
         `Physiological activity is ${base.physiologicalMagnitude.toLowerCase().replaceAll("_", " ")}. That activity is not a toxicity score.`,
       );
+    } else if (input.assessments.length > 0) {
+      base.unscoredReason = input.assessments.every((row) => row.scorePolicy !== "SCORABLE")
+        ? "OUTSIDE_HEADLINE"
+        : "NO_NUMBER_JUSTIFIED";
+      sentences.unshift("No quantitative mechanistic score is stored for this domain.");
     } else {
       sentences.unshift("No quantitative mechanistic score is stored for this domain.");
     }

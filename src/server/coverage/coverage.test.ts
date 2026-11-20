@@ -125,7 +125,9 @@ test("public coverage and mechanism pages keep the supporting sentence unlisted"
     assert.equal(source.includes("quotedSupport"), false);
     assert.equal(source.includes("abstractText"), false);
   }
-  assert.match(coverage, /Mechanism coverage/);
+  // Renamed from "Mechanism coverage": the coverage map at /coverage is a different thing, and
+  // two blocks called coverage taught readers that claim mapping was matrix fill.
+  assert.match(coverage, /Claim mapping/);
   assert.match(coverage, /do not change a score/);
   assert.match(compound, /MechanismCoverage/);
   assert.match(detail, /The supporting sentence stays unlisted\./);

@@ -216,3 +216,43 @@ test("a cross-domain pathway is described and not treated as one total", () => {
   assert.equal(notes.length, 1);
   assert.match(notes[0] ?? "", /not added together/);
 });
+
+test("a domain with no assessments is distinguishable from one that was assessed and unscored", () => {
+  const untouched = summarizeDomain({ ...domain, assessments: [] });
+  assert.equal(untouched.assessedMechanismCount, 0);
+  assert.equal(untouched.unscoredReason, null);
+  assert.equal(untouched.maximumEvidenceSupportedEffect, null);
+
+  const assessed = summarizeDomain({
+    ...domain,
+    assessments: [
+      row({ mechanismCode: "RANGE_CROSSES_ZERO", aggregationGroup: "MELATONIN_METABOLISM", effectDirection: "CONTEXT_DEPENDENT" }),
+    ],
+  });
+  assert.equal(assessed.assessedMechanismCount, 1);
+  assert.equal(assessed.unscoredReason, "NO_NUMBER_JUSTIFIED");
+  assert.equal(assessed.maximumEvidenceSupportedEffect, null);
+});
+
+test("physiological activity reports its own reason for carrying no number", () => {
+  const summary = summarizeDomain({
+    ...domain,
+    assessments: [
+      row({ mechanismCode: "MT1", aggregationGroup: "MELATONIN_RECEPTOR", effectDirection: "PHYSIOLOGICAL", activityMagnitude: "VERY_HIGH" }),
+    ],
+  });
+  assert.equal(summary.unscoredReason, "PHYSIOLOGICAL");
+  assert.equal(summary.assessedMechanismCount, 1);
+});
+
+test("a domain holding only research-only rows says so rather than looking untouched", () => {
+  const summary = summarizeDomain({
+    ...domain,
+    assessments: [
+      row({ mechanismCode: "REORGANIZATION_ENERGY", aggregationGroup: "MARCUS", scorePolicy: "RESEARCH_ONLY", effectScore: 3, quantitativeScoreSupported: true }),
+    ],
+  });
+  assert.equal(summary.maximumEvidenceSupportedEffect, null);
+  assert.equal(summary.unscoredReason, "OUTSIDE_HEADLINE");
+  assert.equal(summary.assessedMechanismCount, 1);
+});

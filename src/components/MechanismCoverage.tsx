@@ -57,7 +57,7 @@ export function MechanismCoverage({ coverage }: { coverage: CompoundCoverage }) 
   const { metrics } = coverage;
   return (
     <section className="rounded border border-stone-300 bg-white p-3">
-      <h2 className="font-medium">Mechanism coverage</h2>
+      <h2 className="font-medium">Claim mapping</h2>
       <p className="mt-1 text-sm text-stone-600">
         ✓ verified mapping · ~ candidate mapping · ○ unmapped claim. An unmapped claim is not weaker evidence. A seed assessment is not a verified mapping. These counts do not change a score.
       </p>

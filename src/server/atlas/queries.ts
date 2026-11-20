@@ -49,7 +49,7 @@ function findingCounts(
   return { supportingFindingCount, contradictoryFindingCount };
 }
 
-function toSummarizable(
+export function toSummarizable(
   assessment: {
     effectScore: number | null;
     effectDirection: string;
