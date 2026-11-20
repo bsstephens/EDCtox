@@ -1,0 +1,164 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import test from "node:test";
+
+import { type ClaimPaper } from "./apply";
+import {
+  CLAUDE_CLAIM_PROMPT_VERSION,
+  ClaudeClaimError,
+  buildClaimRequest,
+  createClaudeExtractor,
+  parseClaims,
+  transcriptCompletion,
+  type ClaimTranscript,
+} from "./claude";
+import { catalogFromRows } from "./extract";
+
+const catalog = catalogFromRows([
+  { id: "m-aromatase", code: "AROMATASE_CYP19A1", scorePolicy: "SCORABLE" },
+  { id: "m-parent", code: "REP_STEROIDOGENESIS", scorePolicy: "GROUPING_ONLY" },
+  { id: "m-atp", code: "ATP_PRODUCTION", scorePolicy: "SCORABLE" },
+]);
+
+const abstract =
+  "Exposure to bisphenol A reduced aromatase expression in human granulosa cells. " +
+  "Cell viability was unchanged at the same concentrations. " +
+  "We propose that this contributes to impaired steroidogenesis.";
+
+const paper: ClaimPaper = { evidenceSourceId: "src-1", title: "BPA and granulosa cells", abstractText: abstract };
+
+function claim(overrides: Record<string, unknown> = {}) {
+  return {
+    relation: "DECREASES_EXPRESSION",
+    objectType: "ENZYME",
+    objectText: "aromatase",
+    directness: "STRONGLY_SUPPORTED",
+    confidence: "HIGH",
+    quotedSupport: "Exposure to bisphenol A reduced aromatase expression in human granulosa cells.",
+    rationale: "The abstract reports a measured reduction in aromatase expression.",
+    speciesText: "human",
+    tissueText: "",
+    cellTypeText: "granulosa cells",
+    doseText: "",
+    ...overrides,
+  };
+}
+
+const byName: Record<string, string> = { aromatase: "AROMATASE_CYP19A1", steroidogenesis: "REP_STEROIDOGENESIS", atp: "ATP_PRODUCTION" };
+const mechanismCodeFor = (objectText: string) => byName[objectText.toLowerCase()] ?? null;
+
+function parse(claims: unknown[]) {
+  return parseClaims({ claims }, { paper, compoundName: "bisphenol A", catalog, mechanismCodeFor });
+}
+
+test("a paper with no abstract yields no request rather than a guess", () => {
+  assert.throws(() => buildClaimRequest({ ...paper, abstractText: null }, "bisphenol A"), ClaudeClaimError);
+});
+
+test("the prompt carries the compound and the abstract and nothing about scores", () => {
+  const request = buildClaimRequest(paper, "bisphenol A");
+  assert.match(request.user, /Compound: bisphenol A/);
+  assert.match(request.user, /reduced aromatase expression/);
+  assert.doesNotMatch(request.system, /score|\+4|toxicity rank/i);
+  assert.match(request.system, /candidate list for a curator/);
+});
+
+test("a claim whose quotation is not in the abstract is dropped", () => {
+  // A quotation that cannot be found is the clearest signal that a reading was invented, so it
+  // is checked here rather than asked for and trusted.
+  const result = parse([
+    claim(),
+    claim({ objectText: "oestrogen receptor", quotedSupport: "BPA activated the oestrogen receptor." }),
+  ]);
+  assert.equal(result.drafts.length, 1);
+  assert.equal(result.drafts[0]?.objectText, "aromatase");
+  assert.deepEqual(result.dropped, [
+    { objectText: "oestrogen receptor", why: "the quoted sentence is not in the abstract" },
+  ]);
+});
+
+test("an abstract can never support a direct demonstration", () => {
+  // Full text is where a demonstration can be checked, and this stage never sees it.
+  const result = parse([claim({ directness: "DIRECTLY_DEMONSTRATED" })]);
+  assert.equal(result.drafts[0]?.machineDirectness, "STRONGLY_SUPPORTED");
+});
+
+test("mapping reuses the existing guards rather than trusting the match", () => {
+  const mapped = parse([claim()]);
+  assert.equal(mapped.drafts[0]?.mechanismCode, "AROMATASE_CYP19A1");
+  assert.equal(mapped.drafts[0]?.machineMappingState, "CANDIDATE");
+
+  // A grouping-only parent is a display node and is refused as a claim target.
+  const grouping = parse([
+    claim({ objectText: "steroidogenesis", quotedSupport: "We propose that this contributes to impaired steroidogenesis." }),
+  ]);
+  assert.equal(grouping.drafts[0]?.mechanismCode, null);
+  assert.equal(grouping.drafts[0]?.machineMappingState, "UNMAPPED");
+
+  // An object the ontology does not hold stays unmapped rather than being forced onto a neighbour.
+  const unknown = parse([claim({ objectText: "cell viability", quotedSupport: "Cell viability was unchanged at the same concentrations." })]);
+  assert.equal(unknown.drafts[0]?.mechanismCode, null);
+});
+
+test("a reported absence of effect is kept, not dropped", () => {
+  const result = parse([
+    claim({
+      relation: "NO_EFFECT",
+      objectText: "cell viability",
+      quotedSupport: "Cell viability was unchanged at the same concentrations.",
+    }),
+  ]);
+  assert.equal(result.drafts.length, 1);
+  assert.equal(result.drafts[0]?.relation, "NO_EFFECT");
+});
+
+test("an answer outside the vocabulary is an error, never a partial list", () => {
+  assert.throws(() => parse([claim({ relation: "CAUSES_CANCER" })]), ClaudeClaimError);
+  assert.throws(() => parse([claim({ quotedSupport: "" })]), ClaudeClaimError);
+  // An empty list is a valid answer and a common one.
+  assert.deepEqual(parse([]).drafts, []);
+});
+
+test("a transcript replays only for the prompt it was recorded against", async () => {
+  const request = buildClaimRequest(paper, "bisphenol A");
+  const extractor = createClaudeExtractor({
+    completion: transcriptCompletion({
+      promptVersion: CLAUDE_CLAIM_PROMPT_VERSION,
+      entries: {
+        "src-1": { title: paper.title, promptSha256: request.promptSha256, model: "test", response: { claims: [claim()] } },
+      },
+    } satisfies ClaimTranscript),
+    compoundNameFor: () => "bisphenol A",
+    mechanismCodeFor,
+  });
+  const drafts = await extractor(paper, catalog);
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0]?.subjectText, "bisphenol A");
+
+  const stale = createClaudeExtractor({
+    completion: transcriptCompletion({
+      promptVersion: CLAUDE_CLAIM_PROMPT_VERSION,
+      entries: { "src-1": { title: paper.title, promptSha256: "stale", model: "test", response: { claims: [] } } },
+    }),
+    compoundNameFor: () => "bisphenol A",
+    mechanismCodeFor,
+  });
+  await assert.rejects(stale(paper, catalog), ClaudeClaimError);
+});
+
+test("every claim lands unverified and touches no curator column", () => {
+  const result = parse([claim()]);
+  const draft = result.drafts[0];
+  assert.ok(draft);
+  assert.equal("curatorVerified" in draft, false);
+  assert.equal("curatorDirectness" in draft, false);
+  const source = readFileSync(join(import.meta.dirname, "claude.ts"), "utf8");
+  const code = source
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("*") && !line.trim().startsWith("//") && !line.trim().startsWith("/*"))
+    .join("\n");
+  for (const forbidden of ["curatorVerified", "curatorDirectness", "effectScore", "MechanismAssessment"]) {
+    assert.ok(!code.includes(forbidden), `claude.ts must not touch ${forbidden}`);
+  }
+});

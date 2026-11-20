@@ -7,7 +7,9 @@ export type MechanismCatalog = Readonly<Record<string, { id: string; scorePolicy
 
 export type ClaimDraft = {
   subjectType: "CHEMICAL";
-  subjectText: "bisphenol A";
+  /// The compound as the publication names it. The rule-based extractor only ever produced
+  /// bisphenol A; a model-backed one names whatever the paper studies.
+  subjectText: string;
   relation:
     | "BINDS"
     | "AGONIZES"

@@ -10,7 +10,14 @@ export type ClaimPaper = {
   abstractText: string | null;
 };
 
-export type ClaimExtractor = (paper: ClaimPaper, catalog: MechanismCatalog) => ClaimDraft[];
+/**
+ * Extracts claims from one paper. Async so a model-backed extractor fits the same seam as the
+ * rule-based one; the rule-based extractor simply returns an already-resolved array.
+ */
+export type ClaimExtractor = (
+  paper: ClaimPaper,
+  catalog: MechanismCatalog,
+) => ClaimDraft[] | Promise<ClaimDraft[]>;
 
 function defaultExtractor(paper: ClaimPaper, catalog: MechanismCatalog): ClaimDraft[] {
   return extractMechanisticClaims({ title: paper.title, abstractText: paper.abstractText, catalog });
@@ -27,8 +34,12 @@ export async function applyMachineClaims(
   const rows = await store.mechanism.findMany({ select: { id: true, code: true, scorePolicy: true } });
   const catalog = catalogFromRows(rows);
   const extract = input.extract ?? defaultExtractor;
-  const extracted = input.papers.flatMap((paper) =>
-    extract(paper, catalog).map((draft) => ({
+  const perPaper: Array<{ paper: ClaimPaper; drafts: ClaimDraft[] }> = [];
+  for (const paper of input.papers) {
+    perPaper.push({ paper, drafts: await extract(paper, catalog) });
+  }
+  const extracted = perPaper.flatMap(({ paper, drafts }) =>
+    drafts.map((draft) => ({
       paper,
       draft,
       stableKey: claimStableKey(paper.evidenceSourceId, draft.subjectText, draft.relation, draft.objectText),
