@@ -92,6 +92,34 @@ export function signedScore(score: number | null): string {
   return String(score);
 }
 
+/**
+ * Wording for a domain that holds assessments and still has no headline number. A dash is
+ * reserved for a domain nobody has assessed, so the two never look alike.
+ */
+export const UNSCORED_LABEL: Record<string, { short: string; long: string }> = {
+  PHYSIOLOGICAL: {
+    short: "Phys.",
+    long: "Assessed. Activity is physiological and is deliberately not scored as disruption.",
+  },
+  NO_NUMBER_JUSTIFIED: {
+    short: "n/s",
+    long: "Assessed. No quantitative score was justified, so none is stored.",
+  },
+  OUTSIDE_HEADLINE: {
+    short: "n/s",
+    long: "Assessed on research-only mechanisms, which never enter a headline.",
+  },
+};
+
+export const NEVER_ASSESSED_LABEL =
+  "Not assessed. No mechanism assessment is stored for this domain. That is an absence of work, not evidence of no effect.";
+
+/** Tone for a domain nobody has assessed. Dashed, so emptiness reads as missing, not as zero. */
+export const NEVER_ASSESSED_TONE = "border border-dashed border-stone-300 text-stone-400";
+
+/** Tone for a domain that was assessed and deliberately carries no number. */
+export const UNSCORED_TONE = "bg-stone-100 text-stone-600 ring-stone-300";
+
 export function scoreTone(score: number | null, physiological: boolean): string {
   if (physiological && score === null) {
     return "bg-indigo-50 text-indigo-950 ring-indigo-200";

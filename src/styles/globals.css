@@ -82,3 +82,13 @@ html.dark .border-amber-200 {
 html.dark .text-amber-950 {
   color: #fde68a;
 }
+
+/* Coverage map. The ~900 unassessed cells are the bulk of that page's HTML and carry no
+   information that needs per-cell attributes, so they are one short class on the cell itself
+   rather than six utilities on a nested element. Same grey as the Tailwind swatch beside it. */
+.cov-empty {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  background-color: rgb(120 113 108 / 0.08);
+}

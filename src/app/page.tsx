@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ScoreCell } from "~/components/ScoreCell";
+import { ViewSwitch } from "~/components/ViewSwitch";
 import { DOMAIN_FULL_NAME, PROFILE_LABELS, prettyEnum } from "~/lib/labels";
 import { api } from "~/trpc/server";
 
@@ -74,10 +75,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Compounds</h1>
           <p className="mt-1 max-w-3xl text-sm text-stone-600">
-            Each column is a domain headline: the strongest independent mechanistic cluster, not a sum. Empty cells are unscored, not evidence of safety. Seed numbers are hypotheses.
+            Each column is a domain headline: the strongest independent mechanistic cluster, not a sum. An empty cell means nobody has assessed it, not that there is no effect. Seed numbers are hypotheses.
           </p>
         </div>
-        <p className="text-sm text-stone-500">{compounds.length} shown</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-stone-500">{compounds.length} shown</p>
+          <ViewSwitch current="/" />
+        </div>
       </div>
 
       <form className="mb-4 grid gap-3 rounded border border-stone-300 bg-white p-3 text-sm md:grid-cols-4" action="/">

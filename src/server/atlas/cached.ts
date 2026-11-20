@@ -1,3 +1,4 @@
+import { loadCoverageMap } from "~/server/atlas/coverageMap";
 import { cachedQuery } from "~/server/cache";
 import { loadCompoundCoverage } from "~/server/coverage/query";
 import { db } from "~/server/db";
@@ -15,3 +16,4 @@ export const listEvidenceCached = cachedQuery("listEvidence", listEvidence);
 export const loadMechanismRowsCached = cachedQuery("mechanismRows", () => loadMechanismRows(db));
 export const loadMechanismDetailCached = cachedQuery("mechanismDetail", (code: string) => loadMechanismDetail(db, code));
 export const loadCompoundCoverageCached = cachedQuery("compoundCoverage", (slug: string) => loadCompoundCoverage(db, slug));
+export const loadCoverageMapCached = cachedQuery("coverageMap", loadCoverageMap);
