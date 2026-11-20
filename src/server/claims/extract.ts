@@ -19,6 +19,11 @@ export type ClaimDraft = {
    */
   machinePassesSeen?: number;
   machinePassesRun?: number;
+  /**
+   * The outcome this claim is about, when it is about an outcome rather than a mechanism. A
+   * claim points at one or the other, never both.
+   */
+  outcomeCode?: string | null;
   subjectType: "CHEMICAL";
   /// The compound as the publication names it. The rule-based extractor only ever produced
   /// bisphenol A; a model-backed one names whatever the paper studies.
@@ -285,9 +290,26 @@ export function claimNorm(value: string): string {
   return normalizeTitle(value.replace(/α/g, " alpha ").replace(/β/g, " beta "));
 }
 
-export function claimStableKey(evidenceSourceId: string, subjectText: string, relation: string, objectText: string): string {
+/**
+ * The identity of a stored claim, and therefore what a re-run updates rather than duplicates.
+ *
+ * `objectKey` is the object's head where a model-backed extractor supplied one, and the
+ * verbatim object text otherwise. Keying on the verbatim text was wrong for a model: the
+ * phrasing drifts between runs -- two runs of the same abstract agree on 74% to 86% of
+ * findings, and one wrote "ERa immunoreactive neurons in the BST, Arc, VMH and MeA of female
+ * mice" where the next wrote "ERa immunoreactive neurons" -- so a re-run created new rows and
+ * stranded the originals instead of improving them. The head is stable, so re-reading a paper
+ * with a better prompt or a better ontology updates the claim that is already there. The
+ * rule-based extractor has no head and is deterministic, so its keys are unchanged.
+ */
+export function claimStableKey(
+  evidenceSourceId: string,
+  subjectText: string,
+  relation: string,
+  objectKey: string,
+): string {
   const hash = createHash("sha256")
-    .update(`${evidenceSourceId}|${claimNorm(subjectText)}|${relation}|${claimNorm(objectText)}`)
+    .update(`${evidenceSourceId}|${claimNorm(subjectText)}|${relation}|${claimNorm(objectKey)}`)
     .digest("hex")
     .slice(0, 24);
   return `claim:${hash}`;

@@ -110,7 +110,11 @@ export default async function MechanisticClaimsPage() {
                     </p>
                     <p className="text-stone-700">
                       {prettyEnum(claim.machineDirectness)} · {prettyEnum(claim.machineConfidence)} confidence ·{" "}
-                      {claim.mechanism ? `${claim.mechanism.name} (${claim.mechanism.code}), candidate mapping` : "Unmapped"} ·{" "}
+                      {claim.mechanism
+                        ? `${claim.mechanism.name} (${claim.mechanism.code}), candidate mapping`
+                        : claim.outcome
+                          ? `${claim.outcome.name} (${claim.outcome.code}), candidate outcome`
+                          : "Unmapped"} ·{" "}
                       {PRIORITY_LABEL[claim.reviewPriority]}
                       {passAgreement(claim.machinePassesSeen, claim.machinePassesRun)}
                     </p>

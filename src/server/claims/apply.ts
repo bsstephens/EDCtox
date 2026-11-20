@@ -39,6 +39,7 @@ export async function applyMachineClaims(
 ): Promise<{ runId: string; written: number; papers: number }> {
   const rows = await store.mechanism.findMany({ select: { id: true, code: true, scorePolicy: true } });
   const catalog = catalogFromRows(rows);
+  const outcomeIdByCode = new Map((await store.outcome.findMany({ select: { id: true, code: true } })).map((row) => [row.code, row.id]));
   const extract = input.extract ?? defaultExtractor;
   const provenance = input.provenance ?? {
     provider: CLAIM_PROVIDER,
@@ -53,7 +54,12 @@ export async function applyMachineClaims(
     drafts.map((draft) => ({
       paper,
       draft,
-      stableKey: claimStableKey(paper.evidenceSourceId, draft.subjectText, draft.relation, draft.objectText),
+      stableKey: claimStableKey(
+        paper.evidenceSourceId,
+        draft.subjectText,
+        draft.relation,
+        draft.objectHead ?? draft.objectText,
+      ),
     })),
   );
   if (extracted.length === 0) return { runId: "", written: 0, papers: 0 };
@@ -86,6 +92,9 @@ export async function applyMachineClaims(
 
   for (const item of extracted) {
     const machineMechanismId = item.draft.mechanismId;
+    // A claim points at a mechanism or an outcome, never both. The outcome id is resolved here
+    // rather than in the extractor, which knows codes and not rows.
+    const machineOutcomeId = machineMechanismId ? null : (outcomeIdByCode.get(item.draft.outcomeCode ?? "") ?? null);
     const machine = {
       domainCode: CLAIM_DOMAIN,
       subjectType: item.draft.subjectType,
@@ -100,6 +109,7 @@ export async function applyMachineClaims(
       machinePassesRun: item.draft.machinePassesRun ?? null,
       machineMappingState: item.draft.machineMappingState,
       machineMechanismId,
+      machineOutcomeId,
       speciesText: item.draft.speciesText,
       tissueText: item.draft.tissueText,
       cellTypeText: item.draft.cellTypeText,
@@ -128,6 +138,7 @@ export async function applyMachineClaims(
           evidenceSourceId: item.paper.evidenceSourceId,
           compoundId: input.compoundId,
           mechanismId: machineMechanismId,
+          outcomeId: machineOutcomeId,
           ...machine,
         },
       });
@@ -136,7 +147,9 @@ export async function applyMachineClaims(
     const curatorLocked = existing.curatorVerified || existing.curatorMappingState !== null;
     await store.mechanisticClaim.update({
       where: { stableKey: item.stableKey },
-      data: curatorLocked ? machine : { ...machine, mechanismId: machineMechanismId },
+      data: curatorLocked
+        ? machine
+        : { ...machine, mechanismId: machineMechanismId, outcomeId: machineOutcomeId },
     });
   }
 

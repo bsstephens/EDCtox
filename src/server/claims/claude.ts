@@ -219,6 +219,8 @@ export function parseClaims(
      * grouping-only parent and refuses to read a bare ATP change as electron transport.
      */
     mechanismCodeFor: (objectText: string) => string | null;
+    /** Tried only when the mechanism ontology holds nothing: a claim points at one or the other. */
+    outcomeCodeFor?: (objectText: string, relation: string) => string | null;
   },
 ): { drafts: ClaimDraft[]; dropped: Array<{ objectText: string; why: string }> } {
   const parsed = ClaudeClaimOutput.safeParse(raw);
@@ -253,6 +255,14 @@ export function parseClaims(
     // same answer either way, and one that writes a qualified phrase only resolves on the head.
     const proposed = input.mechanismCodeFor(claim.objectHead) ?? input.mechanismCodeFor(claim.objectText);
     const mapping = resolveMechanismCode(proposed, claim.objectText, input.catalog);
+    // Only when no mechanism holds it. A third of what a model reads from a reproductive
+    // abstract is an outcome -- sperm count, cryptorchidism, PCOS -- and those claims had
+    // nowhere to point, so they were indistinguishable from a gap in the mechanism ontology.
+    const outcomeCode = mapping.mechanismCode
+      ? null
+      : (input.outcomeCodeFor?.(claim.objectHead, claim.relation) ??
+        input.outcomeCodeFor?.(claim.objectText, claim.relation) ??
+        null);
     const mechanismCode = mapping.mechanismCode;
     drafts.push({
       objectHead: claim.objectHead.trim(),
@@ -264,7 +274,8 @@ export function parseClaims(
       machineDirectness: directness,
       machineConfidence: claim.confidence,
       machineRationale: claim.rationale.trim(),
-      machineMappingState: mapping.mappingState,
+      machineMappingState: outcomeCode ? "CANDIDATE" : mapping.mappingState,
+      outcomeCode,
       mechanismCode,
       mechanismId: mapping.mechanismId,
       speciesText: empty(claim.speciesText),
@@ -279,7 +290,7 @@ export function parseClaims(
       quotedSupport: quote,
       // Every machine claim is a candidate. A low review priority means the edge is explicit and
       // cheap to check, never that it has been accepted.
-      reviewPriority: mechanismCode ? "REVIEW_RECOMMENDED" : "REVIEW_REQUIRED",
+      reviewPriority: mechanismCode || outcomeCode ? "REVIEW_RECOMMENDED" : "REVIEW_REQUIRED",
       reviewDerived: directness === "INFERRED" || directness === "HYPOTHESIZED",
     });
   }
@@ -462,6 +473,8 @@ export function createClaudeExtractor(options: {
   completion: ClaimCompletion;
   compoundNameFor: (paper: ClaimPaper) => string;
   mechanismCodeFor: (objectText: string) => string | null;
+  /** Tried only when the mechanism ontology holds nothing: a claim points at one or the other. */
+  outcomeCodeFor?: (objectText: string, relation: string) => string | null;
   /** How many times to read each paper. Defaults to one; two is what the pilot settled on. */
   passes?: number;
   onAnswer?: (request: ClaimRequest, raw: unknown, pass: number) => void;
@@ -483,6 +496,7 @@ export function createClaudeExtractor(options: {
           compoundName,
           catalog,
           mechanismCodeFor: options.mechanismCodeFor,
+          outcomeCodeFor: options.outcomeCodeFor,
         });
         options.onAnswer?.(request, raw, pass);
         if (dropped.length > 0) options.onDropped?.(paper, dropped);

@@ -107,6 +107,7 @@ export async function loadStoredClaims(db: Db) {
       reviewDerived: true,
       promptVersion: true,
       mechanism: { select: { code: true, name: true } },
+      outcome: { select: { code: true, name: true } },
       evidenceSource: {
         select: { id: true, title: true, year: true, pmid: true, doi: true, publicationStatus: true },
       },

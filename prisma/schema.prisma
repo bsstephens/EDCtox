@@ -787,6 +787,8 @@ model Outcome {
   assessments      CompoundOutcomeAssessment[]
   ontologyMappings ExternalOntologyMapping[]
   causalPathways   CausalPathway[]
+  claims           MechanisticClaim[]          @relation("CurrentClaimOutcome")
+  machineClaims    MechanisticClaim[]          @relation("MachineClaimOutcome")
 }
 
 model CompoundOutcomeAssessment {
@@ -1259,6 +1261,14 @@ model MechanisticClaim {
   mechanismId         String?              @db.Uuid
   /// Frozen machine suggestion. Curator actions and later re-extraction of the current link do not erase it.
   machineMechanismId  String?              @db.Uuid
+  /// A third of the claims a model reads from a reproductive abstract are about an outcome, not
+  /// a mechanism: sperm concentration, fertilisation rate, reproductive success. Those had
+  /// nowhere to point, so they sat unmapped and indistinguishable from a gap in the mechanism
+  /// ontology. These two mirror the mechanism pair exactly: the first is the current link a
+  /// curator may remap, the second the frozen machine suggestion. A claim points at a mechanism
+  /// or an outcome, never both.
+  outcomeId           String?              @db.Uuid
+  machineOutcomeId    String?              @db.Uuid
   curatorDirectness   EvidenceDirectness?
   curatorMappingState ClaimMappingState?
   curatorVerified     Boolean              @default(false)
@@ -1288,6 +1298,8 @@ model MechanisticClaim {
   compound         Compound            @relation(fields: [compoundId], references: [id], onDelete: Cascade)
   mechanism        Mechanism?          @relation("CurrentClaimMechanism", fields: [mechanismId], references: [id], onDelete: SetNull)
   machineMechanism Mechanism?          @relation("MachineClaimMechanism", fields: [machineMechanismId], references: [id], onDelete: SetNull)
+  outcome          Outcome?            @relation("CurrentClaimOutcome", fields: [outcomeId], references: [id], onDelete: SetNull)
+  machineOutcome   Outcome?            @relation("MachineClaimOutcome", fields: [machineOutcomeId], references: [id], onDelete: SetNull)
   agentRun         CurationAgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
   mappingEvents    ClaimMappingEvent[]
 
@@ -1295,6 +1307,8 @@ model MechanisticClaim {
   @@index([compoundId])
   @@index([mechanismId])
   @@index([machineMechanismId])
+  @@index([outcomeId])
+  @@index([machineOutcomeId])
   @@index([agentRunId])
 }
 

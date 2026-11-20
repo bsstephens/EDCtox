@@ -31,6 +31,7 @@ import {
 import { CLAIM_PILOT_PMIDS } from "../src/server/claims/constants";
 import { catalogFromRows, claimNorm } from "../src/server/claims/extract";
 import { buildMechanismLookup } from "../src/server/claims/mechanismLookup";
+import { buildOutcomeLookup, claimDirection } from "../src/server/claims/outcomeLookup";
 
 function loadEnvFile(path: string) {
   if (!existsSync(path)) return;
@@ -93,6 +94,7 @@ async function main() {
     const mechanismRows = await db.mechanism.findMany({ select: { id: true, code: true, name: true, scorePolicy: true } });
     const catalog = catalogFromRows(mechanismRows);
     const lookup = buildMechanismLookup(mechanismRows);
+    const outcomes = buildOutcomeLookup(await db.outcome.findMany({ select: { code: true, name: true } }));
     const mechanismCodeFor = (objectText: string) => lookup.find(objectText);
 
     const stored = await db.mechanisticClaim.findMany({
@@ -140,6 +142,7 @@ async function main() {
       completion: replaying ? transcriptCompletion(transcript) : apiCompletion(createClaimClient(process.env.ANTHROPIC_API_KEY)),
       compoundNameFor: () => "bisphenol A",
       mechanismCodeFor,
+      outcomeCodeFor: (objectText, relation) => outcomes.find(objectText, claimDirection(relation)),
       passes: PASSES,
       onAnswer: (request, raw, pass) => {
         if (!recordPath) return;

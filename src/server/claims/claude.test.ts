@@ -14,7 +14,7 @@ import {
   unionPasses,
   type ClaimTranscript,
 } from "./claude";
-import { catalogFromRows } from "./extract";
+import { catalogFromRows, claimStableKey } from "./extract";
 
 const catalog = catalogFromRows([
   { id: "m-aromatase", code: "AROMATASE_CYP19A1", scorePolicy: "SCORABLE" },
@@ -338,4 +338,56 @@ test("a pass that fails does not lose the paper, and a paper with no answer stil
     passes: 2,
   });
   await assert.rejects(allFail(paper, catalog), /relation outside the vocabulary/);
+});
+
+test("a claim about an outcome points at the outcome, not nowhere", () => {
+  // A third of what the model reads from a reproductive abstract is an outcome, and those
+  // claims used to sit unmapped and indistinguishable from a gap in the mechanism ontology.
+  const withOutcomes = (claims: unknown[]) =>
+    parseClaims(
+      { claims },
+      {
+        paper,
+        compoundName: "bisphenol A",
+        catalog,
+        mechanismCodeFor,
+        outcomeCodeFor: (objectText, relation) =>
+          objectText.toLowerCase() === "sperm count" && relation === "DECREASES_LEVEL" ? "REDUCED_SPERM_COUNT" : null,
+      },
+    );
+
+  const outcome = withOutcomes([
+    claim({
+      relation: "DECREASES_LEVEL",
+      objectText: "total sperm count",
+      objectHead: "sperm count",
+      quotedSupport: abstract,
+    }),
+  ]);
+  assert.equal(outcome.drafts[0]?.outcomeCode, "REDUCED_SPERM_COUNT");
+  assert.equal(outcome.drafts[0]?.mechanismCode, null);
+  assert.equal(outcome.drafts[0]?.machineMappingState, "CANDIDATE");
+  // It mapped, so it joins the lighter queue rather than the pile needing a decision.
+  assert.equal(outcome.drafts[0]?.reviewPriority, "REVIEW_RECOMMENDED");
+
+  // A mechanism wins: a claim points at one or the other, never both.
+  const mechanism = withOutcomes([claim()]);
+  assert.equal(mechanism.drafts[0]?.mechanismCode, "AROMATASE_CYP19A1");
+  assert.equal(mechanism.drafts[0]?.outcomeCode, null);
+
+  // With no outcome resolver supplied, nothing changes for the rule-based path.
+  assert.equal(parse([claim()]).drafts[0]?.outcomeCode, null);
+});
+
+test("the stored identity follows the head, so a re-run improves a claim instead of stranding it", () => {
+  const first = parse([claim({ objectText: "aromatase" })]).drafts[0];
+  const later = parse([claim({ objectText: "aromatase expression in human granulosa cells" })]).drafts[0];
+  assert.ok(first && later);
+  const key = (draft: typeof first) =>
+    claimStableKey("src-1", draft.subjectText, draft.relation, draft.objectHead ?? draft.objectText);
+  // Two runs phrased the object differently and still address the same row.
+  assert.equal(key(first), key(later));
+  // The rule-based extractor has no head, so its identity is the verbatim text as before.
+  const ruleBased = { ...first, objectHead: undefined };
+  assert.equal(key(ruleBased), claimStableKey("src-1", first.subjectText, first.relation, first.objectText));
 });

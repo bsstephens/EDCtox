@@ -20,6 +20,7 @@ import {
 } from "../src/server/claims/claude";
 import { catalogFromRows, extractMechanisticClaims } from "../src/server/claims/extract";
 import { buildMechanismLookup } from "../src/server/claims/mechanismLookup";
+import { buildOutcomeLookup, claimDirection } from "../src/server/claims/outcomeLookup";
 import { loadClaimPilot, loadIncludedClaimCohort } from "../src/server/claims/load";
 import { assertScientificSnapshotUnchanged, scientificSnapshot } from "../src/server/literature/guard";
 
@@ -73,6 +74,7 @@ async function main() {
     const mechanismRows = await db.mechanism.findMany({ select: { id: true, code: true, name: true, scorePolicy: true } });
     const catalog = catalogFromRows(mechanismRows);
     const lookup = buildMechanismLookup(mechanismRows);
+    const outcomes = buildOutcomeLookup(await db.outcome.findMany({ select: { code: true, name: true } }));
 
     const usingClaude = command.extractor === "claude";
     const provenance = usingClaude
@@ -89,6 +91,7 @@ async function main() {
             : apiCompletion(createClaimClient(process.env.ANTHROPIC_API_KEY)),
           compoundNameFor: () => cohort.compoundName,
           mechanismCodeFor: (objectText) => lookup.find(objectText),
+          outcomeCodeFor: (objectText, relation) => outcomes.find(objectText, claimDirection(relation)),
           passes: CLAUDE_PASSES,
           onAnswer: (request, raw, pass) => {
             if (!command.recordPath) return;
@@ -158,7 +161,7 @@ async function main() {
         const run = draft.machinePassesRun;
         const passes = run !== undefined && seen !== undefined && run > 1 ? ` ${seen}/${run} passes` : "";
         console.log(
-          `  ${draft.relation} ${draft.objectText} ${draft.machineDirectness} ${draft.machineConfidence} ${draft.machineMappingState} ${draft.mechanismCode ?? "unmapped"} ${draft.reviewPriority}${passes}`,
+          `  ${draft.relation} ${draft.objectText} ${draft.machineDirectness} ${draft.machineConfidence} ${draft.machineMappingState} ${draft.mechanismCode ?? draft.outcomeCode ?? "unmapped"}${draft.outcomeCode ? " (outcome)" : ""} ${draft.reviewPriority}${passes}`,
         );
         console.log(`  ${draft.quotedSupport ?? ""}`);
       }
@@ -173,12 +176,14 @@ async function main() {
     }
     const claimTotal = perPaper.reduce((sum, row) => sum + row.drafts.length, 0);
     const mappedTotal = perPaper.reduce((sum, row) => sum + row.drafts.filter((d) => d.mechanismCode).length, 0);
+    const outcomeTotal = perPaper.reduce((sum, row) => sum + row.drafts.filter((d) => d.outcomeCode).length, 0);
     const oneReading = perPaper.reduce(
       (sum, row) => sum + row.drafts.filter((d) => d.machinePassesRun && d.machinePassesSeen && d.machinePassesSeen < d.machinePassesRun).length,
       0,
     );
     console.log(
       `\n${perPaper.length} papers read, ${claimTotal} claims, ${mappedTotal} mapped to a mechanism, ` +
+        `${outcomeTotal} to an outcome, ` +
         `${silent} papers with no mechanistic claim in the abstract` +
         (usingClaude ? `, ${oneReading} claims read by only one pass` : "") +
         (failed > 0 ? `, ${failed} papers failed` : "") +
