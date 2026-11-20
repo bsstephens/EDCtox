@@ -13,6 +13,12 @@ export type ClaimDraft = {
    * reads. The rule-based extractor leaves it undefined.
    */
   objectHead?: string;
+  /**
+   * How many extraction passes returned this claim, and how many answered at all. Undefined for
+   * the rule-based extractor, which is deterministic and has no passes.
+   */
+  machinePassesSeen?: number;
+  machinePassesRun?: number;
   subjectType: "CHEMICAL";
   /// The compound as the publication names it. The rule-based extractor only ever produced
   /// bisphenol A; a model-backed one names whatever the paper studies.

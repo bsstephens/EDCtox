@@ -44,6 +44,8 @@ export async function loadStoredClaims(db: Db) {
       machineConfidence: true,
       machineRationale: true,
       machineMappingState: true,
+      machinePassesSeen: true,
+      machinePassesRun: true,
       curatorVerified: true,
       speciesText: true,
       tissueText: true,

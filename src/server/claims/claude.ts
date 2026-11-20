@@ -449,9 +449,11 @@ export function unionPasses(perPass: readonly ClaimDraft[][]): {
       }
     }
   }
-  const drafts = [...first].map(([id, draft]) =>
-    (seen.get(id) ?? 0) === passes ? draft : { ...draft, reviewPriority: "REVIEW_REQUIRED" as const },
-  );
+  const drafts = [...first].map(([id, draft]) => {
+    const found = seen.get(id) ?? 0;
+    const counted = { ...draft, machinePassesSeen: found, machinePassesRun: passes };
+    return found === passes ? counted : { ...counted, reviewPriority: "REVIEW_REQUIRED" as const };
+  });
   return { drafts, agreement: seen };
 }
 

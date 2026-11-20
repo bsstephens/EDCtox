@@ -1246,6 +1246,13 @@ model MechanisticClaim {
   machineDirectness   EvidenceDirectness
   machineConfidence   ExtractionConfidence
   machineRationale    String               @db.Text
+  /// How many extraction passes over this abstract returned this claim, and how many passes
+  /// answered at all. A claim seen by fewer passes than answered rests on a single reading and
+  /// is queued REVIEW_REQUIRED; these two columns are what let the queue say so, rather than
+  /// leaving it indistinguishable from a claim that simply did not map. Null for the
+  /// rule-based extractor, which is deterministic and has no passes.
+  machinePassesSeen    Int?
+  machinePassesRun     Int?
   /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
   machineMappingState ClaimMappingState
   /// Current ontology link. A curator remap or unmap changes this pointer.

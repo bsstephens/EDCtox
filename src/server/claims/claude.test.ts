@@ -240,6 +240,13 @@ test("two passes keep the union, and a claim only one pass found needs review", 
   assert.equal(single?.reviewPriority, "REVIEW_REQUIRED");
   // The model's own confidence is untouched either way: agreement is a different question.
   assert.equal(single?.machineConfidence, "HIGH");
+
+  // The counts reach the row, so the queue can say "one reading of two" rather than leaving it
+  // indistinguishable from a claim that did not map.
+  assert.equal(agreed?.machinePassesSeen, 2);
+  assert.equal(agreed?.machinePassesRun, 2);
+  assert.equal(single?.machinePassesSeen, 1);
+  assert.equal(single?.machinePassesRun, 2);
 });
 
 test("the union collapses two phrasings of one relationship", () => {
@@ -256,10 +263,15 @@ test("the union collapses two phrasings of one relationship", () => {
   assert.equal(drafts[0]?.reviewPriority, "REVIEW_RECOMMENDED");
 });
 
-test("a single pass is left exactly as it was", () => {
+test("a single pass keeps its priority and records one of one", () => {
+  // The extractor returns a lone pass without unioning it, but the function is still correct on
+  // its own: nothing is disputed when there was only ever one reading to compare.
   const drafts = parse([claim()]).drafts;
   const { drafts: unioned, agreement } = unionPasses([drafts]);
-  assert.deepEqual(unioned, drafts);
+  assert.equal(unioned.length, 1);
+  assert.equal(unioned[0]?.reviewPriority, drafts[0]?.reviewPriority);
+  assert.equal(unioned[0]?.machinePassesSeen, 1);
+  assert.equal(unioned[0]?.machinePassesRun, 1);
   assert.equal(agreement.get("DECREASES_EXPRESSION|aromatase"), 1);
 });
 

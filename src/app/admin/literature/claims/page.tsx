@@ -18,6 +18,21 @@ function rank(pmid: string | null): number {
   return index === -1 ? 99 : index;
 }
 
+/**
+ * Says whether every extraction pass over the abstract returned this claim. A claim one pass of
+ * two found is queued REVIEW_REQUIRED, but so is an unmapped claim, and those are different
+ * problems: this is what tells them apart in the queue. Silent for the rule-based extractor,
+ * which is deterministic and records no passes.
+ */
+function passAgreement(seen: number | null, run: number | null) {
+  if (seen === null || run === null || run < 2) return null;
+  return seen >= run ? (
+    <> · Read by both passes</>
+  ) : (
+    <> · <strong className="font-semibold">Only {seen} of {run} passes read this</strong></>
+  );
+}
+
 export default async function MechanisticClaimsPage() {
   const claims = await loadStoredClaims(db);
   const groups = new Map<string, { source: (typeof claims)[number]["evidenceSource"]; claims: typeof claims }>();
@@ -97,6 +112,7 @@ export default async function MechanisticClaimsPage() {
                       {prettyEnum(claim.machineDirectness)} · {prettyEnum(claim.machineConfidence)} confidence ·{" "}
                       {claim.mechanism ? `${claim.mechanism.name} (${claim.mechanism.code}), candidate mapping` : "Unmapped"} ·{" "}
                       {PRIORITY_LABEL[claim.reviewPriority]}
+                      {passAgreement(claim.machinePassesSeen, claim.machinePassesRun)}
                     </p>
                     <p className="text-stone-600">
                       {[claim.speciesText, claim.tissueText, claim.cellTypeText, claim.doseText].filter(Boolean).join(" · ") || "No species, tissue, cell, or dose text"}

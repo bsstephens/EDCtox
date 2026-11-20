@@ -85,6 +85,8 @@ export async function applyMachineClaims(
       machineDirectness: item.draft.machineDirectness,
       machineConfidence: item.draft.machineConfidence,
       machineRationale: item.draft.machineRationale,
+      machinePassesSeen: item.draft.machinePassesSeen ?? null,
+      machinePassesRun: item.draft.machinePassesRun ?? null,
       machineMappingState: item.draft.machineMappingState,
       machineMechanismId,
       speciesText: item.draft.speciesText,
