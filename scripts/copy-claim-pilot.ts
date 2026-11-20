@@ -223,10 +223,10 @@ async function main() {
           } as const;
           await tx.mechanisticClaim.upsert({
             where: {
-              stableKey: claimStableKey(copied.id, claim.subjectText, claim.relation, claim.objectText),
+              stableKey: claimStableKey(claim.provider, copied.id, claim.subjectText, claim.relation, claim.objectText),
             },
             create: {
-              stableKey: claimStableKey(copied.id, claim.subjectText, claim.relation, claim.objectText),
+              stableKey: claimStableKey(claim.provider, copied.id, claim.subjectText, claim.relation, claim.objectText),
               evidenceSourceId: copied.id,
               compoundId: bpaBefore.id,
               mechanismId: resolvedId,

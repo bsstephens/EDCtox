@@ -384,10 +384,10 @@ test("the stored identity follows the head, so a re-run improves a claim instead
   const later = parse([claim({ objectText: "aromatase expression in human granulosa cells" })]).drafts[0];
   assert.ok(first && later);
   const key = (draft: typeof first) =>
-    claimStableKey("src-1", draft.subjectText, draft.relation, draft.objectHead ?? draft.objectText);
+    claimStableKey("anthropic", "src-1", draft.subjectText, draft.relation, draft.objectHead ?? draft.objectText);
   // Two runs phrased the object differently and still address the same row.
   assert.equal(key(first), key(later));
   // The rule-based extractor has no head, so its identity is the verbatim text as before.
   const ruleBased = { ...first, objectHead: undefined };
-  assert.equal(key(ruleBased), claimStableKey("src-1", first.subjectText, first.relation, first.objectText));
+  assert.equal(key(ruleBased), claimStableKey("anthropic", "src-1", first.subjectText, first.relation, first.objectText));
 });

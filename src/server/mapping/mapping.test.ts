@@ -90,14 +90,26 @@ test("mapping actions keep the machine suggestion and leave scores and findings 
           assert.ok(coverage.metrics.candidate > 0);
           assert.ok(coverage.metrics.unmapped > 0);
           assert.ok(coverage.warnings.some((warning) => warning.includes("machine-extracted")));
-          const aromatase = coverage.claims.find((claim) => claim.mechanismCode === "AROMATASE_CYP19A1");
-          const estradiol = coverage.claims.find((claim) => claim.objectText === "estradiol");
+          // Two extractors can now hold a row each for one relationship, so the row this
+          // workflow acts on is chosen by producer as well as by mechanism: the later machine
+          // run below is the rule-based one, and a rule-based run must address a rule-based row.
+          const ruleBased = await tx.mechanisticClaim.findFirstOrThrow({
+            where: { provider: "deterministic", mechanism: { code: "AROMATASE_CYP19A1" } },
+            select: { id: true },
+          });
+          const aromatase = coverage.claims.find((claim) => claim.id === ruleBased.id);
           assert.ok(aromatase);
           assert.equal(aromatase.state, "CANDIDATE");
           assert.equal(aromatase.machineMechanismCode, "AROMATASE_CYP19A1");
-          assert.ok(estradiol);
-          assert.equal(estradiol.state, "UNMAPPED");
-          assert.equal(estradiol.mechanismCode, null);
+
+          // An unmapped claim reports no mechanism. This used to name "estradiol" as the
+          // example, which broke the moment the mapping improved: estradiol is a scorable node
+          // and the model-backed extractor resolves it, where the narrower rules did not. The
+          // claim is picked for its state rather than its text, so a term that starts mapping
+          // is progress here rather than a failure.
+          const unmapped = coverage.claims.find((claim) => claim.state === "UNMAPPED");
+          assert.ok(unmapped, "the cohort should still contain a claim the ontology does not hold");
+          assert.equal(unmapped.mechanismCode, null);
           const groupedCodes = coverage.domains.flatMap((domain) => domain.families.flatMap((family) => family.parents.flatMap((parent) => parent.claims.map((claim) => claim.mechanismCode))));
           assert.equal(groupedCodes.includes("REP_STEROIDOGENESIS"), false);
           assert.equal(groupedCodes.includes("AROMATASE_CYP19A1"), true);

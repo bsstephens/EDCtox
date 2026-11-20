@@ -166,11 +166,23 @@ test("TFA acronym alone is not a specific compound name", () => {
   assert.equal(claims("TFA method", "TFA reduced aromatase activity.").length, 0);
 });
 
-test("claim identity follows source, subject, relation, and object", () => {
-  const left = claimStableKey("source-1", "Bisphenol A", "INHIBITS", "Aromatase");
-  assert.equal(left, claimStableKey("source-1", "bisphenol a", "INHIBITS", "aromatase"));
-  assert.notEqual(left, claimStableKey("source-1", "bisphenol a", "NO_EFFECT", "aromatase"));
-  assert.notEqual(left, claimStableKey("source-2", "bisphenol a", "INHIBITS", "aromatase"));
+test("claim identity follows producer, source, subject, relation, and object", () => {
+  const left = claimStableKey("deterministic", "source-1", "Bisphenol A", "INHIBITS", "Aromatase");
+  assert.equal(left, claimStableKey("deterministic", "source-1", "bisphenol a", "INHIBITS", "aromatase"));
+  assert.notEqual(left, claimStableKey("deterministic", "source-1", "bisphenol a", "NO_EFFECT", "aromatase"));
+  assert.notEqual(left, claimStableKey("deterministic", "source-2", "bisphenol a", "INHIBITS", "aromatase"));
+
+  // Two extractors reading one relationship hold a row each. Without this the model's reading
+  // updated the rule-based row and took over its provenance: five claims were absorbed that way
+  // on the first real run, and re-running the rule-based pilot converted them straight back.
+  const model = claimStableKey("anthropic", "source-1", "Bisphenol A", "INHIBITS", "Aromatase");
+  assert.notEqual(left, model);
+
+  // The producer namespaces the key rather than joining the hash, so an existing row can be
+  // moved into its namespace by rewriting the prefix. The hash of a stored claim cannot be
+  // recomputed, because the object head it was built from is not stored.
+  assert.equal(left.split(":").slice(2).join(":"), model.split(":").slice(2).join(":"));
+  assert.match(left, /^claim:deterministic:[0-9a-f]{24}$/);
 });
 
 test("the pilot is five pending papers and the command stays local", () => {

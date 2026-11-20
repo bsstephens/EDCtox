@@ -55,6 +55,7 @@ export async function applyMachineClaims(
       paper,
       draft,
       stableKey: claimStableKey(
+        provenance.provider,
         paper.evidenceSourceId,
         draft.subjectText,
         draft.relation,

@@ -293,6 +293,12 @@ export function claimNorm(value: string): string {
 /**
  * The identity of a stored claim, and therefore what a re-run updates rather than duplicates.
  *
+ * `producer` keeps the extractors apart. Without it, a model reading the same relationship as
+ * the rule-based extractor updated its row and took over its provenance -- five rule-based
+ * claims were absorbed that way on the first real run, and re-running the rule-based pilot
+ * would have converted them straight back. The two can now hold a row each for one
+ * relationship, which is what lets them be compared at all.
+ *
  * `objectKey` is the object's head where a model-backed extractor supplied one, and the
  * verbatim object text otherwise. Keying on the verbatim text was wrong for a model: the
  * phrasing drifts between runs -- two runs of the same abstract agree on 74% to 86% of
@@ -303,6 +309,7 @@ export function claimNorm(value: string): string {
  * rule-based extractor has no head and is deterministic, so its keys are unchanged.
  */
 export function claimStableKey(
+  producer: string,
   evidenceSourceId: string,
   subjectText: string,
   relation: string,
@@ -312,7 +319,10 @@ export function claimStableKey(
     .update(`${evidenceSourceId}|${claimNorm(subjectText)}|${relation}|${claimNorm(objectKey)}`)
     .digest("hex")
     .slice(0, 24);
-  return `claim:${hash}`;
+  // The producer namespaces the key rather than joining the hash, so an existing row can be
+  // moved into its namespace by rewriting the prefix: the hash of a stored claim cannot be
+  // recomputed, because the object head it was built from is not stored.
+  return `claim:${producer}:${hash}`;
 }
 
 /** Bare TFA is not trifluoroacetic acid. This slice does not search or extract TFA. */
