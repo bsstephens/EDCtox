@@ -232,6 +232,24 @@ Each step stops for review. Steps 1 and 2 come first because the pipeline maps e
 a mechanism or outcome, and a claim with nowhere to land is wasted: ten of the seventeen BPA
 claims are already unmapped.
 
+**Status, 20 Nov 2026: steps 1, 2 and 3 are done and live on edc.fyi.** Step 4 is next and
+waits on Scott, because phase 4A asks three questions only he can answer. What landed:
+
+| | Before | After |
+|---|---:|---:|
+| Profile columns | 7 | 8, thyroid added |
+| Compounds | 116 | 125 |
+| Outcomes | 42 | 59 |
+| Mechanisms | 273 | 280 |
+| Regulatory rows | 0 | 14, each linking to its source |
+| External identifiers | 0 | 6, for BPA and PFOS |
+| Mechanism assessments | 71 | 71, unchanged as intended |
+| Tests | 86 | 96 |
+
+One bug surfaced while verifying step 3 and is fixed. The public data cache was keyed on the
+commit SHA, which a redeploy does not change, so a seed or identity write made after a deploy
+could keep serving stale pages for a day. The key is now the deployment id.
+
 1. **Ontology migration (expand-only, one migration).** Thyroid as a profile domain, with the
    five thyroid mechanisms moved under it and the three thyroid outcomes recategorised. The
    missing outcomes from section 2. The cancer middle road. A key-characteristic tag on
