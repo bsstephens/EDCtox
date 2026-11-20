@@ -35,7 +35,7 @@ export const CLAUDE_CLAIM_PROVIDER = "claude";
  * and Haiku is that fallback until the behaviour changes or Scott raises it with Anthropic.
  */
 export const CLAUDE_CLAIM_MODEL = "claude-haiku-5-5";
-export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v2";
+export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v4";
 
 export class ClaudeClaimError extends Error {}
 
@@ -45,7 +45,22 @@ Rules:
 - Record only what the abstract states. Do not add a claim because it is well known, because the compound is associated with it elsewhere, or because the title implies it. If the abstract does not say it, it is not there.
 - One claim per distinct stated relationship. Do not split one finding into several claims, and do not merge two findings into one.
 - objectText is the thing affected, in the abstract's own words: a receptor, an enzyme, a gene, a hormone, a cell type, a process, or an outcome. Do not translate it into a standard vocabulary and do not expand an abbreviation the abstract did not expand.
+- objectHead names the same thing with every qualifier removed, so that two abstracts describing one entity give the same objectHead. Drop where it was measured, in which sex or group, by what assay, in what medium, and at what dose. Keep the entity and nothing else. Still the abstract's own words, still no translation and no expanded abbreviation.
+    objectText "ERα immunoreactive neurons in the BST, Arc, VMH and MeA of female mice" -> objectHead "ERα"
+    objectText "estradiol concentration in the culture medium" -> objectHead "estradiol"
+    objectText "cellular viability and counts" -> objectHead "cell viability"
+    objectText "CYP19A1 expression" -> objectHead "CYP19A1"
+  When objectText is already the bare entity, repeat it unchanged.
 - relation is what the abstract says happened. NO_EFFECT is a real and useful answer when the abstract reports that nothing changed; record it rather than dropping the finding.
+- Several relations can describe one finding, so choose by what the abstract measured, not by how it is phrased. Take the first of these that applies:
+    an amount of a transcript or a protein -> INCREASES_EXPRESSION / DECREASES_EXPRESSION
+    an amount of anything else: a hormone, a metabolite, a cell count, a concentration -> INCREASES_LEVEL / DECREASES_LEVEL
+    a functional assay: enzyme activity, viability, motility, fertility, a behavioural measure -> ENHANCES_FUNCTION / IMPAIRS_FUNCTION
+    a receptor or pathway switched on or off -> ACTIVATES / INHIBITS, or AGONIZES / ANTAGONIZES where the abstract says the compound acts at the receptor itself
+    a measured affinity or binding -> BINDS
+    a disease, lesion or phenotype the abstract says the exposure helps bring about -> CONTRIBUTES_TO
+    a statistical association in a population, with no mechanism measured -> ASSOCIATED_WITH
+  Use OTHER only when none of these fits. Do not reach for CONTRIBUTES_TO because a finding sounds important, and do not reach for a functional relation because the entity has a function: a measured amount is a level or an expression change even when the authors discuss what it means for function.
 - machineDirectness says how firmly this abstract supports this claim. Grade the sentence you quoted, not the quality of the journal, not how plausible the claim is, and not how confident the authors sound. Most sentences in most abstracts do not reach the top of this list. Work down it and stop at the first level that fits:
   - DIRECTLY_DEMONSTRATED: not available from an abstract. Do not use it.
   - STRONGLY_SUPPORTED: the quoted sentence reports a measurement these authors made, on this compound, with a direction, and carries a number, a named assay, or a stated comparison against a control. "BPA reduced aromatase mRNA by 40% at 10 nM in granulosa cells."
@@ -108,15 +123,22 @@ export const ClaudeClaimOutput = z.object({
       z.object({
         relation: z.enum(RELATIONS),
         objectType: z.enum(OBJECT_TYPES),
-        objectText: z.string().min(1).max(160),
+        objectText: z.string().min(1),
+        // The entity with its qualifiers stripped. Mapping is attempted on this, because the
+        // verbose form drifts between runs ("ERa immunoreactive neurons in the BST, Arc, VMH and
+        // MeA" one run, "ERa immunoreactive neurons" the next) and never matches the ontology.
+        objectHead: z.string().min(1),
         directness: z.enum(DIRECTNESS),
         confidence: z.enum(["LOW", "MODERATE", "HIGH"]),
-        quotedSupport: z.string().min(1).max(600),
-        rationale: z.string().min(1).max(400),
-        // No length limit on the four context fields. A verbose answer here is not a wrong
-        // answer, and the whole response is one structured object: the first pilot run lost a
-        // paper's 15 good claims because one tissueText ran to 130 characters. They are
-        // truncated to the column width in parseClaims instead.
+        quotedSupport: z.string().min(1),
+        rationale: z.string().min(1),
+        // No length limit on any field here, deliberately. Every one of these columns is
+        // Postgres text, so the limits this schema used to carry corresponded to nothing in the
+        // database, and each one could discard a whole paper: the response is a single
+        // structured object, so one overlong field fails the parse and the other fourteen good
+        // claims go with it. That happened twice in the pilot, on a paper whose finding spans
+        // four brain regions. Labels are trimmed for hygiene in parseClaims; a long quotation
+        // is left alone, because it is checked against the abstract anyway.
         speciesText: z.string(),
         tissueText: z.string(),
         cellTypeText: z.string(),
@@ -158,12 +180,21 @@ export function buildClaimRequest(paper: ClaimPaper, compoundName: string): Clai
   };
 }
 
-/** Null for a field the abstract did not give, trimmed to the column width otherwise. */
-const empty = (value: string, limit: number): string | null => {
+/**
+ * These are labels, not prose, and the columns behind them are unlimited. The cap is hygiene:
+ * a label this long means the model wrote a sentence where a term belongs, and that is worth
+ * seeing in the data rather than silently storing a paragraph. It is generous enough that no
+ * real answer reaches it.
+ */
+const LABEL_LIMIT = 240;
+
+const label = (value: string): string => {
   const trimmed = value.trim();
-  if (!trimmed) return null;
-  return trimmed.length <= limit ? trimmed : `${trimmed.slice(0, limit - 1).trimEnd()}\u2026`;
+  return trimmed.length <= LABEL_LIMIT ? trimmed : `${trimmed.slice(0, LABEL_LIMIT - 1).trimEnd()}\u2026`;
 };
+
+/** Null for a field the abstract did not give, a trimmed label otherwise. */
+const empty = (value: string): string | null => (value.trim() ? label(value) : null);
 
 /**
  * Turns the model's answer into claim drafts.
@@ -204,7 +235,9 @@ export function parseClaims(
   const seen = new Set<string>();
 
   for (const claim of parsed.data.claims) {
-    const identity = `${claim.relation}|${claim.objectText.trim().toLowerCase()}`;
+    // Keyed on the head, not the verbose text: one run returned the same gene seven times from
+    // a single panel, and two phrasings of one relationship are still one relationship.
+    const identity = `${claim.relation}|${claim.objectHead.trim().toLowerCase()}`;
     if (seen.has(identity)) {
       dropped.push({ objectText: claim.objectText, why: "the same relation and object was already read" });
       continue;
@@ -216,7 +249,9 @@ export function parseClaims(
       continue;
     }
     const directness = claim.directness === "DIRECTLY_DEMONSTRATED" ? "STRONGLY_SUPPORTED" : claim.directness;
-    const proposed = input.mechanismCodeFor(claim.objectText);
+    // The head first, then the verbatim text: a paper that writes the bare entity gives the
+    // same answer either way, and one that writes a qualified phrase only resolves on the head.
+    const proposed = input.mechanismCodeFor(claim.objectHead) ?? input.mechanismCodeFor(claim.objectText);
     const mapping = resolveMechanismCode(proposed, claim.objectText, input.catalog);
     const mechanismCode = mapping.mechanismCode;
     drafts.push({
@@ -224,17 +259,17 @@ export function parseClaims(
       subjectText: input.compoundName,
       relation: claim.relation,
       objectType: claim.objectType,
-      objectText: claim.objectText.trim(),
+      objectText: label(claim.objectText),
       machineDirectness: directness,
       machineConfidence: claim.confidence,
       machineRationale: claim.rationale.trim(),
       machineMappingState: mapping.mappingState,
       mechanismCode,
       mechanismId: mapping.mechanismId,
-      speciesText: empty(claim.speciesText, 120),
-      tissueText: empty(claim.tissueText, 120),
-      cellTypeText: empty(claim.cellTypeText, 120),
-      doseText: empty(claim.doseText, 160),
+      speciesText: empty(claim.speciesText),
+      tissueText: empty(claim.tissueText),
+      cellTypeText: empty(claim.cellTypeText),
+      doseText: empty(claim.doseText),
       measureType: null,
       measureValue: null,
       measureUnit: null,

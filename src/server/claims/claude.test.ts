@@ -33,6 +33,7 @@ function claim(overrides: Record<string, unknown> = {}) {
     relation: "DECREASES_EXPRESSION",
     objectType: "ENZYME",
     objectText: "aromatase",
+    objectHead: "aromatase",
     directness: "STRONGLY_SUPPORTED",
     confidence: "HIGH",
     quotedSupport: "Exposure to bisphenol A reduced aromatase expression in human granulosa cells.",
@@ -84,7 +85,7 @@ test("a claim whose quotation is not in the abstract is dropped", () => {
   // is checked here rather than asked for and trusted.
   const result = parse([
     claim(),
-    claim({ objectText: "oestrogen receptor", quotedSupport: "BPA activated the oestrogen receptor." }),
+    claim({ objectText: "oestrogen receptor", objectHead: "oestrogen receptor", quotedSupport: "BPA activated the oestrogen receptor." }),
   ]);
   assert.equal(result.drafts.length, 1);
   assert.equal(result.drafts[0]?.objectText, "aromatase");
@@ -106,26 +107,47 @@ test("mapping reuses the existing guards rather than trusting the match", () => 
 
   // A grouping-only parent is a display node and is refused as a claim target.
   const grouping = parse([
-    claim({ objectText: "steroidogenesis", quotedSupport: "We propose that this contributes to impaired steroidogenesis." }),
+    claim({ objectText: "steroidogenesis", objectHead: "steroidogenesis", quotedSupport: "We propose that this contributes to impaired steroidogenesis." }),
   ]);
   assert.equal(grouping.drafts[0]?.mechanismCode, null);
   assert.equal(grouping.drafts[0]?.machineMappingState, "UNMAPPED");
 
   // An object the ontology does not hold stays unmapped rather than being forced onto a neighbour.
-  const unknown = parse([claim({ objectText: "cell viability", quotedSupport: "Cell viability was unchanged at the same concentrations." })]);
+  const unknown = parse([claim({ objectText: "cell viability", objectHead: "cell viability", quotedSupport: "Cell viability was unchanged at the same concentrations." })]);
   assert.equal(unknown.drafts[0]?.mechanismCode, null);
 });
 
-test("a long context field is trimmed, not allowed to lose the paper", () => {
-  // The first v2 pilot run lost a paper's 15 claims because one tissueText was 130 characters:
-  // the response is one object, so a cosmetic overrun in one field discarded all of it.
-  const result = parse([claim({ tissueText: "ovarian granulosa cells ".repeat(8) })]);
+test("no field length can lose a paper's claims", () => {
+  // Two pilot runs lost a paper's whole answer to one overlong field, because the response is a
+  // single structured object. The columns behind these fields are Postgres text, so the limits
+  // that caused it corresponded to nothing. Long values now survive; labels are trimmed.
+  const long = "ovarian granulosa cells ".repeat(30);
+  const result = parse([claim({ tissueText: long, rationale: long, quotedSupport: abstract })]);
   assert.equal(result.drafts.length, 1);
-  const tissue = result.drafts[0]?.tissueText ?? "";
-  assert.equal(tissue.length, 120);
-  assert.ok(tissue.endsWith("\u2026"));
+  const draft = result.drafts[0];
+  assert.equal(draft?.tissueText?.length, 240);
+  assert.ok(draft?.tissueText?.endsWith("\u2026"));
+  // A rationale is prose, not a label, and is kept whole.
+  assert.ok((draft?.machineRationale.length ?? 0) > 240);
   // A field within the limit is untouched.
   assert.equal(parse([claim()]).drafts[0]?.cellTypeText, "granulosa cells");
+});
+
+test("a qualified phrase maps on its head, and the verbatim text is kept", () => {
+  // Across four runs the model named one finding three ways, from "ERa immunoreactive neurons
+  // in the BST, Arc, VMH and MeA of female mice" down to "ERa immunoreactive neurons". None of
+  // those is in the ontology; the head is.
+  const result = parse([claim({ objectText: "aromatase expression in human granulosa cells" })]);
+  const draft = result.drafts[0];
+  assert.equal(draft?.mechanismCode, "AROMATASE_CYP19A1");
+  assert.equal(draft?.objectText, "aromatase expression in human granulosa cells");
+
+  // A head the ontology does not hold leaves the claim unmapped rather than falling back to a
+  // qualifier that happens to match something.
+  const unmapped = parse([
+    claim({ objectText: "aromatase expression in human granulosa cells", objectHead: "granulosa cells" }),
+  ]);
+  assert.equal(unmapped.drafts[0]?.mechanismCode, null);
 });
 
 test("a reported absence of effect is kept, not dropped", () => {
@@ -133,6 +155,7 @@ test("a reported absence of effect is kept, not dropped", () => {
     claim({
       relation: "NO_EFFECT",
       objectText: "cell viability",
+      objectHead: "cell viability",
       quotedSupport: "Cell viability was unchanged at the same concentrations.",
     }),
   ]);
