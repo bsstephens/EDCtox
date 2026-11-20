@@ -48,6 +48,10 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
+        // Without this, the project service resolves packages from the linter's own working
+        // directory rather than the repository root, so a dependency whose types come through an
+        // exports map (the Anthropic SDK) lints as `any` while tsc resolves it correctly.
+        tsconfigRootDir: import.meta.dirname,
       },
     },
   },
