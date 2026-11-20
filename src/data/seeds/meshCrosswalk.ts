@@ -280,12 +280,12 @@ export const CLASS_TERM_PLACEHOLDER: Record<string, string | null> = {
 
   // Terms the corpus uses that have no placeholder record yet. Listing them here is what turns
   // "an unrecognised chemical" into "a class this database has nowhere to put".
-  phthalates: null,
-  "phthalate esters": null,
-  bisphenols: null,
-  "bisphenol analogues": null,
-  "bpa analogs": null,
-  "bpa analogues": null,
+  phthalates: "phthalates",
+  "phthalate esters": "phthalates",
+  bisphenols: "bisphenols",
+  "bisphenol analogues": "bisphenols",
+  "bpa analogs": "bisphenols",
+  "bpa analogues": "bisphenols",
   pfas: null,
   "per and polyfluoroalkyl substances": null,
   "perfluoroalkyl substances": null,

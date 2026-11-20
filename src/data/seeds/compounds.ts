@@ -1568,6 +1568,38 @@ export const compounds: CompoundSeed[] = [
     notes: "Permitted concentrations differ by jurisdiction and by product type.",
     aliases: [{ name: "Butylparaben", aliasType: "COMMON_NAME" }],
   }),
+  // Class placeholders for groups the literature treats as a group. Routing found fifteen stored
+  // papers about phthalates as a class and three about bisphenols as a class, with no record to
+  // hold either. A class placeholder is not a member and carries no member's evidence: a paper
+  // about phthalates is not a paper about DEHP, and nothing is copied between them.
+  compound({
+    slug: "phthalates",
+    canonicalName: "Phthalates",
+    displayName: "Phthalates",
+    description:
+      "Category placeholder for phthalate esters as a group. Papers that study the class rather than a named ester are recorded here. Individual phthalates are separate records and are not scored from this one.",
+    compoundType: "PLASTICISER",
+    primaryCategory: "Phthalate ester class",
+    currentUseStatus: "CLASS_PLACEHOLDER",
+    recordKind: "CLASS_PLACEHOLDER",
+    isMixture: true,
+    isEnvironmentalChemical: true,
+    aliases: [{ name: "Phthalate esters", aliasType: "SYNONYM" }],
+  }),
+  compound({
+    slug: "bisphenols",
+    canonicalName: "Bisphenols",
+    displayName: "Bisphenols",
+    description:
+      "Category placeholder for bisphenols as a group, including the analogues used to replace bisphenol A. Papers that study the class rather than a named bisphenol are recorded here. Activity is not copied to or from any member.",
+    compoundType: "BISPHENOL",
+    primaryCategory: "Bisphenol class",
+    currentUseStatus: "CLASS_PLACEHOLDER",
+    recordKind: "CLASS_PLACEHOLDER",
+    isMixture: true,
+    isEnvironmentalChemical: true,
+    aliases: [{ name: "Bisphenol analogues", aliasType: "SYNONYM" }],
+  }),
   compound({
     slug: "propylparaben",
     canonicalName: "Propyl 4-hydroxybenzoate",
