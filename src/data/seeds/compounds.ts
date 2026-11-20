@@ -1423,6 +1423,166 @@ export const compounds: CompoundSeed[] = [
     isMixture: true,
     isEnvironmentalChemical: true,
   }),
+  // Chemicals the WHO/UNEP 2026 assessment discusses that EDCtox did not hold. Added as records
+  // so the literature pipeline has somewhere to put what it finds. None carries a score: a
+  // compound page with no assessment is an honest empty page, not a judgement of safety.
+  // Identifiers were resolved against PubChem on 20 Nov 2026 and are stored as query anchors.
+  // Regulatory status differs by use and jurisdiction and is recorded on regulatory rows, not here.
+  compound({
+    slug: "triclosan",
+    canonicalName: "Triclosan",
+    displayName: "Triclosan",
+    description:
+      "Antimicrobial preservative in personal care products, textiles, and plastics. One of the eight chemicals the WHO/UNEP 2026 assessment treats in focus. Unscored in EDCtox: no assessment has been curated.",
+    compoundType: "COSMETIC_INGREDIENT",
+    primaryCategory: "Antimicrobial preservative",
+    currentUseStatus: "RESTRICTED",
+    casNumber: "3380-34-5",
+    molecularFormula: "C12H7Cl3O2",
+    isEnvironmentalChemical: true,
+    notes: "Restrictions differ by use and jurisdiction.",
+    aliases: [
+      { name: "5-chloro-2-(2,4-dichlorophenoxy)phenol", aliasType: "IUPAC" },
+      { name: "Irgasan", aliasType: "TRADE_NAME" },
+    ],
+  }),
+  compound({
+    slug: "4-nonylphenol",
+    canonicalName: "4-Nonylphenol",
+    displayName: "4-Nonylphenol",
+    description:
+      "Alkylphenol and a degradation product of nonylphenol ethoxylate surfactants. Nonylphenols are one of the assessment's in-focus groups, and alkylphenols make up most of the European Union's list of identified endocrine disruptors. Unscored in EDCtox.",
+    compoundType: "INDUSTRIAL_CHEMICAL",
+    primaryCategory: "Alkylphenol",
+    currentUseStatus: "RESTRICTED",
+    casNumber: "104-40-5",
+    molecularFormula: "C15H24O",
+    isEnvironmentalChemical: true,
+    notes:
+      "The commercial material is usually a branched isomer mixture. This record is the linear para isomer, which is the CAS number the European Union list carries for p-nonylphenol. Isomer-specific evidence should not be merged across the mixture without saying so.",
+    aliases: [
+      { name: "p-Nonylphenol", aliasType: "SYNONYM" },
+      { name: "NP", aliasType: "ABBREVIATION" },
+    ],
+  }),
+  compound({
+    slug: "4-tert-octylphenol",
+    canonicalName: "4-(1,1,3,3-Tetramethylbutyl)phenol",
+    displayName: "4-tert-Octylphenol",
+    description:
+      "Alkylphenol used in surfactants and resins, and a degradation product of octylphenol ethoxylates. On the European Union list of identified endocrine disruptors. Unscored in EDCtox.",
+    compoundType: "INDUSTRIAL_CHEMICAL",
+    primaryCategory: "Alkylphenol",
+    currentUseStatus: "RESTRICTED",
+    casNumber: "140-66-9",
+    molecularFormula: "C14H22O",
+    isEnvironmentalChemical: true,
+    aliases: [
+      { name: "4-tert-Octylphenol", aliasType: "COMMON_NAME" },
+      { name: "OP", aliasType: "ABBREVIATION" },
+    ],
+  }),
+  compound({
+    slug: "4-mbc",
+    canonicalName: "4-Methylbenzylidene camphor",
+    displayName: "4-MBC",
+    description:
+      "Organic ultraviolet filter in sunscreen and cosmetics. One of the eight chemicals the WHO/UNEP 2026 assessment treats in focus. Unscored in EDCtox.",
+    compoundType: "COSMETIC_INGREDIENT",
+    primaryCategory: "UV filter",
+    currentUseStatus: "IN_CURRENT_USE",
+    casNumber: "38102-62-4",
+    molecularFormula: "C18H22O",
+    isEnvironmentalChemical: true,
+    notes:
+      "PubChem lists more than one CAS number for this substance because of its stereochemistry. The one stored here is the registry number PubChem returns first for the enzacamene record. Treat it as a query anchor, not a verified identifier, until the identity resolver confirms it.",
+    aliases: [
+      { name: "Enzacamene", aliasType: "COMMON_NAME" },
+      { name: "4-MBC", aliasType: "ABBREVIATION" },
+      { name: "Methylbenzylidene camphor", aliasType: "SYNONYM" },
+    ],
+  }),
+  compound({
+    slug: "tcdd",
+    canonicalName: "2,3,7,8-Tetrachlorodibenzo-p-dioxin",
+    displayName: "TCDD",
+    description:
+      "The most studied chlorinated dioxin. An unintentional byproduct of combustion and some chemical manufacture rather than a product in its own right. The existing dioxin-like class placeholder stays for mixture evidence; this record is the specific congener. Unscored in EDCtox.",
+    compoundType: "POLLUTANT",
+    primaryCategory: "Chlorinated dioxin",
+    currentUseStatus: "LEGACY",
+    casNumber: "1746-01-6",
+    molecularFormula: "C12H4Cl4O2",
+    isEnvironmentalChemical: true,
+    legacyChemical: true,
+    aliases: [
+      { name: "TCDD", aliasType: "ABBREVIATION" },
+      { name: "Dioxin", aliasType: "SYNONYM" },
+    ],
+  }),
+  compound({
+    slug: "perchlorate",
+    canonicalName: "Perchlorate",
+    displayName: "Perchlorate",
+    description:
+      "Perchlorate anion, from rocket propellant, some fertilisers, and natural deposits. The WHO/UNEP 2026 assessment uses it as the example of a chemical with strong evidence for a single key characteristic, thyroid hormone synthesis, which it inhibits at the sodium-iodide symporter. Unscored in EDCtox.",
+    compoundType: "POLLUTANT",
+    primaryCategory: "Inorganic anion",
+    currentUseStatus: "IN_CURRENT_USE",
+    casNumber: "14797-73-0",
+    molecularFormula: "ClO4-",
+    isEnvironmentalChemical: true,
+    notes:
+      "Recorded as the anion, which is the species that acts at the symporter. Salts such as ammonium and sodium perchlorate are different substances and are not stored here.",
+    aliases: [{ name: "Perchlorate ion", aliasType: "SYNONYM" }],
+  }),
+  compound({
+    slug: "benzophenone-3",
+    canonicalName: "2-Hydroxy-4-methoxybenzophenone",
+    displayName: "Benzophenone-3",
+    description:
+      "Organic ultraviolet filter in sunscreen and cosmetics, and the benzophenone the assessment names among cosmetic-sector chemicals of concern. The benzophenone class placeholder stays for class-level evidence. Unscored in EDCtox.",
+    compoundType: "COSMETIC_INGREDIENT",
+    primaryCategory: "UV filter",
+    currentUseStatus: "IN_CURRENT_USE",
+    casNumber: "131-57-7",
+    molecularFormula: "C14H12O3",
+    isEnvironmentalChemical: true,
+    aliases: [
+      { name: "Oxybenzone", aliasType: "COMMON_NAME" },
+      { name: "BP-3", aliasType: "ABBREVIATION" },
+    ],
+  }),
+  compound({
+    slug: "butylparaben",
+    canonicalName: "Butyl 4-hydroxybenzoate",
+    displayName: "Butylparaben",
+    description:
+      "Alkyl paraben preservative in cosmetics, food, and pharmaceuticals. On the European Union list of identified endocrine disruptors. The paraben class placeholder stays for class-level evidence. Unscored in EDCtox.",
+    compoundType: "COSMETIC_INGREDIENT",
+    primaryCategory: "Paraben preservative",
+    currentUseStatus: "RESTRICTED",
+    casNumber: "94-26-8",
+    molecularFormula: "C11H14O3",
+    isEnvironmentalChemical: true,
+    notes: "Permitted concentrations differ by jurisdiction and by product type.",
+    aliases: [{ name: "Butylparaben", aliasType: "COMMON_NAME" }],
+  }),
+  compound({
+    slug: "propylparaben",
+    canonicalName: "Propyl 4-hydroxybenzoate",
+    displayName: "Propylparaben",
+    description:
+      "Alkyl paraben preservative in cosmetics, food, and pharmaceuticals. Unscored in EDCtox.",
+    compoundType: "COSMETIC_INGREDIENT",
+    primaryCategory: "Paraben preservative",
+    currentUseStatus: "IN_CURRENT_USE",
+    casNumber: "94-13-3",
+    molecularFormula: "C10H12O3",
+    isEnvironmentalChemical: true,
+    notes: "Permitted concentrations differ by jurisdiction and by product type.",
+    aliases: [{ name: "Propylparaben", aliasType: "COMMON_NAME" }],
+  }),
 ];
 
 const slugs = new Set<string>();
