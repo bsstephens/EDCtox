@@ -22,7 +22,19 @@ import { type ClaimDraft, type MechanismCatalog, resolveMechanismCode } from "./
  */
 
 export const CLAUDE_CLAIM_PROVIDER = "claude";
-export const CLAUDE_CLAIM_MODEL = "claude-opus-5-5";
+/**
+ * Haiku rather than Opus, which is a change from decision 3 of docs/AGENT_PIPELINE_DESIGN.md.
+ *
+ * Opus 5.5 refuses this task. Run against the five pilot abstracts on 20 Nov 2026 it returned
+ * stop_reason "refusal" with category "bio" on all five, cutting the answer off mid-string after
+ * emitting valid JSON; Haiku 5.5 completed all five. The content is ordinary published
+ * toxicology, the same abstracts Haiku had already read 90 of while profiling, so this looks
+ * like a false positive on the subject matter rather than anything about the request.
+ *
+ * No attempt is made to reword the prompt around it. The documented remedy is a fallback model,
+ * and Haiku is that fallback until the behaviour changes or Scott raises it with Anthropic.
+ */
+export const CLAUDE_CLAIM_MODEL = "claude-haiku-5-5";
 export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v1";
 
 export class ClaudeClaimError extends Error {}
@@ -172,8 +184,17 @@ export function parseClaims(
   const haystack = (input.paper.abstractText ?? "").replace(/\s+/g, " ").toLowerCase();
   const drafts: ClaimDraft[] = [];
   const dropped: Array<{ objectText: string; why: string }> = [];
+  // One claim per distinct relationship. The prompt asks for this and the first real run still
+  // returned the same gene seven times over from one expression panel, so it is enforced here.
+  const seen = new Set<string>();
 
   for (const claim of parsed.data.claims) {
+    const identity = `${claim.relation}|${claim.objectText.trim().toLowerCase()}`;
+    if (seen.has(identity)) {
+      dropped.push({ objectText: claim.objectText, why: "the same relation and object was already read" });
+      continue;
+    }
+    seen.add(identity);
     const quote = claim.quotedSupport.replace(/\s+/g, " ").trim();
     if (!haystack.includes(quote.toLowerCase())) {
       dropped.push({ objectText: claim.objectText, why: "the quoted sentence is not in the abstract" });
@@ -258,10 +279,13 @@ export function apiCompletion(client: Anthropic): ClaimCompletion {
   return async (request) => {
     const response = await client.messages.parse({
       model: CLAUDE_CLAIM_MODEL,
-      max_tokens: 8192,
+      // An abstract yields a handful of claims, but each carries a quoted sentence and a
+      // rationale, so the structured answer is long. The first run truncated mid-string at
+      // 8192 with high effort, which spends the budget on reasoning this task does not need.
+      max_tokens: 16384,
       system: request.system,
       messages: [{ role: "user", content: request.user }],
-      output_config: { effort: "high", format: zodOutputFormat(ClaudeClaimOutput) },
+      output_config: { effort: "medium", format: zodOutputFormat(ClaudeClaimOutput) },
     });
     if (response.stop_reason === "refusal") {
       throw new ClaudeClaimError(

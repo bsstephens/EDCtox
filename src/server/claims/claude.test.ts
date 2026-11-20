@@ -162,3 +162,11 @@ test("every claim lands unverified and touches no curator column", () => {
     assert.ok(!code.includes(forbidden), `claude.ts must not touch ${forbidden}`);
   }
 });
+
+test("the same relationship read twice is one claim", () => {
+  // The first real run returned one gene expression change seven times from a single panel.
+  // The prompt asks for one claim per distinct relationship; this enforces it.
+  const result = parse([claim(), claim(), claim({ relation: "INCREASES_EXPRESSION" })]);
+  assert.equal(result.drafts.length, 2);
+  assert.equal(result.dropped.filter((row) => row.why.includes("already read")).length, 1);
+});
