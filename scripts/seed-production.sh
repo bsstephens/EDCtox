@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Seed the hosted database from this machine.
 #
-# Put the Prisma Postgres URL in .env.production.local (gitignored):
-#   DATABASE_URL="postgres://..."
-# DIRECT_URL is optional. When it is omitted, DATABASE_URL is used.
+# Put the hosted connection strings in .env.supabase.local (gitignored):
+#   DATABASE_URL="postgresql://...:6543/postgres?pgbouncer=true&sslmode=require"
+#   DIRECT_URL="postgresql://...:5432/postgres?sslmode=require"
+# The seed runs over DIRECT_URL, the session pooler, because a bulk write through the
+# transaction pooler is not reliable for Prisma. DIRECT_URL falls back to DATABASE_URL.
 #
 # Run from anywhere:
 #   ./scripts/seed-production.sh
@@ -16,21 +18,27 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
-env_file="$root/.env.production.local"
-if [[ -z "${DATABASE_URL:-}" && -f "$env_file" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$env_file"
-  set +a
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  for env_file in "$root/.env.supabase.local" "$root/.env.production.local"; do
+    if [[ -f "$env_file" ]]; then
+      set -a
+      # shellcheck disable=SC1090
+      source "$env_file"
+      set +a
+      break
+    fi
+  done
 fi
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "No DATABASE_URL. Add it to .env.production.local, or export it for this command."
+  echo "No DATABASE_URL. Add it to .env.supabase.local, or export it for this command."
   echo "That file is gitignored. Do not commit the URL."
   exit 1
 fi
 
 export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
+# Write through the session pooler, and read through it too for the duration of the seed.
+export DATABASE_URL="$DIRECT_URL"
 
 host="$(node -e 'const u = new URL(process.env.DATABASE_URL); console.log(u.host)')"
 
