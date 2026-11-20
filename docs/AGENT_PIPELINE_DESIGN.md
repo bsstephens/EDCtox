@@ -196,4 +196,7 @@ Each slice stops for review, as phases 1 to 3 did.
    most interested in, with melatonin as the protective reference. Isocycloseram waits for its
    ontology proposal (`docs/proposals/ISOCYCLOSERAM.md`) because the ontology has no
    ion-channel mechanism yet.
-5. **4A starts now** (25 Oct 2026).
+5. **4A starts now** (25 Oct 2026). Delivered the same day on branch `claude/affectionate-wu-e76c74`;
+   see `docs/ops/PHASE_4A_SCREENER_REPORT.md`. Two corrections to the plan: no curator decisions
+   exist yet (the gold set in section 7 is empty), and the first comparison ran through Claude Code
+   subagents (section 6, option 1) because the session had no API key.

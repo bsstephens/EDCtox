@@ -1,0 +1,266 @@
+{
+  "promptVersion": "bpa-reproductive-claude-v1",
+  "note": "Recorded 25 Oct 2026. Each entry is the answer of a Claude Code Haiku subagent given exactly the system prompt and user message that the API provider would send, one paper per agent. No API call was made because no ANTHROPIC_API_KEY was available in the session. Replay with: npm run literature:screen -- --compound bpa --domain reproductive --pending --dry-run --provider claude --transcript docs/ops/phase-4a/claude-screening-transcript.json",
+  "entries": {
+    "2f7dc3d0-1ad9-4602-b91a-1d7a9105eec7": {
+      "title": "Association Between Bisphenol A Exposure and Declining Sperm Quality and Its Potential Mechanism: A Systematic Review and Meta-Analysis Based on the Evidence of Epidemiological and Rodent Studies.",
+      "pmid": "41967509",
+      "promptSha256": "f446e118cb3264542c3a543f794c4841067a120587daf5f032da9ad6534aaf33",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "META_ANALYSIS",
+        "confidence": "HIGH",
+        "rationale": "The title and abstract describe a systematic review and meta-analysis of bisphenol A and sperm quality, pooling six human and ten rodent studies. Pooled rodent data show lower semen volume, sperm count, concentration and motility, while the epidemiological studies show no association. This fits the systematic review purpose for a reproductive endpoint."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "73f8ae7b-cde7-4dc2-a040-8b72bbb4a2bf": {
+      "title": "Association between bisphenol exposure and polycystic ovary syndrome risk: an integrated systematic review and meta-analysis.",
+      "pmid": "42369063",
+      "promptSha256": "a54cd2b7bc7c807fbc7a03341e8b9690dde84118b6956dd572562cace819f29a",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "META_ANALYSIS",
+        "confidence": "HIGH",
+        "rationale": "PRISMA-guided systematic review and meta-analysis of 17 observational studies (3,010 women) reporting pooled bisphenol A associations with PCOS risk: serum BPA SMD 1.32 and urinary BPA SMD 2.69. PCOS is a reproductive endpoint and BPA has its own pooled result, so it fits the systematic-review purpose."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "3bdc00bb-67aa-4423-b81c-8268dbec5c67": {
+      "title": "Association between exposure to endocrine-disrupting chemicals and polycystic ovary syndrome: a systematic review.",
+      "pmid": "42500194",
+      "promptSha256": "4db944ce03e83fd91ed334d38ddbb75320b0aa8a18ce12854e62b909f8cca7fc",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "SYSTEMATIC_REVIEW",
+        "confidence": "MODERATE",
+        "rationale": "A systematic review of endocrine disruptors and polycystic ovary syndrome, a reproductive endpoint. The abstract reports that BPA is the disruptor most frequently associated with PCOS, linked to steroidogenesis, insulin resistance and androgen dysfunction. The review covers several chemicals, but BPA has its own reported finding. Confidence is moderate because the BPA result is one summary sentence and the included studies are not described."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "65961396-4f15-4b62-91f4-6f6d6913bd33": {
+      "title": "Quantitative analysis and toxicological mechanisms of various male infertility inducers: A network meta-analysis and pharmacological approach.",
+      "pmid": "41354316",
+      "promptSha256": "37ae7ca44158f52614017e7f5bb8d0cb031b99c74795d01faee74d681a3a4cb5",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "META_ANALYSIS",
+        "confidence": "MODERATE",
+        "rationale": "A systematic review and network meta-analysis of 201 rodent studies compares nine infertility inducers, including bisphenol A, on sperm count, motility, testosterone and testis weight. BPA is one of the compared inducers, but the abstract reports no BPA-specific estimate, so its own result is not confirmed."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "95f5bf35-eb27-483b-b653-48522b53453b": {
+      "title": "Endocrine disruption rewards: bisphenol-A-induced reproductive toxicity and the precision ameliorative potential of flavonoids in preclinical studies. A systematic review and meta-analysis.",
+      "pmid": "41367717",
+      "promptSha256": "575e2ca7b3a0781625febf44e310dc45a4772ed41686a40d254168901c141c74",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "SYSTEMATIC_REVIEW",
+        "confidence": "HIGH",
+        "rationale": "A PRISMA 2020 systematic review and meta-analysis of preclinical rodent studies on bisphenol A-induced male reproductive toxicity, with pooled testosterone, estradiol, FSH and LH outcomes. It fits the systematic-review purpose. BPA is the central exposure and the abstract reports its own pooled effects on reproductive hormones."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "6af4c732-0f9a-41e6-be6c-d1e3e3384cde": {
+      "title": "Bisphenol A and ovarian cancer: emerging evidence and potential biological mechanisms.",
+      "pmid": "42676940",
+      "promptSha256": "0973c36efef143385e1f7c9ebfbb7ff3c5dc46ff50467fa804d288cc9f85930d",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "NARRATIVE_REVIEW_ONLY",
+        "confidence": "MODERATE",
+        "rationale": "The text describes a review summarising BPA and ovarian cancer evidence across human epidemiology, cell and animal studies, and mechanisms. No systematic search or appraisal method is described, so it reads as a narrative review. This queue asks for primary human evidence, so the paper is excluded."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "3e3d79fb-be01-4ee2-9958-61b3054591be": {
+      "title": "Bisphenol S and female reproductive toxicity: a scoping review of human studies.",
+      "pmid": "41963602",
+      "promptSha256": "364edc7771ed080910da10314e87c36d9d73ad0ef273f4b18e3072c499d2226a",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "WRONG_BISPHENOL",
+        "confidence": "HIGH",
+        "rationale": "The text is a scoping review of human studies on bisphenol S (BPS) and female reproductive outcomes. BPA appears only as the analogue that BPS replaces, so the paper is about a different bisphenol and does not report a BPA result of its own."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "0b891ce1-a549-48a2-b9c9-c9faee53e7d4": {
+      "title": "BPA and Male Reproductive Health: Mechanistic Insights, Toxicological Implications, and the Protective Role of Antioxidants.",
+      "pmid": "42394387",
+      "promptSha256": "09ab003e01a8d04430a8ed8fcf8ffbdfa0e945f59cadaf8d7ad5a1e16553fee1",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "NARRATIVE_REVIEW_ONLY",
+        "confidence": "MODERATE",
+        "rationale": "The abstract presents a review of BPA's mechanisms in male reproduction, including oxidative stress and antioxidant protection, with no systematic search, pooled analysis or human study described. A narrative review of this kind does not meet the primary human evidence this queue asks for."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "42b61b9a-b5b8-4eb2-8eaf-1b8857da7a1a": {
+      "title": "Environmental pollutants and testicular toxicity in male reproductive health: Basic evidence and translational prospects - A narrative review.",
+      "pmid": "42551576",
+      "promptSha256": "d9c4833096cbb5e5b8dd5b8b31edb19df21ce76eccc0217e5477eb3030174785",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "NARRATIVE_REVIEW_ONLY",
+        "confidence": "HIGH",
+        "rationale": "A narrative review of microplastics, bisphenol substitutes and air pollution on male reproductive health. BPA appears only as a comparator for the substitutes and has no result of its own. The review has no systematic method, and this queue asks for primary human evidence."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "bad7ee42-4e3c-4c80-8bd0-0958d230abb6": {
+      "title": "Mechanisms of reproductive toxicity and endocrine disruption of bisphenols and per- and polyfluoroalkyl substances (PFAS): Implications for women's reproductive health.",
+      "pmid": "41966417",
+      "promptSha256": "aa02c115f57c5124f6a3d6a0b43efad27e4d37f2646f62f636a6a08f8a6f41dc",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "NARRATIVE_REVIEW_ONLY",
+        "confidence": "MODERATE",
+        "rationale": "The text describes a review that integrates in vitro, animal and epidemiologic evidence on BPA and PFAS and female reproductive outcomes. It states no systematic search or selection method, so it reads as a narrative review. This queue asks for primary human evidence, so the paper does not qualify."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "9319409e-ae67-45a1-aee5-1a40d9b8ca24": {
+      "title": "Quantitative evaluation of bisphenol A, S, and F migration from canned beverages: impact of storage conditions and associated health risk assessment.",
+      "pmid": "42632720",
+      "promptSha256": "264c14e322a2ba56fa81eb747fea685d74475e998c43be229157773c4171e535",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "EXPOSURE_ONLY",
+        "confidence": "HIGH",
+        "rationale": "The text measures BPA, BPS and BPF migration from canned soft drinks under storage and pH conditions, then estimates health risk from intake. Reproductive disorders appear only as background, and no reproductive endpoint is measured, so this is exposure-only work."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "72e9fd87-7400-4bf1-a7cc-97378da2985b": {
+      "title": "Screening of Estrogenic and Antiestrogenic Effects of Estradiol, Bisphenol A, and Fulvestrant Using 2D and 3D Breast Cancer Cell Systems With a Luciferase Reporter Gene Assay.",
+      "pmid": "41826072",
+      "promptSha256": "4f17c458ddf9a7bcfecabe19ca6f10c42cf0224629d3a240e56ac44278c25c3d",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "IN_VITRO_ONLY",
+        "confidence": "HIGH",
+        "rationale": "The abstract reports only 2D and 3D T47D and MCF7 breast cancer cell luciferase reporter assays of BPA estrogenic activity. It describes no animal or human study and measures no reproductive outcome. Cell-only evidence does not meet the human reproductive queue."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "7228a74c-0fae-4adc-81f3-d44e9ffd05ac": {
+      "title": "The impact of animal models on translating male infertility research from bench to bedside: a narrative review.",
+      "pmid": "42802223",
+      "promptSha256": "8ad161ebe5ae7981258768c1f0524bdeed2220de1bc27bdffc554199c2da0732",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "NARRATIVE_REVIEW_ONLY",
+        "confidence": "HIGH",
+        "rationale": "The title and abstract describe a narrative review of animal models of male infertility. Bisphenol A appears only as one example of an endocrine-disrupting model alongside chemical, drug and physical models. The text reports no human study and no systematic method, so it does not meet the primary human evidence bar for this queue."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "f4844e64-4af2-4a99-beb0-906fa686dc50": {
+      "title": "Assessment of reproductive risks of bisphenol S in male BALB/c mice through functional histological and multi-omics investigations.",
+      "pmid": "42612744",
+      "promptSha256": "3e2625b3bba87ee02ab2bf794bab9b281d397e963398d4713440f06a4881a758",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "WRONG_BISPHENOL",
+        "confidence": "HIGH",
+        "rationale": "The study tests bisphenol S, not bisphenol A, in male BALB/c mice, with reproductive endpoints measured for BPS. BPA appears only as the chemical BPS replaces and in the closing safety remark, with no BPA exposure or result of its own. That is a bisphenol S paper that names BPA only in passing."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "6f767c1c-4490-4c5f-8788-748e1b46cef1": {
+      "title": "Bisphenol F Exposure Induces Ovarian Ferroptosis via the ER\u03b2-ATM-Ferritinophagy Axis.",
+      "pmid": "42616413",
+      "promptSha256": "a7c103c63399ee3a3ea050d44e8514947b96088ebf032f7e997be188ea69bbd1",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "WRONG_BISPHENOL",
+        "confidence": "HIGH",
+        "rationale": "The title and abstract study bisphenol F (BPF) in mice and granulosa cells, with reproductive endpoints such as ovarian injury and reduced serum estradiol and progesterone. BPA appears only as the compound BPF is meant to replace, not as an exposure the study tested. This is a different bisphenol that names BPA only in passing, so it fails the BPA screen."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "6b9ac0ff-eb15-493c-83f2-6ae8c1572076": {
+      "title": "In Vivo Exposure to Bisphenol-A Altered the Reproductive Functionality in Male Coturnix coturnix Japonica (Domesticated Japanese Quail).",
+      "pmid": "41854205",
+      "promptSha256": "8fd51509556105c25dfec1eb7c7c6e21154940971f4ada7bdcaaf791f7b92a51",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "REPRODUCTIVE_RELEVANCE",
+        "confidence": "HIGH",
+        "rationale": "Primary in vivo study of BPA (1 and 5 mg/kg by daily gavage for 3 weeks) in male Japanese quail, reporting effects on sperm quality, fertility, hatchability and testosterone. These are reproductive endpoints. The abstract reports adverse effects rather than a null result, so it is kept for the curator under the only include reason this queue allows."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "5d72cfee-745b-4e9c-85ad-8999b122366c": {
+      "title": "Multi-target protective effects of Pterostilbene against BPA-induced reproductive toxicity revealed by integrative network pharmacology and in vivo validation.",
+      "pmid": "42208228",
+      "promptSha256": "38a0cfdde82a51aaa01c665452da49e189144618f54c103659b690025c66cbc8",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "REPRODUCTIVE_RELEVANCE",
+        "confidence": "MODERATE",
+        "rationale": "Zebrafish in vivo study. BPA alone caused testicular damage, impaired spermatogenesis and lower testosterone, which is a reproductive result for BPA itself. Pterostilbene co-treatment reversed these effects, a protective result against BPA that fits the contradictory-or-null queue. The protective effect belongs to pterostilbene and the design is animal-only, so confidence is moderate."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "d097cc90-a861-4362-bf23-320866c16194": {
+      "title": "Associations of maternal and paternal preconception and maternal pregnancy urinary phthalate biomarker and bisphenol A concentrations with offspring autistic behaviors: The PEACE study.",
+      "pmid": "39486680",
+      "promptSha256": "02238c094f29b1eb622140aff8d1fdda6becd8374826a8921b3efd496123e7c9",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "WRONG_DOMAIN",
+        "confidence": "HIGH",
+        "rationale": "BPA urine levels were measured in parents before conception and in mothers during pregnancy, but the only outcome is offspring autistic behaviours on the SRS. That is a neurobehavioural endpoint, not a reproductive one, so the null BPA result does not qualify for the contradictory-or-null queue."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "db980cc4-fdea-42b8-ba41-160cbcf8a7c1": {
+      "title": "Examining the Impact of Environmental Non-Persistent Compounds: Phthalates, BPA, and Benzophenone on Endometriosis.",
+      "pmid": "40064164",
+      "promptSha256": "41a24b6f394a43cf53fd06c5ac6ceb05779e48d9e59fa76095233e16ab146c90",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "INCLUDE",
+        "reasonCode": "REPRODUCTIVE_RELEVANCE",
+        "confidence": "MODERATE",
+        "rationale": "The abstract links BPA to endometriosis, a reproductive endpoint, and reports a positive association in four of seven BPA studies, so the other three are not described as positive. That mixed result fits the contradictory-or-null queue. The review states no systematic method, and the non-positive BPA results are not detailed."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    },
+    "10d6f589-2a9f-45a2-9840-d4e2f639bb7c": {
+      "title": "Mixtures of Urinary Phenol and Phthalate Metabolite Concentrations in Relation to Serum Lipid Levels among Pregnant Women: Results from the EARTH Study.",
+      "pmid": "39195676",
+      "promptSha256": "ce4f5fd2e20340fec79aac57ac35b04a1dc757da71bde456a72ade2d9db0c8cc",
+      "model": "claude-haiku-5-5 via Claude Code haiku subagent (not the API)",
+      "response": {
+        "decision": "EXCLUDE",
+        "reasonCode": "WRONG_DOMAIN",
+        "confidence": "HIGH",
+        "rationale": "The abstract tests BPA, paraben and phthalate metabolite mixtures against serum lipids (triglycerides, total cholesterol, HDL, non-HDL, LDL) in pregnant women. Lipid levels are metabolic outcomes, and no reproductive endpoint such as hormones, fertility or pregnancy outcome is measured. The null mixture result does not fit the reproductive domain."
+      },
+      "recordedAt": "2026-10-25T04:45:26+00:00"
+    }
+  }
+}

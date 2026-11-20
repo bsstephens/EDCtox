@@ -12,6 +12,8 @@ export const env = createEnv({
     EPA_CTX_API_KEY: z.string().min(1).optional(),
     NCBI_API_KEY: z.string().min(1).optional(),
     NCBI_EMAIL: z.string().email().optional(),
+    /** Server-only. Used by the literature screening provider (scripts). Never NEXT_PUBLIC_. */
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -36,6 +38,7 @@ export const env = createEnv({
     EPA_CTX_API_KEY: process.env.EPA_CTX_API_KEY,
     NCBI_API_KEY: process.env.NCBI_API_KEY,
     NCBI_EMAIL: process.env.NCBI_EMAIL,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },

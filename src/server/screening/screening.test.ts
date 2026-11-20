@@ -19,6 +19,7 @@ const WRITE_PATH = [
   "src/server/screening/sample.ts",
   "src/server/screening/curate.ts",
   "src/server/screening/applySuggestions.ts",
+  "src/server/screening/claude.ts",
   "src/server/screening/cli.ts",
   "src/server/screening/queue.ts",
   "scripts/literature-screen.ts",
@@ -413,6 +414,42 @@ test("screening writes neither findings nor assessment changes", { skip: !isLoca
           assert.equal(packed.includes("secret abstract"), false);
           assert.equal(packed.includes("abstract"), false);
           assert.doesNotMatch(packed, /chainOfThought|chain of thought/i);
+          assert.equal(run.model, "bpa-reproductive-screen-v1");
+          assert.equal(run.promptVersion, "bpa-reproductive-screen-v1");
+          assert.equal(row.agentRunId, run.id);
+
+          const modelRun = await applyMachineSuggestions(tx, {
+            compoundId: bpaBefore.id,
+            provenance: { provider: "claude", model: "claude-haiku-5-5", promptVersion: "bpa-reproductive-claude-v1" },
+            provider: async () => ({
+              decision: "INCLUDE",
+              reasonCode: "DIRECT_HUMAN_EVIDENCE",
+              confidence: "MODERATE",
+              rationale: "Async fixture suggestion.",
+              searchPurpose: "HUMAN_REPRODUCTIVE",
+            }),
+            candidates: [
+              {
+                evidenceSourceId: source.id,
+                title: source.title,
+                abstractText: "secret abstract text",
+                retracted: false,
+                purposes: ["HUMAN_REPRODUCTIVE"],
+                publicationStatus: source.publicationStatus,
+              },
+            ],
+          });
+          const recorded = await tx.curationAgentRun.findUniqueOrThrow({ where: { id: modelRun.runId } });
+          assert.equal(recorded.provider, "claude");
+          assert.equal(recorded.model, "claude-haiku-5-5");
+          assert.equal(recorded.promptVersion, "bpa-reproductive-claude-v1");
+          assert.equal(JSON.stringify(recorded.outputRefs).includes("secret abstract"), false);
+          const rerun = await tx.literatureScreeningDecision.findUniqueOrThrow({ where: { id: row.id } });
+          assert.equal(rerun.curatorDecision, "EXCLUDE");
+          assert.equal(rerun.machineDecision, "INCLUDE");
+          assert.equal(rerun.machineConfidence, "MODERATE");
+          assert.equal(rerun.machineRationale, "Async fixture suggestion.");
+          assert.equal(rerun.agentRunId, modelRun.runId);
 
           const runsBefore = await tx.curationAgentRun.count();
           await assert.rejects(() =>
