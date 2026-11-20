@@ -167,3 +167,25 @@ test("the override runs one way only", () => {
   });
   assert.equal(result[0]?.decision, "INCLUDE");
 });
+
+test("a paper routed on the model alone cannot be a high-confidence include", () => {
+  // Nothing corroborates where it belongs, so the stored confidence says so however firmly the
+  // publication type reads.
+  const onModel = deriveDecisions({
+    routing: routed({
+      contexts: [
+        {
+          compoundSlug: "bpa",
+          domain: "REP",
+          evidence: ["the publication reports it, and the record is not indexed"],
+          outcomeCodes: [],
+        },
+      ],
+    }),
+    facts: facts(["journal article", "meta-analysis"]),
+    profile: { evidenceSynthesis: "META_ANALYSIS" },
+  });
+  assert.equal(onModel[0]?.decision, "INCLUDE");
+  assert.equal(onModel[0]?.reason, "META_ANALYSIS");
+  assert.equal(onModel[0]?.confidence, "MODERATE");
+});

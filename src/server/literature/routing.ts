@@ -115,7 +115,7 @@ export function matchCompound(name: string, records: readonly CompoundRecord[]):
 
 /** Domains the indexing and the profile between them put this paper in, with the reason for each. */
 export function domainsFor(
-  profile: { outcomesReported: readonly string[] },
+  profile: { outcomesReported: readonly string[]; domainsBorneOn?: readonly string[] },
   facts: ProviderFacts,
   ontology: { outcomeNames: ReadonlyMap<string, string>; mechanismNames: ReadonlyMap<string, string> },
 ): { domains: Map<string, string[]>; outcomeCodes: Map<string, string[]>; unmapped: string[] } {
@@ -166,11 +166,37 @@ export function domainsFor(
     if (mechanismDomain) add(mechanismDomain, `reports "${reported}"`);
   }
 
+  // The provider's indexing is the firmer basis and is used wherever it decided anything. Where
+  // it decided nothing, either because the record is not indexed yet or because its descriptors
+  // name no biology, fall back to the model's own reading. Recent papers are routinely
+  // unindexed, which is exactly when a database like this most wants them.
+  //
+  // The fallback is marked in the reason, so a reader and the confidence calculation can both
+  // tell a provider-backed route from a model-backed one.
+  if (domains.size === 0) {
+    for (const domain of profile.domainsBorneOn ?? []) {
+      add(domain, "the publication reports it, and the record is not indexed");
+    }
+  }
+
   return { domains, outcomeCodes, unmapped };
 }
 
+/** True when every domain on this result came from the model rather than the provider. */
+export function routedOnModelAlone(contexts: readonly RoutedContext[]): boolean {
+  return (
+    contexts.length > 0 &&
+    contexts.every((context) => context.evidence.every((why) => why.startsWith("the publication reports it")))
+  );
+}
+
 export function routeProfile(input: {
-  profile: { compoundsStudied: readonly string[]; outcomesReported: readonly string[]; measuresOutcome: boolean | null };
+  profile: {
+    compoundsStudied: readonly string[];
+    outcomesReported: readonly string[];
+    measuresOutcome: boolean | null;
+    domainsBorneOn?: readonly string[];
+  };
   facts: ProviderFacts;
   compounds: readonly CompoundRecord[];
   ontology: { outcomeNames: ReadonlyMap<string, string>; mechanismNames: ReadonlyMap<string, string> };

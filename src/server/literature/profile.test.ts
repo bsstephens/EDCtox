@@ -42,6 +42,7 @@ const answer = {
   exposureNotes: "urinary biomarker",
   studyDesign: "cross-sectional",
   evidenceSynthesis: "NOT_A_REVIEW" as const,
+  domainsBorneOn: ["REP" as const],
   measuresOutcome: true,
   notAbout: "",
   rationale: "Measured urinary bisphenol A against semen parameters in 300 men.",
@@ -57,11 +58,18 @@ test("the prompt asks what the paper is about, not whether it belongs anywhere",
   // The whole point of layer 1 is that the question is not contextual. If a compound name or a
   // domain name ever appears in the system prompt, the per-context cost is back and with it the
   // bottleneck that made screening need a curator.
-  for (const contextual of ["bisphenol", "reproductive domain", "metabolic domain", "BPA", "the queue"]) {
+  // The prompt may offer a fixed vocabulary that every paper sees, such as the ten domain
+  // labels. What it must never do is scope the question to one compound or one context, because
+  // that is what multiplies the cost by compounds times domains and brings the bottleneck back.
+  for (const contextual of ["bisphenol", "BPA", "the queue", "belongs in the evidence set", "for the compound"]) {
     assert.ok(
       !request.system.toLowerCase().includes(contextual.toLowerCase()),
       `the system prompt must not mention ${contextual}`,
     );
+  }
+  // Every paper is asked the same question, so the vocabulary offered is the whole list.
+  for (const label of ["REP", "DEV", "THY", "MET", "MITO", "REDOX", "IMM", "NEUROENDO", "VASCULAR", "EXPOSURE"]) {
+    assert.ok(request.system.includes(label), `the domain vocabulary should offer ${label}`);
   }
   assert.match(request.system, /Record what the publication is about/);
 });

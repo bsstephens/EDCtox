@@ -4,7 +4,7 @@ import {
   type ScreeningReasonName,
 } from "../screening/reasons";
 import { type ProviderFacts } from "./providerFacts";
-import { type RoutingResult } from "./routing";
+import { routedOnModelAlone, type RoutingResult } from "./routing";
 
 /**
  * Turn a routed paper into screening decisions, deterministically.
@@ -145,12 +145,16 @@ export function deriveDecisions(input: {
   }
 
   const inclusion = inclusionReason(facts, profile);
+  // A paper routed on the model's reading alone has no independent corroboration of where it
+  // belongs, so it cannot be a high-confidence include however the publication type reads.
+  const onModelAlone = routedOnModelAlone(routing.contexts);
+  const confidence = onModelAlone && inclusion.confidence === "HIGH" ? "MODERATE" : inclusion.confidence;
   return routing.contexts.map((context) => ({
     compoundSlug: context.compoundSlug,
     domain: context.domain,
     decision: "INCLUDE" as const,
     reason: inclusion.reason,
-    confidence: inclusion.confidence,
-    rationale: `Routed to ${context.domain} because it is ${context.evidence.join(", ")}, and ${inclusion.why}.`,
+    confidence,
+    rationale: `Routed to ${context.domain} because ${context.evidence.join(", ")}, and ${inclusion.why}.`,
   }));
 }

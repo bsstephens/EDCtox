@@ -8,6 +8,7 @@ import { EMPTY_PROVIDER_METADATA } from "./dedup";
 import { providerFacts } from "./providerFacts";
 import {
   OUTCOME_CATEGORY_DOMAIN,
+  routedOnModelAlone,
   buildOntologyIndex,
   matchCompound,
   routeProfile,
@@ -238,4 +239,38 @@ test("no class term is also a specific compound name", () => {
   for (const term of Object.keys(CLASS_TERM_PLACEHOLDER)) {
     assert.ok(!specific.has(term), `${term} is both a class term and a specific compound name`);
   }
+});
+
+test("the model's domains are used only when the provider gives none", () => {
+  // Indexed: the provider decides and the model's tags are not consulted, because an indexer's
+  // controlled vocabulary is the firmer basis.
+  const indexed = routeProfile({
+    profile: {
+      compoundsStudied: ["bisphenol A"],
+      outcomesReported: [],
+      measuresOutcome: true,
+      domainsBorneOn: ["MET", "MITO"],
+    },
+    facts: facts(["Spermatozoa", "Humans"]),
+    compounds,
+    ontology,
+  });
+  assert.deepEqual(indexed.contexts.map((c) => c.domain).sort(), ["REP"]);
+
+  // Not indexed: the model is the only source, so it is used, and the reason says so.
+  const unindexed = routeProfile({
+    profile: {
+      compoundsStudied: ["bisphenol A"],
+      outcomesReported: [],
+      measuresOutcome: true,
+      domainsBorneOn: ["MET", "MITO"],
+    },
+    facts: providerFacts(EMPTY_PROVIDER_METADATA),
+    compounds,
+    ontology,
+  });
+  assert.deepEqual(unindexed.contexts.map((c) => c.domain).sort(), ["MET", "MITO"]);
+  assert.ok(unindexed.contexts.every((c) => c.evidence.some((why) => why.includes("not indexed"))));
+  assert.equal(routedOnModelAlone(unindexed.contexts), true);
+  assert.equal(routedOnModelAlone(indexed.contexts), false);
 });

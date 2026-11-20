@@ -759,6 +759,10 @@ model PaperProfile {
   /// incomplete in a known way: MEDLINE only introduced a systematic-review type in 2019 and still
   /// indexes recent systematic reviews as plain reviews.
   evidenceSynthesis String?
+  /// Domain short labels the publication reports a mechanism or outcome in, as the model read it.
+  /// Routing prefers the provider's MeSH indexing and falls back to this when a record has none,
+  /// which is the common case for a paper published in the last few months.
+  domainsBorneOn    String[] @default([])
   /// False when the paper measures exposure and no outcome, which screening excludes.
   measuresOutcome   Boolean?
   /// What the paper is not about, where the title would mislead a reader or a keyword query.
