@@ -737,31 +737,36 @@ enum KeyCharacteristic {
 /// EvidenceSource.countsAsScientificEvidence and a curator. Keyed by prompt version, so
 /// improving the prompt re-reads papers deliberately rather than silently.
 model PaperProfile {
-  id               String   @id @default(uuid()) @db.Uuid
-  evidenceSourceId String   @db.Uuid
-  promptVersion    String
-  model            String
+  id                String   @id @default(uuid()) @db.Uuid
+  evidenceSourceId  String   @db.Uuid
+  promptVersion     String
+  model             String
   /// SHA-256 of the exact prompt that produced this, so a changed prompt cannot replay a stale read.
-  promptSha256     String
+  promptSha256      String
   /// Compounds the paper studies, as the paper names them. Resolved to records during routing,
   /// not here: this is what was read, not what it matched.
-  compoundsStudied String[]
+  compoundsStudied  String[]
   /// Outcomes and endpoints reported, in the paper's own words.
-  outcomesReported String[]
+  outcomesReported  String[]
   /// Species as stated. "Humans", "Sprague-Dawley rat", "zebrafish".
-  speciesStudied   String[]
+  speciesStudied    String[]
   /// Exposure route, dose framing, and life stage where the paper gives them.
-  exposureNotes    String?
+  exposureNotes     String?
   /// Study design beyond what the publication type already says.
-  studyDesign      String?
+  studyDesign       String?
+  /// What the publication says it did, in its own terms: META_ANALYSIS, SYSTEMATIC_REVIEW,
+  /// NARRATIVE_REVIEW or NOT_A_REVIEW. Compared against the provider's publication type, which is
+  /// incomplete in a known way: MEDLINE only introduced a systematic-review type in 2019 and still
+  /// indexes recent systematic reviews as plain reviews.
+  evidenceSynthesis String?
   /// False when the paper measures exposure and no outcome, which screening excludes.
-  measuresOutcome  Boolean?
+  measuresOutcome   Boolean?
   /// What the paper is not about, where the title would mislead a reader or a keyword query.
-  notAbout         String?
+  notAbout          String?
   /// One paragraph, capped. No chain of thought is requested or stored.
-  rationale        String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  rationale         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   evidenceSource EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
 

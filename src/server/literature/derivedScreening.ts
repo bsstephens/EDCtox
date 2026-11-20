@@ -30,7 +30,15 @@ export type DerivedDecision = {
  * Reasons that disqualify a paper whatever it is about, so they are decided once and applied to
  * every context. A retraction or an editorial is a property of the document.
  */
-function documentLevelExclusion(facts: ProviderFacts): { reason: ScreeningReasonName; rationale: string } | null {
+export type ProfileView = {
+  /** What the publication says it did, from layer 1. Null for a profile read before this existed. */
+  evidenceSynthesis?: string | null;
+};
+
+function documentLevelExclusion(
+  facts: ProviderFacts,
+  profile: ProfileView,
+): { reason: ScreeningReasonName; rationale: string } | null {
   if (facts.retracted) {
     return { reason: "RETRACTED", rationale: "The provider has indexed this publication as retracted." };
   }
@@ -41,10 +49,21 @@ function documentLevelExclusion(facts: ProviderFacts): { reason: ScreeningReason
     };
   }
   if (facts.narrativeReview === true) {
+    // The indexing is incomplete here in a known way. MEDLINE only introduced a systematic-review
+    // publication type in 2019 and still indexes recent systematic reviews as plain reviews, so a
+    // publication that states a systematic method is not contradicted by the absence of that type.
+    //
+    // The two errors are not equal. Excluding a systematic review loses the best evidence this
+    // database can hold, permanently and silently. Including a narrative review costs one
+    // extraction call and is caught downstream, where a claim from a review is recorded as
+    // inferred rather than demonstrated. So on disagreement, do not exclude.
+    if (profile.evidenceSynthesis === "SYSTEMATIC_REVIEW" || profile.evidenceSynthesis === "META_ANALYSIS") {
+      return null;
+    }
     return {
       reason: "NARRATIVE_REVIEW_ONLY",
       rationale:
-        "The provider indexes this as a review and not as a systematic review or meta-analysis, so it summarises others' work without a stated method.",
+        "The provider indexes this as a review and not as a systematic review or meta-analysis, and the publication does not claim a systematic method either.",
     };
   }
   return null;
@@ -56,7 +75,22 @@ function documentLevelExclusion(facts: ProviderFacts): { reason: ScreeningReason
  * Only the provider's own indexing decides this. An abstract that mentions people is not a human
  * study, which is the inference the keyword rules made and got wrong repeatedly.
  */
-function inclusionReason(facts: ProviderFacts): { reason: ScreeningReasonName; confidence: ScreeningConfidenceName; why: string } {
+function inclusionReason(
+  facts: ProviderFacts,
+  profile: ProfileView,
+): { reason: ScreeningReasonName; confidence: ScreeningConfidenceName; why: string } {
+  // The publication claims a systematic method the indexing does not record. Included on the
+  // publication's own account, at moderate confidence, with the disagreement stated.
+  if (
+    facts.narrativeReview === true &&
+    (profile.evidenceSynthesis === "SYSTEMATIC_REVIEW" || profile.evidenceSynthesis === "META_ANALYSIS")
+  ) {
+    return {
+      reason: profile.evidenceSynthesis === "META_ANALYSIS" ? "META_ANALYSIS" : "SYSTEMATIC_REVIEW",
+      confidence: "MODERATE",
+      why: "the publication states a systematic method that the provider has indexed only as a review",
+    };
+  }
   if (facts.evidenceSynthesis === "META_ANALYSIS") {
     return { reason: "META_ANALYSIS", confidence: "HIGH", why: "indexed as a meta-analysis" };
   }
@@ -88,16 +122,17 @@ function inclusionReason(facts: ProviderFacts): { reason: ScreeningReasonName; c
 export function deriveDecisions(input: {
   routing: RoutingResult;
   facts: ProviderFacts;
-  /** Compounds the paper names that matched no record. Reported, never turned into a decision. */
+  profile?: ProfileView;
 }): DerivedDecision[] {
   const { routing, facts } = input;
+  const profile: ProfileView = input.profile ?? {};
 
   // A paper that measures exposure and reports no outcome is excluded wherever it would have
   // routed. Routing already emits no contexts for it, so this is recorded against the compounds
   // it named rather than invented against none.
   if (routing.exposureOnly) return [];
 
-  const exclusion = documentLevelExclusion(facts);
+  const exclusion = documentLevelExclusion(facts, profile);
   if (exclusion) {
     return routing.contexts.map((context) => ({
       compoundSlug: context.compoundSlug,
@@ -109,7 +144,7 @@ export function deriveDecisions(input: {
     }));
   }
 
-  const inclusion = inclusionReason(facts);
+  const inclusion = inclusionReason(facts, profile);
   return routing.contexts.map((context) => ({
     compoundSlug: context.compoundSlug,
     domain: context.domain,

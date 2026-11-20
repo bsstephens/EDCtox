@@ -41,6 +41,7 @@ const answer = {
   speciesStudied: ["humans"],
   exposureNotes: "urinary biomarker",
   studyDesign: "cross-sectional",
+  evidenceSynthesis: "NOT_A_REVIEW" as const,
   measuresOutcome: true,
   notAbout: "",
   rationale: "Measured urinary bisphenol A against semen parameters in 300 men.",

@@ -120,3 +120,50 @@ test("a decision names the domain by its short label, not a workflow word", () =
     assert.match(row.domain, /^[A-Z]+$/, `${row.domain} should be a domain short label`);
   }
 });
+
+test("a publication claiming a systematic method is not excluded as a narrative review", () => {
+  // MEDLINE only added a systematic-review publication type in 2019 and still indexes recent
+  // systematic reviews as plain reviews. Two of the 90 stored papers are exactly this: a 2024
+  // systematic review and meta-analysis of 18 studies, and a 2025 systematic review of 14. Both
+  // were being thrown away, which is the worst loss this pipeline can make.
+  const indexedAsReview = facts(["journal article", "review"], ["Humans"]);
+
+  const claimed = deriveDecisions({
+    routing: routed(),
+    facts: indexedAsReview,
+    profile: { evidenceSynthesis: "SYSTEMATIC_REVIEW" },
+  });
+  assert.equal(claimed[0]?.decision, "INCLUDE");
+  assert.equal(claimed[0]?.reason, "SYSTEMATIC_REVIEW");
+  // Moderate, not high: the publication and the indexer disagree and that is recorded, not hidden.
+  assert.equal(claimed[0]?.confidence, "MODERATE");
+  assert.match(claimed[0]?.rationale ?? "", /indexed only as a review/);
+
+  const pooled = deriveDecisions({
+    routing: routed(),
+    facts: indexedAsReview,
+    profile: { evidenceSynthesis: "META_ANALYSIS" },
+  });
+  assert.equal(pooled[0]?.reason, "META_ANALYSIS");
+
+  // A publication that agrees it is narrative is still excluded.
+  const narrative = deriveDecisions({
+    routing: routed(),
+    facts: indexedAsReview,
+    profile: { evidenceSynthesis: "NARRATIVE_REVIEW" },
+  });
+  assert.equal(narrative[0]?.decision, "EXCLUDE");
+  assert.equal(narrative[0]?.reason, "NARRATIVE_REVIEW_ONLY");
+});
+
+test("the override runs one way only", () => {
+  // The publication's own account may rescue it from exclusion. It may not push it out: a paper
+  // the indexer treats as primary research is not excluded because the model called it a review.
+  const primary = facts(["journal article"], ["Humans"]);
+  const result = deriveDecisions({
+    routing: routed(),
+    facts: primary,
+    profile: { evidenceSynthesis: "NARRATIVE_REVIEW" },
+  });
+  assert.equal(result[0]?.decision, "INCLUDE");
+});

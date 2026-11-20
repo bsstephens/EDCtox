@@ -18,6 +18,7 @@ import {
   type CompoundRecord,
 } from "../src/server/literature/routing";
 import { providerFacts } from "../src/server/literature/providerFacts";
+import { PROFILE_PROMPT_VERSION } from "../src/server/literature/profile";
 import { deriveDecisions } from "../src/server/literature/derivedScreening";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -75,6 +76,7 @@ async function main() {
   try {
     const [profiles, compoundRows, outcomes, mechanisms] = await Promise.all([
       db.paperProfile.findMany({
+        where: { promptVersion: PROFILE_PROMPT_VERSION },
         include: {
           evidenceSource: {
             select: {
@@ -152,7 +154,7 @@ async function main() {
       }
       for (const term of result.unmappedTerms) unmapped.set(term, (unmapped.get(term) ?? 0) + 1);
 
-      const decisions = deriveDecisions({ routing: result, facts });
+      const decisions = deriveDecisions({ routing: result, facts, profile });
       for (const decision of decisions) {
         const key = `${decision.decision} ${decision.reason}`;
         decisionCounts.set(key, (decisionCounts.get(key) ?? 0) + 1);

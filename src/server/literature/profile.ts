@@ -21,7 +21,7 @@ import { type ProviderFacts, substancesSupport } from "./providerFacts";
 
 export const PROFILE_PROVIDER = "claude";
 export const PROFILE_MODEL = "claude-haiku-5-5";
-export const PROFILE_PROMPT_VERSION = "paper-profile-v1";
+export const PROFILE_PROMPT_VERSION = "paper-profile-v2";
 
 export class PaperProfileError extends Error {}
 
@@ -35,6 +35,7 @@ Rules:
 - Report outcomes and endpoints in the publication's own words, not in any standard vocabulary.
 - measuresOutcome is false when the publication measures exposure, concentrations, or a method and reports no biological outcome at all. A chemical found in a product with no health endpoint is false. If an outcome is reported, however briefly, it is true.
 - notAbout is for the case where a title or a keyword search would mislead: the abstract is mostly about something else, the named chemical is a comparator rather than the subject, or the publication is about a different field entirely. Leave it empty when the title is a fair description.
+- evidenceSynthesis says what kind of document this is, by what the publication says it did, never by what it cites. A publication that states it searched databases systematically, screened against criteria, or pooled results is SYSTEMATIC_REVIEW, or META_ANALYSIS when it pooled estimates statistically. A publication that surveys a field without a stated method is NARRATIVE_REVIEW, even when the evidence it discusses includes meta-analyses. A publication reporting its own experiments or its own cohort is NOT_A_REVIEW.
 - The rationale is one short paragraph saying what the publication did. No reasoning steps, no recommendations.
 
 You are reading an abstract, which is a summary. Abstracts omit things. Saying less is correct when the abstract says less.`;
@@ -58,6 +59,9 @@ export const PaperProfileOutput = z.object({
     .describe("Species or systems studied, as stated. Empty if the abstract does not say."),
   exposureNotes: z.string().max(400).describe("Route, dose framing and life stage where given. Empty otherwise."),
   studyDesign: z.string().max(300).describe("Design beyond the publication type. Empty if the abstract does not say."),
+  evidenceSynthesis: z
+    .enum(["META_ANALYSIS", "SYSTEMATIC_REVIEW", "NARRATIVE_REVIEW", "NOT_A_REVIEW"])
+    .describe("What this publication did, never what it cites."),
   measuresOutcome: z.boolean().describe("False only when no biological outcome is reported at all."),
   notAbout: z.string().max(300).describe("What a reader might wrongly expect. Empty when the title is fair."),
   rationale: z.string().min(1).max(1500).describe("One short paragraph on what the publication did."),
