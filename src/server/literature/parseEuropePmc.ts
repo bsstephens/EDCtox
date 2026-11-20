@@ -1,4 +1,4 @@
-import { type IncomingPaper } from "./dedup";
+import { EMPTY_PROVIDER_METADATA, type IncomingPaper } from "./dedup";
 import { plainText } from "./entities";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -46,6 +46,13 @@ function parsePaper(row: Record<string, unknown>): IncomingPaper {
         : pmcid
           ? `https://europepmc.org/articles/${pmcid.toUpperCase().startsWith("PMC") ? pmcid : `PMC${pmcid}`}`
           : "",
+    // Europe PMC's search result carries a publication type but no MeSH indexing, so a record
+    // from here is deliberately thinner than the same paper from PubMed. Dedup already prefers
+    // the richer record when both providers return one.
+    provider: {
+      ...EMPTY_PROVIDER_METADATA,
+      publicationTypes: pubType ? [pubType] : [],
+    },
   };
 }
 

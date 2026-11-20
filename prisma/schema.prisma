@@ -875,6 +875,16 @@ model EvidenceSource {
   /// Null on the structural seed. Search imports set this. It is not a score.
   publicationStatus          PublicationCurationStatus?
   pmcid                      String?
+  /// Provider metadata, stated rather than inferred (docs/SCREENING_REDESIGN.md, layer 0).
+  /// PubMed publication types, lowercased: "review", "meta-analysis", "randomized controlled trial".
+  publicationTypes           String[]                   @default([])
+  /// MeSH descriptor headings, including species and life stage.
+  meshDescriptors            String[]                   @default([])
+  /// MeSH chemical and substance headings. The independent check on which compound a paper is about.
+  meshSubstances             String[]                   @default([])
+  /// When the provider indexed the record. Null means not indexed, which is different from
+  /// indexed and carrying nothing. Every MeSH-derived fact is unavailable rather than false.
+  providerIndexedAt          DateTime?
   /// Unstructured extras only. Searchable scientific fields stay relational.
   supplemental               Json?
   createdAt                  DateTime                   @default(now())

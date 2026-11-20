@@ -1,4 +1,4 @@
-import { type IncomingPaper } from "./dedup";
+import { type IncomingPaper, type ProviderMetadata } from "./dedup";
 import { plainText } from "./entities";
 
 function decodeXml(value: string): string {
@@ -21,6 +21,36 @@ export function parseEsearch(payload: unknown): { count: number; ids: string[] }
     ? result.idlist.filter((id): id is string => typeof id === "string" && /^\d+$/.test(id))
     : [];
   return { count: Number.isFinite(count) ? count : ids.length, ids };
+}
+
+function all(xml: string, name: string): string[] {
+  return [...xml.matchAll(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "g"))]
+    .map((match) => decodeXml(match[1] ?? "").trim())
+    .filter(Boolean);
+}
+
+/** A PubMed date block, as an ISO day. Only the provider's own indexing dates go through here. */
+function dateFrom(xml: string | null): string | null {
+  if (!xml) return null;
+  const year = block(xml, "Year");
+  if (!year) return null;
+  const month = block(xml, "Month") ?? "01";
+  const day = block(xml, "Day") ?? "01";
+  const iso = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  return Number.isNaN(Date.parse(iso)) ? null : iso;
+}
+
+function parseProviderMetadata(article: string): ProviderMetadata {
+  const publicationTypes = [
+    ...new Set(all(article, "PublicationType").map((value) => value.toLowerCase())),
+  ].sort();
+  // Descriptor headings carry the subject indexing, including species and life stage.
+  const meshDescriptors = [...new Set(all(block(article, "MeshHeadingList") ?? "", "DescriptorName"))].sort();
+  // Substance headings are the indexer's view of which chemicals the paper is about. They are
+  // the independent check on compound identity: bisphenol A and bisphenol S are separate rows.
+  const meshSubstances = [...new Set(all(block(article, "ChemicalList") ?? "", "NameOfSubstance"))].sort();
+  const indexedAt = dateFrom(block(article, "DateCompleted")) ?? dateFrom(block(article, "DateRevised"));
+  return { publicationTypes, meshDescriptors, meshSubstances, indexedAt };
 }
 
 function parseArticle(article: string): IncomingPaper {
@@ -46,9 +76,8 @@ function parseArticle(article: string): IncomingPaper {
     const fore = decodeXml(block(author, "ForeName") ?? "");
     return [last, fore].filter(Boolean).join(" ");
   });
-  const pubTypes = [...article.matchAll(/<PublicationType[^>]*>([\s\S]*?)<\/PublicationType>/g)].map((match) =>
-    decodeXml(match[1] ?? "").toLowerCase(),
-  );
+  const provider = parseProviderMetadata(article);
+  const pubTypes = provider.publicationTypes;
   const retracted =
     pubTypes.includes("retracted publication") ||
     article.includes('RefType="RetractionIn"') ||
@@ -67,6 +96,7 @@ function parseArticle(article: string): IncomingPaper {
     openAccess: null,
     retracted,
     url: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : doi ? `https://doi.org/${doi}` : "",
+    provider,
   };
 }
 

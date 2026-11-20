@@ -7,7 +7,7 @@ import test from "node:test";
 import { applyLiteratureRun, recordCompoundSearched, type LiteratureStore } from "./applyCandidates";
 import { plainText } from "./entities";
 import { parseLiteratureArgs } from "./cli";
-import { normalizeDoi, normalizePmid, normalizeTitle, planLiteratureHits, type ExistingSource, type IncomingPaper, type PlannedHit } from "./dedup";
+import { EMPTY_PROVIDER_METADATA, normalizeDoi, normalizePmid, normalizeTitle, planLiteratureHits, type ExistingSource, type IncomingPaper, type PlannedHit } from "./dedup";
 import { parseEuropePmcSearch } from "./parseEuropePmc";
 import { parseEsearch, parsePubmedArticles } from "./parsePubmed";
 import { assessReproductiveRelevance } from "./relevance";
@@ -73,6 +73,7 @@ function paper(overrides: Partial<IncomingPaper> = {}): IncomingPaper {
     openAccess: null,
     retracted: false,
     url: "https://pubmed.ncbi.nlm.nih.gov/100/",
+    provider: EMPTY_PROVIDER_METADATA,
     ...overrides,
   };
 }

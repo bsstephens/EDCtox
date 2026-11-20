@@ -1,5 +1,29 @@
 import { createHash } from "node:crypto";
 
+/**
+ * What the provider states about a paper, as it states it. Nothing here is inferred and nothing
+ * here is a model output. Empty arrays mean the provider gave none, which for MeSH usually means
+ * the paper is not indexed yet. That is different from "indexed and not a review", so
+ * `indexedAt` records whether indexing has happened at all.
+ */
+export type ProviderMetadata = {
+  /** PubMed <PublicationType>, lowercased: "review", "meta-analysis", "randomized controlled trial". */
+  publicationTypes: string[];
+  /** MeSH descriptor headings: "Humans", "Animals", "Adult", "Endocrine Disruptors". */
+  meshDescriptors: string[];
+  /** MeSH chemical and substance headings: "Bisphenol A Compounds", "Phthalic Acids". */
+  meshSubstances: string[];
+  /** When the provider indexed the record. Null means not indexed, not "nothing found". */
+  indexedAt: string | null;
+};
+
+export const EMPTY_PROVIDER_METADATA: ProviderMetadata = {
+  publicationTypes: [],
+  meshDescriptors: [],
+  meshSubstances: [],
+  indexedAt: null,
+};
+
 export type IncomingPaper = {
   doi: string | null;
   pmid: string | null;
@@ -12,6 +36,7 @@ export type IncomingPaper = {
   openAccess: boolean | null;
   retracted: boolean;
   url: string;
+  provider: ProviderMetadata;
 };
 
 export type ExistingSource = {

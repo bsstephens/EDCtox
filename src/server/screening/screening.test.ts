@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { applyLiteratureRun } from "../literature/applyCandidates";
-import { planLiteratureHits, type IncomingPaper } from "../literature/dedup";
+import { EMPTY_PROVIDER_METADATA, planLiteratureHits, type IncomingPaper } from "../literature/dedup";
 import { applyMachineSuggestions, fixtureSuggestion } from "./applySuggestions";
 import { assertLocalDatabase, parseScreeningArgs } from "./cli";
 import { ScreeningError, applyCuratorDecision, assertCuratorCommand } from "./curate";
@@ -50,6 +50,7 @@ function paper(overrides: Partial<IncomingPaper> = {}): IncomingPaper {
     openAccess: null,
     retracted: false,
     url: "https://pubmed.ncbi.nlm.nih.gov/999100001/",
+    provider: EMPTY_PROVIDER_METADATA,
     ...overrides,
   };
 }

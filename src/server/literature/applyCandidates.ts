@@ -1,3 +1,4 @@
+import { evidenceTypeFromProvider, providerFacts } from "./providerFacts";
 import { normalizeDoi, normalizePmid, type PlannedHit } from "./dedup";
 import {
   LITERATURE_QUERY_VERSION,
@@ -107,7 +108,9 @@ export async function applyLiteratureRun(
         pmid,
         pmcid: hit.paper.pmcid,
         url: hit.paper.url,
-        sourceType: "UNSPECIFIED",
+        // The provider's own publication type decides this where it decides anything. It is
+        // still not evidence: countsAsScientificEvidence stays false until a curator says so.
+        sourceType: evidenceTypeFromProvider(providerFacts(hit.paper.provider)) ?? "UNSPECIFIED",
         peerReviewed: false,
         countsAsScientificEvidence: false,
         abstractText: hit.paper.abstractText,
@@ -116,6 +119,10 @@ export async function applyLiteratureRun(
         retracted,
         openAccess: hit.paper.openAccess,
         publicationStatus: retracted ? "RETRACTED" : "SCREENING_PENDING",
+        publicationTypes: hit.paper.provider.publicationTypes,
+        meshDescriptors: hit.paper.provider.meshDescriptors,
+        meshSubstances: hit.paper.provider.meshSubstances,
+        providerIndexedAt: hit.paper.provider.indexedAt ? new Date(hit.paper.provider.indexedAt) : null,
         supplemental: {
           abstractProvenance: hit.paper.abstractText ? input.provider : null,
           queryVersion: LITERATURE_QUERY_VERSION,
