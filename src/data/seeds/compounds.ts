@@ -1587,6 +1587,25 @@ export const compounds: CompoundSeed[] = [
     aliases: [{ name: "Phthalate esters", aliasType: "SYNONYM" }],
   }),
   compound({
+    slug: "pfas",
+    canonicalName: "Per- and polyfluoroalkyl substances",
+    displayName: "PFAS",
+    description:
+      "Category placeholder for per- and polyfluoroalkyl substances as a group. Papers that study PFAS as a class rather than a named substance are recorded here. Individual PFAS are separate records and are not scored from this one.",
+    compoundType: "PFAS",
+    primaryCategory: "PFAS class",
+    currentUseStatus: "CLASS_PLACEHOLDER",
+    recordKind: "CLASS_PLACEHOLDER",
+    isMixture: true,
+    isEnvironmentalChemical: true,
+    notes:
+      "One placeholder rather than a sub-class hierarchy, on purpose. The literature does divide PFAS: perfluoroalkyl substances are fully fluorinated and polyfluoroalkyl ones are not, the latter acting as precursors that degrade into the former; the perfluoroalkyl acids carry almost all the health data and split by functional group into carboxylic and sulfonic acids and by chain length into long and short; polymers are usually treated apart (Buck et al. 2011, Integrated Environmental Assessment and Management 7:513). EDCtox already carries that cut as a category on its specific records: long-chain, short-chain and replacement. Sub-class placeholders can follow if papers arrive that need them, and routing will say so. The WHO/UNEP 2026 assessment holds that the persistence of PFAS is sufficient reason to manage them as one class, so a class record is the mainstream framing rather than a simplification.",
+    aliases: [
+      { name: "Per- and polyfluoroalkyl substances", aliasType: "IUPAC" },
+      { name: "Perfluoroalkyl substances", aliasType: "SYNONYM" },
+    ],
+  }),
+  compound({
     slug: "bisphenols",
     canonicalName: "Bisphenols",
     displayName: "Bisphenols",
