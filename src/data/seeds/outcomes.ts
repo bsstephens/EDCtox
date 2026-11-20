@@ -58,6 +58,7 @@ export const outcomes = [
   ["PROSTATE_CANCER", "Prostate cancer", "CANCER", "A prostate cancer diagnosis. Outcome-level evidence only. Unscored until curated."],
   ["THYROID_CANCER", "Thyroid cancer", "CANCER", "A thyroid cancer diagnosis. Distinct from altered thyroid hormone levels, which are their own outcomes. Unscored until curated."],
   ["ENDOMETRIAL_CANCER", "Endometrial cancer", "CANCER", "An endometrial cancer diagnosis. Distinct from endometriosis, which is benign. Unscored until curated."],
+  ["OVARIAN_CANCER", "Ovarian cancer", "CANCER", "An ovarian cancer diagnosis. Added Nov 2026 after routing found it indexed on stored papers with no outcome to route to. Outcome-level evidence only. Unscored until curated."],
 ] as const;
 
 export type OutcomeSeed = {

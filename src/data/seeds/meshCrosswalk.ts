@@ -62,9 +62,15 @@ export const MESH_DOMAIN: Record<string, DomainShortLabel> = {
   // Hormone-related cancers route through the mechanism domain that bears on them. There is no
   // cancer column by design, so this is a place to look for the biology, never a score for the
   // tumour. Without a domain these fell through to the gap list and their outcome was unused.
+  //
+  // Adding a cancer takes three edits and no migration: an outcome in outcomes.ts with category
+  // CANCER, a descriptor here pointing at the mechanism domain that bears on it, and the same
+  // descriptor in MESH_OUTCOME below. The routing tests then enforce that the three agree.
   "Breast Neoplasms": "REP",
   "Prostatic Neoplasms": "REP",
   "Endometrial Neoplasms": "REP",
+  "Ovarian Neoplasms": "REP",
+  "Carcinoma, Ovarian Epithelial": "REP",
 
   // Developmental
   Pregnancy: "DEV",
@@ -203,6 +209,8 @@ export const MESH_OUTCOME: Record<string, string> = {
   "Prostatic Neoplasms": "PROSTATE_CANCER",
   "Thyroid Neoplasms": "THYROID_CANCER",
   "Endometrial Neoplasms": "ENDOMETRIAL_CANCER",
+  "Ovarian Neoplasms": "OVARIAN_CANCER",
+  "Carcinoma, Ovarian Epithelial": "OVARIAN_CANCER",
 };
 
 /**

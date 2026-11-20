@@ -170,14 +170,15 @@ test("a chemical descriptor is identity, not a missing domain concept", () => {
   const result = routeProfile({
     profile: { compoundsStudied: ["bisphenol A"], outcomesReported: [], measuresOutcome: true },
     facts: facts(
-      ["Bisphenol A Compounds", "Phenols", "Spermatozoa", "Humans", "Ovarian Neoplasms"],
+      ["Bisphenol A Compounds", "Phenols", "Spermatozoa", "Humans", "TOR Serine-Threonine Kinases"],
       ["Bisphenol A Compounds", "Phenols"],
     ),
     compounds,
     ontology,
   });
-  // The chemicals are silent, and the genuinely missing concept still surfaces.
-  assert.deepEqual(result.unmappedTerms, ["Ovarian Neoplasms"]);
+  // The chemicals are silent, and the genuinely missing concept still surfaces. mTOR is indexed
+  // on stored papers and the ontology has no mechanism for it, so it is a real gap.
+  assert.deepEqual(result.unmappedTerms, ["TOR Serine-Threonine Kinases"]);
 });
 
 test("every outcome mapping has a domain to route through", () => {

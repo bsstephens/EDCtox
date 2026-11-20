@@ -33,9 +33,12 @@ test("thyroid is a domain of its own and keeps the assessments it already had", 
 
 test("cancer is recorded as outcomes only", () => {
   const cancers = outcomeSeeds.filter((row) => row.category === "CANCER").map((row) => row.code);
+  // The list grows as routing finds cancers indexed on stored papers with nowhere to go. Ovarian
+  // was added that way in November 2026. What must not change is that they are outcomes only.
   assert.deepEqual(cancers.sort(), [
     "BREAST_CANCER",
     "ENDOMETRIAL_CANCER",
+    "OVARIAN_CANCER",
     "PROSTATE_CANCER",
     "THYROID_CANCER",
   ]);
