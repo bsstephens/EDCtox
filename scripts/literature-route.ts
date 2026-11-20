@@ -18,6 +18,9 @@ import {
   type CompoundRecord,
 } from "../src/server/literature/routing";
 import { providerFacts } from "../src/server/literature/providerFacts";
+import { deriveDecisions } from "../src/server/literature/derivedScreening";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 
 function loadEnvFile(path: string) {
   if (!existsSync(path)) return;
@@ -46,6 +49,28 @@ function top(counts: Map<string, number>, limit: number): string {
 }
 
 async function main() {
+  const apply = process.argv.includes("--apply");
+  if (apply && !process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is not set.");
+    process.exit(1);
+  }
+  if (apply) {
+    const host = new URL(process.env.DATABASE_URL ?? "postgres://localhost").host;
+    // Derived screening writes machine columns. It stays local until the lane guard of phase 4C,
+    // the same boundary every other machine stage respects.
+    if (!host.includes("localhost") && !host.includes("127.0.0.1")) {
+      console.error(`Refusing to write derived screening to ${host}. This stage is local until the 4C lane guard.`);
+      process.exit(1);
+    }
+    const prompt = createInterface({ input, output });
+    const answer = await prompt.question("This writes machine screening decisions locally. Type apply to continue: ");
+    prompt.close();
+    if (answer.trim() !== "apply") {
+      console.log("Stopped.");
+      process.exit(1);
+    }
+  }
+
   const db = new PrismaClient();
   try {
     const [profiles, compoundRows, outcomes, mechanisms] = await Promise.all([
@@ -95,6 +120,14 @@ async function main() {
     let contexts = 0;
     let routedNowhere = 0;
     let exposureOnly = 0;
+    let written = 0;
+    let keptCuratorDecisions = 0;
+    const decisionCounts = new Map<string, number>();
+    const compoundIdBySlug = new Map(compoundRows.map((row) => [row.slug, row.slug]));
+    const compoundIds = new Map(
+      (await db.compound.findMany({ select: { id: true, slug: true } })).map((row) => [row.slug, row.id]),
+    );
+    void compoundIdBySlug;
 
     for (const profile of profiles) {
       const facts = providerFacts({
@@ -118,6 +151,48 @@ async function main() {
         unmatchedClasses.set(term.toLowerCase(), (unmatchedClasses.get(term.toLowerCase()) ?? 0) + 1);
       }
       for (const term of result.unmappedTerms) unmapped.set(term, (unmapped.get(term) ?? 0) + 1);
+
+      const decisions = deriveDecisions({ routing: result, facts });
+      for (const decision of decisions) {
+        const key = `${decision.decision} ${decision.reason}`;
+        decisionCounts.set(key, (decisionCounts.get(key) ?? 0) + 1);
+      }
+      if (!apply) continue;
+
+      for (const decision of decisions) {
+        const compoundId = compoundIds.get(decision.compoundSlug);
+        if (!compoundId) continue;
+        const where = {
+          evidenceSourceId_compoundId_domainCode: {
+            evidenceSourceId: profile.evidenceSourceId,
+            compoundId,
+            domainCode: decision.domain,
+          },
+        };
+        const existing = await db.literatureScreeningDecision.findUnique({ where, select: { curatorDecision: true } });
+        if (existing?.curatorDecision) {
+          // A curator has decided this context. The machine side may be refreshed beside it, and
+          // the curator's own columns are never touched by this stage.
+          keptCuratorDecisions += 1;
+        }
+        const machine = {
+          machineDecision: decision.decision,
+          machineReason: decision.reason,
+          machineConfidence: decision.confidence,
+          machineRationale: decision.rationale,
+        } as const;
+        await db.literatureScreeningDecision.upsert({
+          where,
+          update: machine,
+          create: {
+            evidenceSourceId: profile.evidenceSourceId,
+            compoundId,
+            domainCode: decision.domain,
+            ...machine,
+          },
+        });
+        written += 1;
+      }
     }
 
     console.log(`${profiles.length} profiles routed into ${contexts} compound-and-domain contexts.`);
@@ -128,7 +203,17 @@ async function main() {
     console.log(`\nChemical classes with no placeholder record:\n  ${top(unmatchedClasses, 14)}`);
     console.log(`\nCompound names no record matched:\n  ${top(unmatched, 14)}`);
     console.log(`\nIndexed terms the ontology does not hold (gap signal):\n  ${top(unmapped, 18)}`);
-    console.log(`\nNothing was written. Routing is derived and can be re-run at any time for nothing.`);
+    console.log(`\nDerived screening decisions: ${top(decisionCounts, 10)}`);
+    if (apply) {
+      console.log(
+        `\nWrote ${written} machine screening decisions.` +
+          (keptCuratorDecisions > 0
+            ? ` ${keptCuratorDecisions} contexts already carry a curator decision, which was left as it is.`
+            : ""),
+      );
+    } else {
+      console.log(`\nNothing was written. Routing is derived and can be re-run at any time for nothing.`);
+    }
   } finally {
     await db.$disconnect();
   }

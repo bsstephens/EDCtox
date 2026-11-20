@@ -1113,7 +1113,10 @@ model LiteratureScreeningDecision {
   id                String                   @id @default(uuid()) @db.Uuid
   evidenceSourceId  String                   @db.Uuid
   compoundId        String                   @db.Uuid
-  /// Screening workflow domain, such as "reproductive". Not a mechanism-domain score.
+  /// The biological domain's short label: REP, DEV, THY, MET and so on. It names which column a
+  /// paper bears on, and it is never a score. Before November 2026 this held a lowercase
+  /// workflow name from the one-compound era ("reproductive"); routing derives contexts from the
+  /// ontology now, so there is one vocabulary and the old rows were normalised to it.
   domainCode        String
   searchPurpose     LiteratureSearchPurpose?
   machineDecision   ScreeningDecision?
