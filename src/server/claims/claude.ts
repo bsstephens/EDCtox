@@ -255,6 +255,7 @@ export function parseClaims(
     const mapping = resolveMechanismCode(proposed, claim.objectText, input.catalog);
     const mechanismCode = mapping.mechanismCode;
     drafts.push({
+      objectHead: claim.objectHead.trim(),
       subjectType: "CHEMICAL",
       subjectText: input.compoundName,
       relation: claim.relation,
@@ -285,7 +286,8 @@ export function parseClaims(
   return { drafts, dropped };
 }
 
-export type ClaimCompletion = (request: ClaimRequest) => Promise<unknown>;
+/** `pass` is zero for a single-pass run, and identifies the repeat otherwise. */
+export type ClaimCompletion = (request: ClaimRequest, pass: number) => Promise<unknown>;
 
 export type ClaimTranscript = {
   promptVersion: string;
@@ -312,9 +314,14 @@ export function writeClaimTranscript(path: string, transcript: ClaimTranscript):
   writeFileSync(path, `${JSON.stringify(transcript, null, 2)}\n`);
 }
 
+/** A pass has its own recorded answer; `#0` falls back to the bare id for older transcripts. */
+export function transcriptKey(evidenceSourceId: string, pass: number): string {
+  return pass === 0 ? evidenceSourceId : `${evidenceSourceId}#${pass}`;
+}
+
 export function transcriptCompletion(transcript: ClaimTranscript): ClaimCompletion {
-  return (request) => {
-    const entry = transcript.entries[request.evidenceSourceId];
+  return (request, pass) => {
+    const entry = transcript.entries[transcriptKey(request.evidenceSourceId, pass)];
     if (!entry) return Promise.reject(new ClaudeClaimError(`No recorded answer for ${request.title}.`));
     if (entry.promptSha256 !== request.promptSha256) {
       return Promise.reject(
@@ -327,6 +334,8 @@ export function transcriptCompletion(transcript: ClaimTranscript): ClaimCompleti
 
 export function apiCompletion(client: Anthropic): ClaimCompletion {
   return async (request) => {
+    // The pass index is not sent: each pass is the same request, and the answers differ only
+    // because the model is sampled. Nothing here tells the model it is being asked twice.
     const response = await client.messages.parse({
       model: CLAUDE_CLAIM_MODEL,
       // An abstract yields a handful of claims, but each carries a quoted sentence and a
@@ -359,26 +368,143 @@ export function createClaimClient(apiKey: string | undefined): Anthropic {
   return new Anthropic({ apiKey, maxRetries: 3 });
 }
 
+/** The identity of a relationship, independent of how a given pass phrased the object. */
+function draftIdentity(draft: ClaimDraft): string {
+  return `${draft.relation}|${(draft.objectHead ?? draft.objectText).trim().toLowerCase()}`;
+}
+
+const UP = ["INCREASES", "ACTIVATES", "ENHANCES", "AGONIZES"];
+const DOWN = ["DECREASES", "INHIBITS", "IMPAIRS", "ANTAGONIZES"];
+
+/** Up, down, or neither. Direction held across every pilot run where the verb did not. */
+function direction(relation: ClaimDraft["relation"]): string {
+  if (UP.some((word) => relation.includes(word))) return "up";
+  if (DOWN.some((word) => relation.includes(word))) return "down";
+  return relation;
+}
+
+function head(draft: ClaimDraft): string {
+  return (draft.objectHead ?? draft.objectText).trim().toLowerCase();
+}
+
+/**
+ * Whether two drafts from different passes are the same finding read twice.
+ *
+ * objectHead was meant to settle this, and mostly does, but the model sometimes copies the
+ * whole phrase into it rather than stripping the qualifiers — it did exactly that on the one
+ * case the prompt teaches by example, so the field cannot be relied on alone.
+ *
+ * This is the fallback, and it is exact rather than fuzzy. Two drafts match only when they
+ * quote the very same sentence, agree on direction, and one entity name contains the other.
+ * The quotation is already verified to appear in the abstract, so it is hard evidence that both
+ * readings came from one statement. The containment test is what keeps a sentence carrying two
+ * findings — "BPA reduced estradiol and progesterone" — as two claims, since neither name
+ * contains the other. Nothing here maps a term onto a neighbour or invents a node.
+ */
+function sameFinding(a: ClaimDraft, b: ClaimDraft): boolean {
+  if (a.quotedSupport !== b.quotedSupport) return false;
+  if (direction(a.relation) !== direction(b.relation)) return false;
+  const [x, y] = [head(a), head(b)];
+  if (!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+}
+
+/**
+ * Reads one paper more than once and keeps the union.
+ *
+ * Three runs of the same five papers agreed on only about 70% of the entities they found, and
+ * the disagreements were not errors: the claims each run returned were sound, but which of the
+ * marginal findings counted as a claim at all moved between runs. A single pass therefore
+ * misses roughly a third of the borderline claims it could have found, which is a recall
+ * problem rather than a correctness one, so the answer is to ask again and take both.
+ *
+ * A claim that only some passes found is still a claim worth a curator's time, but it is a
+ * weaker one than a claim every pass found, so it goes to the queue as REVIEW_REQUIRED whether
+ * or not it mapped. The model's own stated confidence is left alone: it said how sure it was of
+ * its reading, and that is a different question from whether a repeat of the same request
+ * happened to surface the same finding.
+ */
+export function unionPasses(perPass: readonly ClaimDraft[][]): {
+  drafts: ClaimDraft[];
+  agreement: Map<string, number>;
+} {
+  const passes = perPass.length;
+  const first = new Map<string, ClaimDraft>();
+  const seen = new Map<string, number>();
+  for (const drafts of perPass) {
+    // Within one pass the same relationship is already deduplicated, but guard anyway so a
+    // repeat inside a single answer cannot look like agreement between passes.
+    const here = new Set<string>();
+    for (const draft of drafts) {
+      // The head, then the same-sentence fallback for a pass that did not strip it.
+      let id = draftIdentity(draft);
+      if (!first.has(id)) {
+        const merged = [...first].find(([, kept]) => sameFinding(kept, draft));
+        if (merged) id = merged[0];
+      }
+      if (!first.has(id)) first.set(id, draft);
+      if (!here.has(id)) {
+        here.add(id);
+        seen.set(id, (seen.get(id) ?? 0) + 1);
+      }
+    }
+  }
+  const drafts = [...first].map(([id, draft]) =>
+    (seen.get(id) ?? 0) === passes ? draft : { ...draft, reviewPriority: "REVIEW_REQUIRED" as const },
+  );
+  return { drafts, agreement: seen };
+}
+
 /** The extractor, in the shape applyMachineClaims already accepts. */
 export function createClaudeExtractor(options: {
   completion: ClaimCompletion;
   compoundNameFor: (paper: ClaimPaper) => string;
   mechanismCodeFor: (objectText: string) => string | null;
-  onAnswer?: (request: ClaimRequest, raw: unknown) => void;
+  /** How many times to read each paper. Defaults to one; two is what the pilot settled on. */
+  passes?: number;
+  onAnswer?: (request: ClaimRequest, raw: unknown, pass: number) => void;
   onDropped?: (paper: ClaimPaper, dropped: Array<{ objectText: string; why: string }>) => void;
+  onAgreement?: (paper: ClaimPaper, agreement: ReadonlyMap<string, number>, passes: number) => void;
+  onPassFailed?: (paper: ClaimPaper, pass: number, error: unknown) => void;
 }) {
+  const passes = Math.max(1, options.passes ?? 1);
   return async (paper: ClaimPaper, catalog: MechanismCatalog): Promise<ClaimDraft[]> => {
     const compoundName = options.compoundNameFor(paper);
     const request = buildClaimRequest(paper, compoundName);
-    const raw = await options.completion(request);
-    const { drafts, dropped } = parseClaims(raw, {
-      paper,
-      compoundName,
-      catalog,
-      mechanismCodeFor: options.mechanismCodeFor,
-    });
-    options.onAnswer?.(request, raw);
-    if (dropped.length > 0) options.onDropped?.(paper, dropped);
+    const perPass: ClaimDraft[][] = [];
+    let lastError: unknown;
+    for (let pass = 0; pass < passes; pass += 1) {
+      try {
+        const raw = await options.completion(request, pass);
+        const { drafts, dropped } = parseClaims(raw, {
+          paper,
+          compoundName,
+          catalog,
+          mechanismCodeFor: options.mechanismCodeFor,
+        });
+        options.onAnswer?.(request, raw, pass);
+        if (dropped.length > 0) options.onDropped?.(paper, dropped);
+        perPass.push(drafts);
+      } catch (error) {
+        // A pass can fail outright: the answer is one structured object, so a single claim
+        // carrying a relation outside the vocabulary fails the parse and the other fourteen go
+        // with it. That cost this pilot a whole paper in three runs of six. The enum stays in
+        // the schema, because it is what steers generation and makes the failure rare; what
+        // changes is that one bad pass no longer loses the paper when another pass answered.
+        // Only if every pass fails does the paper fail, and then with the real error.
+        lastError = error;
+        options.onPassFailed?.(paper, pass, error);
+      }
+    }
+    if (perPass.length === 0) {
+      if (lastError instanceof Error) throw lastError;
+      throw new ClaudeClaimError(`No pass answered for ${paper.title}.`);
+    }
+    if (perPass.length === 1) return perPass[0] ?? [];
+    const { drafts, agreement } = unionPasses(perPass);
+    // The denominator is the passes that answered, not the passes asked for, so a claim is not
+    // marked as disputed merely because the pass that would have confirmed it never returned.
+    options.onAgreement?.(paper, agreement, perPass.length);
     return drafts;
   };
 }

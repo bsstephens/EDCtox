@@ -6,6 +6,13 @@ import { MITOCHONDRIAL_MECHANISM_CODES } from "./constants";
 export type MechanismCatalog = Readonly<Record<string, { id: string; scorePolicy: string }>>;
 
 export type ClaimDraft = {
+  /**
+   * The object with its qualifiers stripped, when a model-backed extractor supplied one. It is
+   * the identity used to tell two readings of one relationship apart across extraction passes,
+   * and it is deliberately not persisted: no column holds it, and objectText is what a curator
+   * reads. The rule-based extractor leaves it undefined.
+   */
+  objectHead?: string;
   subjectType: "CHEMICAL";
   /// The compound as the publication names it. The rule-based extractor only ever produced
   /// bisphenol A; a model-backed one names whatever the paper studies.

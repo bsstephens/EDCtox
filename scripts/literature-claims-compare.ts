@@ -24,6 +24,7 @@ import {
   createClaudeExtractor,
   readClaimTranscript,
   transcriptCompletion,
+  transcriptKey,
   writeClaimTranscript,
   type ClaimTranscript,
 } from "../src/server/claims/claude";
@@ -53,6 +54,9 @@ function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   return index === -1 ? undefined : process.argv[index + 1];
 }
+
+/** Two passes per paper, which is what the stability measurement settled on. */
+const PASSES = Number(argument("--passes") ?? 2);
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
@@ -106,8 +110,9 @@ async function main() {
       }
       const chars = papers.reduce((sum, p) => sum + (p.abstractText?.length ?? 0), 0);
       console.log(
-        `\nWould make ${papers.length} calls to ${CLAUDE_CLAIM_MODEL}, about ` +
-          `${Math.round((chars + papers.length * 2600) / 4 / 1000)}k input tokens in total.`,
+        `\nWould make ${papers.length * PASSES} calls to ${CLAUDE_CLAIM_MODEL} ` +
+          `(${papers.length} papers x ${PASSES} passes), about ` +
+          `${Math.round((chars * PASSES + papers.length * PASSES * 2600) / 4 / 1000)}k input tokens in total.`,
       );
       console.log("Dry run. No API call was made and nothing was written.");
       return;
@@ -117,7 +122,8 @@ async function main() {
     if (!replaying) {
       const prompt = createInterface({ input, output });
       const answer = await prompt.question(
-        `This makes ${papers.length} calls to ${CLAUDE_CLAIM_MODEL}, which cost money. Type apply to continue: `,
+        `This makes ${papers.length * PASSES} calls to ${CLAUDE_CLAIM_MODEL} ` +
+          `(${papers.length} papers x ${PASSES} passes), which cost money. Type apply to continue: `,
       );
       prompt.close();
       if (answer.trim() !== "apply") {
@@ -129,18 +135,31 @@ async function main() {
     const transcript: ClaimTranscript = transcriptPath
       ? readClaimTranscript(transcriptPath)
       : { promptVersion: CLAUDE_CLAIM_PROMPT_VERSION, entries: {} };
+    const agreementTotals = { agreed: 0, single: 0 };
     const extractor = createClaudeExtractor({
       completion: replaying ? transcriptCompletion(transcript) : apiCompletion(createClaimClient(process.env.ANTHROPIC_API_KEY)),
       compoundNameFor: () => "bisphenol A",
       mechanismCodeFor,
-      onAnswer: (request, raw) => {
+      passes: PASSES,
+      onAnswer: (request, raw, pass) => {
         if (!recordPath) return;
-        transcript.entries[request.evidenceSourceId] = {
+        transcript.entries[transcriptKey(request.evidenceSourceId, pass)] = {
           title: request.title,
           promptSha256: request.promptSha256,
           model: CLAUDE_CLAIM_MODEL,
           response: raw,
         };
+      },
+      onAgreement: (paper, agreement, passes) => {
+        const single = [...agreement.values()].filter((seen) => seen < passes).length;
+        agreementTotals.agreed += agreement.size - single;
+        agreementTotals.single += single;
+      },
+      onPassFailed: (paper, pass, error) => {
+        console.log(
+          `  PASS ${pass + 1} FAILED on ${paper.title.slice(0, 40)}: ` +
+            `${error instanceof Error ? error.message.split("\n")[0] : String(error)}`,
+        );
       },
       onDropped: (paper, dropped) => {
         for (const row of dropped) console.log(`  DROPPED on ${paper.title.slice(0, 40)}: ${row.objectText} — ${row.why}`);
@@ -185,6 +204,12 @@ async function main() {
       for (const [term, code] of isoforms) console.log(`  ${term} -> ${code}`);
     }
     if (recordPath) writeClaimTranscript(recordPath, transcript);
+    if (PASSES > 1) {
+      console.log(
+        `\nOf the claims kept, ${agreementTotals.agreed} were found by every pass and ` +
+          `${agreementTotals.single} by only some. The second group is queued REVIEW_REQUIRED.`,
+      );
+    }
     console.log(
       `\nModel read ${modelTotal} claims across ${papers.length - failures.length} papers, ${mappedTotal} mapped to a mechanism.` +
         ` The rule-based extractor stored ${stored.length}. Nothing was written.` +

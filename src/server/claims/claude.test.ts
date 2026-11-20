@@ -11,6 +11,7 @@ import {
   createClaudeExtractor,
   parseClaims,
   transcriptCompletion,
+  unionPasses,
   type ClaimTranscript,
 } from "./claude";
 import { catalogFromRows } from "./extract";
@@ -219,4 +220,110 @@ test("the same relationship read twice is one claim", () => {
   const result = parse([claim(), claim(), claim({ relation: "INCREASES_EXPRESSION" })]);
   assert.equal(result.drafts.length, 2);
   assert.equal(result.dropped.filter((row) => row.why.includes("already read")).length, 1);
+});
+
+test("two passes keep the union, and a claim only one pass found needs review", () => {
+  const both = { ...claim(), objectHead: "aromatase" } as never;
+  const onlyFirst = { ...claim({ relation: "INCREASES_LEVEL" }), objectHead: "estradiol" } as never;
+  const { drafts, agreement } = unionPasses([
+    parse([both, onlyFirst]).drafts,
+    parse([both]).drafts,
+  ]);
+  assert.equal(drafts.length, 2);
+  assert.equal(agreement.get("DECREASES_EXPRESSION|aromatase"), 2);
+  assert.equal(agreement.get("INCREASES_LEVEL|estradiol"), 1);
+
+  const agreed = drafts.find((d) => d.objectHead === "aromatase");
+  const single = drafts.find((d) => d.objectHead === "estradiol");
+  // The mapped, twice-seen claim keeps the lighter queue; the once-seen one does not.
+  assert.equal(agreed?.reviewPriority, "REVIEW_RECOMMENDED");
+  assert.equal(single?.reviewPriority, "REVIEW_REQUIRED");
+  // The model's own confidence is untouched either way: agreement is a different question.
+  assert.equal(single?.machineConfidence, "HIGH");
+});
+
+test("the union collapses two phrasings of one relationship", () => {
+  // This is why the union keys on the head. Across runs the model wrote the same finding as
+  // "aromatase", "aromatase expression in human granulosa cells" and worse; keyed on the
+  // verbatim text those would be three claims for a curator to reconcile by hand.
+  const short = parse([claim()]).drafts;
+  const long = parse([claim({ objectText: "aromatase expression in human granulosa cells" })]).drafts;
+  const { drafts, agreement } = unionPasses([short, long]);
+  assert.equal(drafts.length, 1);
+  assert.equal(agreement.get("DECREASES_EXPRESSION|aromatase"), 2);
+  // The phrasing kept is the first pass's, and it is the one a curator reads.
+  assert.equal(drafts[0]?.objectText, "aromatase");
+  assert.equal(drafts[0]?.reviewPriority, "REVIEW_RECOMMENDED");
+});
+
+test("a single pass is left exactly as it was", () => {
+  const drafts = parse([claim()]).drafts;
+  const { drafts: unioned, agreement } = unionPasses([drafts]);
+  assert.deepEqual(unioned, drafts);
+  assert.equal(agreement.get("DECREASES_EXPRESSION|aromatase"), 1);
+});
+
+test("one sentence read two ways is one claim; one sentence with two findings stays two", () => {
+  // The model copied the whole phrase into objectHead on the very case the prompt teaches, so
+  // the union needs a fallback that does not depend on the model having stripped it.
+  const quote = "Exposure to bisphenol A reduced aromatase expression in human granulosa cells.";
+  const stripped = parse([claim({ objectHead: "aromatase", quotedSupport: quote })]).drafts;
+  const notStripped = parse([
+    claim({
+      relation: "DECREASES_LEVEL",
+      objectText: "aromatase expression in human granulosa cells",
+      objectHead: "aromatase expression in human granulosa cells",
+      quotedSupport: quote,
+    }),
+  ]).drafts;
+  const { drafts } = unionPasses([stripped, notStripped]);
+  assert.equal(drafts.length, 1, "same sentence, same direction, one name inside the other");
+  assert.equal(drafts[0]?.objectText, "aromatase");
+
+  // Two entities in one sentence are two findings: neither name contains the other.
+  const two = parse([
+    claim({ relation: "DECREASES_LEVEL", objectText: "estradiol", objectHead: "estradiol", quotedSupport: quote }),
+    claim({ relation: "DECREASES_LEVEL", objectText: "progesterone", objectHead: "progesterone", quotedSupport: quote }),
+  ]).drafts;
+  assert.equal(unionPasses([two, two]).drafts.length, 2);
+
+  // A sign flip on the same sentence is a disagreement, not a duplicate: both are kept so a
+  // curator sees the conflict rather than whichever pass happened to run first.
+  const up = parse([claim({ relation: "INCREASES_EXPRESSION", quotedSupport: quote })]).drafts;
+  assert.equal(unionPasses([stripped, up]).drafts.length, 2);
+});
+
+test("a pass that fails does not lose the paper, and a paper with no answer still fails", async () => {
+  // Three of six pilot runs lost a whole paper because one claim in one pass carried a relation
+  // outside the vocabulary. The enum stays; the loss does not.
+  const request = buildClaimRequest(paper, "bisphenol A");
+  const failures: number[] = [];
+  let asked = 0;
+  const extractor = createClaudeExtractor({
+    completion: (_request, pass) => {
+      asked += 1;
+      return pass === 0
+        ? Promise.reject(new ClaudeClaimError("relation outside the vocabulary"))
+        : Promise.resolve({ claims: [{ ...claim(), objectHead: "aromatase" }] });
+    },
+    compoundNameFor: () => "bisphenol A",
+    mechanismCodeFor,
+    passes: 2,
+    onPassFailed: (_paper, pass) => failures.push(pass),
+  });
+  const drafts = await extractor(paper, catalog);
+  assert.equal(asked, 2);
+  assert.deepEqual(failures, [0]);
+  assert.equal(drafts.length, 1);
+  // One pass answered, so it is not treated as a disputed claim.
+  assert.equal(drafts[0]?.reviewPriority, "REVIEW_RECOMMENDED");
+  assert.ok(request.promptSha256);
+
+  const allFail = createClaudeExtractor({
+    completion: () => Promise.reject(new ClaudeClaimError("relation outside the vocabulary")),
+    compoundNameFor: () => "bisphenol A",
+    mechanismCodeFor,
+    passes: 2,
+  });
+  await assert.rejects(allFail(paper, catalog), /relation outside the vocabulary/);
 });
