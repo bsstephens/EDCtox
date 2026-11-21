@@ -809,6 +809,30 @@ export const compounds: CompoundSeed[] = [
       "This shell contains glyphosate. Glyphosate is an active ingredient of this shell. Evidence entered here stays on the formulation.",
   }),
   compound({
+    slug: "ampa",
+    canonicalName: "Aminomethylphosphonic acid",
+    displayName: "AMPA",
+    description:
+      "Major breakdown product of glyphosate, stored separately from the parent. Both the 2026 NIEHS systematic review and the earlier industry-funded safety reviews assess it in its own right, so evidence about it must not be read as evidence about glyphosate.",
+    compoundType: "METABOLITE",
+    primaryCategory: "Glyphosate metabolite",
+    casNumber: "1066-51-9",
+    parentSlug: "glyphosate",
+    isMetabolite: true,
+    isEnvironmentalChemical: true,
+    // The abbreviation is deliberately absent from the aliases. In the neuroscience literature
+    // AMPA is alpha-amino-3-hydroxy-5-methyl-4-isoxazolepropionic acid, the glutamate receptor
+    // agonist the AMPA receptor is named for -- a different molecule with a large literature of
+    // its own. Matching the bare acronym would file those papers here. Routing needs the spelled
+    // name, which is unambiguous.
+    aliases: [
+      { name: "Aminomethylphosphonic acid", aliasType: "COMMON_NAME" },
+      { name: "aminomethylphosphonic acid", aliasType: "SYNONYM" },
+    ],
+    notes:
+      "AMPA is also the common abbreviation for a glutamate receptor agonist that is an unrelated molecule. Do not match the bare acronym, and do not copy glyphosate findings onto this record.",
+  }),
+  compound({
     slug: "2-4-d",
     canonicalName: "2,4-Dichlorophenoxyacetic acid",
     displayName: "2,4-D",
