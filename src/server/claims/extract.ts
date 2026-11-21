@@ -308,6 +308,55 @@ export function claimNorm(value: string): string {
  * with a better prompt or a better ontology updates the claim that is already there. The
  * rule-based extractor has no head and is deterministic, so its keys are unchanged.
  */
+/**
+ * Words that name a molecular event rather than qualify an entity.
+ *
+ * objectHead exists to strip qualifiers, and for a location or an assay that is right: "ERa
+ * immunoreactive neurons in the BST" is a claim about ERa. These words are different. They are
+ * what is being measured, and dropping them changes the claim -- sometimes reversing it.
+ *
+ * The first glyphosate run produced both errors at once. "ERa phosphorylation" mapped to
+ * receptor agonism, which is a different mechanism from a signalling modification; and "ERa
+ * degradation" mapped to ERa expression, where the claim was that degradation *decreased*,
+ * meaning more receptor, so the stored direction read backwards. A sign error is the worst kind
+ * of error this database can hold.
+ */
+const EVENT_WORDS = [
+  "degradation",
+  "clearance",
+  "turnover",
+  "stability",
+  "half life",
+  "phosphorylation",
+  "dephosphorylation",
+  "ubiquitination",
+  "ubiquitylation",
+  "methylation",
+  "demethylation",
+  "acetylation",
+  "deacetylation",
+  "sumoylation",
+  "glycosylation",
+  "nitration",
+  "cleavage",
+  "translocation",
+  "dimerization",
+  "dimerisation",
+] as const;
+
+/**
+ * True when the head has dropped a word that names the event rather than qualifying the entity,
+ * so mapping on the head would answer a different question from the one the claim asks. The
+ * claim then maps on its verbatim text or not at all, which is the safe direction: a visible gap
+ * rather than a confident wrong link.
+ */
+export function headDropsAnEvent(objectText: string, head: string | null | undefined): boolean {
+  if (!head) return false;
+  const inText = ` ${claimNorm(objectText)} `;
+  const inHead = ` ${claimNorm(head)} `;
+  return EVENT_WORDS.some((word) => inText.includes(` ${word} `) && !inHead.includes(` ${word} `));
+}
+
 export function claimStableKey(
   producer: string,
   evidenceSourceId: string,

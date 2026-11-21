@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { claimSynonyms } from "../../data/seeds/claimSynonyms";
-import { catalogFromRows } from "./extract";
+import { catalogFromRows, headDropsAnEvent } from "./extract";
 import { buildRemapper } from "./remap";
 import { buildSynonymResolver } from "./synonyms";
 
@@ -120,4 +120,44 @@ test("every curated synonym names a code the seeds actually hold", async () => {
       `${term} was rejected in the proposals and must not be in the table`,
     );
   }
+});
+
+test("a head that dropped the event being measured is not trusted", () => {
+  // The first glyphosate run produced both errors at once. "ERa phosphorylation" mapped to
+  // receptor agonism, a different mechanism from a signalling modification; and "ERa
+  // degradation" mapped to ERa expression, where the claim was that degradation *decreased* --
+  // meaning more receptor -- so the stored direction read backwards.
+  assert.equal(headDropsAnEvent("estrogen receptor α (ERα) phosphorylation", "estrogen receptor α (ERα)"), true);
+  assert.equal(headDropsAnEvent("estrogen receptor α (ERα) degradation", "estrogen receptor α (ERα)"), true);
+
+  // A location or an assay is a qualifier, which is exactly what the head is for.
+  assert.equal(headDropsAnEvent("ERα immunoreactive neurons in the BST", "ERα"), false);
+  assert.equal(headDropsAnEvent("CYP19A1 expression", "CYP19A1"), false);
+  // A head that keeps the event is still usable: the claim really is about the event.
+  assert.equal(headDropsAnEvent("ERα phosphorylation in granulosa cells", "ERα phosphorylation"), false);
+  assert.equal(headDropsAnEvent("aromatase", null), false);
+
+  // So those two claims no longer reach a node, which is a visible gap rather than a confident
+  // wrong link, and the remap can undo a mapping it previously made from the head.
+  const phospho = remap({
+    objectText: "estrogen receptor α (ERα) phosphorylation",
+    objectHead: "estrogen receptor α (ERα)",
+    relation: "ACTIVATES",
+    mechanismCode: "ER_ALPHA_AGONISM",
+    outcomeCode: null,
+  });
+  assert.equal(phospho.mechanismCode, null);
+  assert.equal(phospho.mappingState, "UNMAPPED");
+  assert.equal(phospho.changed, true);
+
+  // A claim with no recorded head is still left alone: there the remap knows nothing new.
+  const legacy = remap({
+    objectText: "estrogen receptor α (ERα) phosphorylation",
+    objectHead: null,
+    relation: "ACTIVATES",
+    mechanismCode: "ER_ALPHA_AGONISM",
+    outcomeCode: null,
+  });
+  assert.equal(legacy.mechanismCode, "ER_ALPHA_AGONISM");
+  assert.equal(legacy.changed, false);
 });

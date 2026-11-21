@@ -7,7 +7,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod/v4";
 
 import { type ClaimPaper } from "./apply";
-import { type ClaimDraft, type MechanismCatalog, resolveMechanismCode } from "./extract";
+import { type ClaimDraft, headDropsAnEvent, type MechanismCatalog, resolveMechanismCode } from "./extract";
 
 /**
  * Model-backed mechanistic claim extraction. Slice 4B of docs/AGENT_PIPELINE_DESIGN.md.
@@ -253,14 +253,18 @@ export function parseClaims(
     const directness = claim.directness === "DIRECTLY_DEMONSTRATED" ? "STRONGLY_SUPPORTED" : claim.directness;
     // The head first, then the verbatim text: a paper that writes the bare entity gives the
     // same answer either way, and one that writes a qualified phrase only resolves on the head.
-    const proposed = input.mechanismCodeFor(claim.objectHead) ?? input.mechanismCodeFor(claim.objectText);
+    // Unless the head dropped the event being measured, in which case it answers a different
+    // question and only the verbatim text may be trusted.
+    const headUsable = !headDropsAnEvent(claim.objectText, claim.objectHead);
+    const proposed =
+      (headUsable ? input.mechanismCodeFor(claim.objectHead) : null) ?? input.mechanismCodeFor(claim.objectText);
     const mapping = resolveMechanismCode(proposed, claim.objectText, input.catalog);
     // Only when no mechanism holds it. A third of what a model reads from a reproductive
     // abstract is an outcome -- sperm count, cryptorchidism, PCOS -- and those claims had
     // nowhere to point, so they were indistinguishable from a gap in the mechanism ontology.
     const outcomeCode = mapping.mechanismCode
       ? null
-      : (input.outcomeCodeFor?.(claim.objectHead, claim.relation) ??
+      : ((headUsable ? input.outcomeCodeFor?.(claim.objectHead, claim.relation) : null) ??
         input.outcomeCodeFor?.(claim.objectText, claim.relation) ??
         null);
     const mechanismCode = mapping.mechanismCode;

@@ -1,4 +1,4 @@
-import { resolveMechanismCode, type MechanismCatalog } from "./extract";
+import { headDropsAnEvent, resolveMechanismCode, type MechanismCatalog } from "./extract";
 import { buildMechanismLookup, type MechanismNameRow } from "./mechanismLookup";
 import { buildOutcomeLookup, claimDirection, type OutcomeNameRow } from "./outcomeLookup";
 import { buildSynonymResolver } from "./synonyms";
@@ -49,7 +49,10 @@ export function buildRemapper(input: {
   return function remap(claim: RemapInput): RemapResult {
     // The head is what the extractor mapped on, so it is tried first where the row records it.
     // Rows written before that column existed have only the verbatim text.
-    const terms = [claim.objectHead, claim.objectText].filter((value): value is string => Boolean(value));
+    const headUsable = claim.objectHead && !headDropsAnEvent(claim.objectText, claim.objectHead);
+    const terms = [headUsable ? claim.objectHead : null, claim.objectText].filter(
+      (value): value is string => Boolean(value),
+    );
     const synonym = terms.map((term) => synonyms.find(term, claim.relation)).find(Boolean) ?? null;
 
     let mechanismCode: string | null = null;
@@ -73,14 +76,17 @@ export function buildRemapper(input: {
     }
 
     /**
-     * A remap never clears a mapping. It applies a vocabulary change to claims it can resolve;
-     * a claim it cannot resolve is one it knows nothing new about, not one that has been
-     * disproved. Fifteen good mappings would have been cleared on the first run of this,
-     * because they were made from an object head that rows written before the column existed
-     * do not record. Removing a mapping stays a curator action, or the result of re-reading the
-     * paper, where there is a fresh reading to justify it.
+     * A remap does not clear a mapping it has no information about.
+     *
+     * Fifteen good mappings would have been cleared on the first run of this, because they were
+     * made from an object head that rows written before that column existed do not record: the
+     * remap could see nothing to justify them and nothing to disprove them either. Where the
+     * head *is* recorded the remap has everything the extractor had, so it may correct itself,
+     * including down to unmapped -- which is how two claims that mapped a receptor's
+     * phosphorylation and degradation onto the receptor get undone rather than left standing as
+     * confident, wrong, curator-facing links.
      */
-    if (!mechanismCode && !outcomeCode && (claim.mechanismCode ?? claim.outcomeCode)) {
+    if (!claim.objectHead && !mechanismCode && !outcomeCode && (claim.mechanismCode ?? claim.outcomeCode)) {
       return {
         mechanismCode: claim.mechanismCode,
         outcomeCode: claim.outcomeCode,
