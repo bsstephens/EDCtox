@@ -124,3 +124,32 @@ test("a key characteristic is a tag, not a count", () => {
   const tagged = mechanisms.filter((row) => row.keyCharacteristic).length;
   assert.ok(tagged > 0 && tagged < mechanisms.length / 2);
 });
+
+test("an outcome whose name asserts a direction keeps its mirror where both are adverse", () => {
+  // Twenty-four outcome concepts carry a direction in their name and, until the glyphosate
+  // literature prompted an audit, only puberty held both. For most the single direction is the
+  // adverse one and its opposite would be noise: nobody records rising sperm motility as a
+  // finding. These are the concepts where both directions are adverse and documented, so losing
+  // half a pair would silently make one of them unrecordable again.
+  const codes = new Set(outcomeSeeds.map((row) => row.code));
+  const pairs: ReadonlyArray<[string, string, string]> = [
+    ["anogenital distance", "REDUCED_ANOGENITAL_DISTANCE", "INCREASED_ANOGENITAL_DISTANCE"],
+    ["testosterone", "REDUCED_TESTOSTERONE", "ELEVATED_TESTOSTERONE"],
+    ["menarche", "DELAYED_MENARCHE", "EARLY_MENARCHE"],
+    ["puberty", "DELAYED_PUBERTY", "EARLY_PUBERTY"],
+  ];
+  for (const [concept, down, up] of pairs) {
+    assert.ok(codes.has(down), `${concept} lost its ${down} direction`);
+    assert.ok(codes.has(up), `${concept} lost its ${up} direction`);
+  }
+
+  // Both directions stay separate rows rather than one neutral "altered" row, because the
+  // direction is the scientific content: a longer anogenital distance is androgenic and a
+  // shorter one anti-androgenic, which are opposite mechanisms, not one finding.
+  for (const [, down, up] of pairs) {
+    const left = outcomeSeeds.find((row) => row.code === down);
+    const right = outcomeSeeds.find((row) => row.code === up);
+    assert.notEqual(left?.name, right?.name);
+    assert.equal(left?.category, right?.category);
+  }
+});

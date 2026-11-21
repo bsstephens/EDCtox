@@ -67,6 +67,18 @@ export const outcomes = [
   ["REDUCED_FECUNDABILITY", "Reduced fecundability", "REPRODUCTIVE", "A longer time to pregnancy in natural conception, or subfertility. Kept apart from assisted-reproduction success because the populations and the measures differ."],
   ["REDUCED_ART_SUCCESS", "Reduced assisted reproduction success", "REPRODUCTIVE", "Lower fertilisation, oocyte, embryo or clinical pregnancy rates in assisted reproduction. A clinic measure, not a measure of natural fertility."],
   ["CARDIOVASCULAR_DISEASE", "Cardiovascular disease", "VASCULAR", "A cardiovascular disease diagnosis. Hypertension and endothelial dysfunction are separate entries and are not substitutes for it."],
+  // Added Nov 2026. An audit prompted by the glyphosate literature found 24 outcomes whose name
+  // asserts a direction and only one, puberty, holding both. For most of the 23 the single
+  // direction is the adverse one and the opposite would be noise. These three are not: the
+  // literature documents opposite-direction effects that are each adverse, and an androgenic
+  // compound had nowhere to record its findings.
+  //
+  // Both directions are kept as separate rows rather than folded into one neutral "altered"
+  // row, because the direction is the scientific content: an increase in anogenital distance is
+  // androgenic and a decrease is anti-androgenic, and those are opposite mechanisms.
+  ["INCREASED_ANOGENITAL_DISTANCE", "Increased anogenital distance", "DEVELOPMENTAL", "Longer anogenital distance, the androgenic direction. Reported for glyphosate-based herbicides in males and females at the US reference dose (Ramazzini pilot, 2019). The mirror of REDUCED_ANOGENITAL_DISTANCE, which is the anti-androgenic direction phthalates show."],
+  ["ELEVATED_TESTOSTERONE", "Elevated testosterone", "REPRODUCTIVE", "Higher testosterone. Adverse in females, where it is part of the PCOS phenotype, and reported for glyphosate-based herbicides in female rats. The mirror of REDUCED_TESTOSTERONE, which is the direction the same compound shows in males."],
+  ["EARLY_MENARCHE", "Early menarche", "DEVELOPMENTAL", "Earlier menarche. One of the better-documented endocrine-disruption outcomes and the mirror of DELAYED_MENARCHE, which was here alone. Added with the direction audit rather than from a single paper."],
 ] as const;
 
 export type OutcomeSeed = {
