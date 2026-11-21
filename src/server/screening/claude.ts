@@ -57,6 +57,8 @@ const REASON_GLOSSARY: Record<string, string> = {
   NARRATIVE_REVIEW_ONLY: "a narrative review with no systematic method, on a queue that asks for primary human evidence",
   METHOD_ONLY: "methods, assay development, in silico or docking work with no biological result",
   NON_RELEVANT_OUTCOME: "a measured outcome that is not reproductive",
+  NON_ANIMAL_MODEL:
+    "the only organisms studied are plants, fungi or microbes, which have none of the receptors or axes in question; a study of both a plant and an animal is an animal study",
   IRRELEVANT_KEYWORD_MATCH: "a keyword hit with no bisphenol A content",
   DUPLICATE_PUBLICATION: "a duplicate of a publication already in the set",
   RETRACTED: "the publication is retracted",

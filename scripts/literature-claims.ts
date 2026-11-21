@@ -65,7 +65,7 @@ async function main() {
     const cohort =
       command.cohort === "pilot"
         ? { ...(await loadClaimPilot(db, command.limit)), compoundName: "bisphenol A" }
-        : await loadIncludedClaimCohort(db, command.limit, command.pmids);
+        : await loadIncludedClaimCohort(db, command.limit, command.pmids, command.target);
     if (command.cohort === "pilot" && cohort.papers.length !== command.limit) {
       throw new Error(`Expected ${command.limit} pilot papers, found ${cohort.papers.length}.`);
     }
@@ -112,7 +112,7 @@ async function main() {
 
     console.log(`${provenance.provider} ${provenance.model} ${provenance.promptVersion}`);
     console.log(
-      `localhost BPA reproductive abstract claims, ${cohort.papers.length} papers, cohort ${command.cohort}` +
+      `localhost ${command.target.compound} ${command.target.domain} abstract claims, ${cohort.papers.length} papers, cohort ${command.cohort}` +
         (usingClaude ? `, ${CLAUDE_PASSES} passes each` : ""),
     );
 

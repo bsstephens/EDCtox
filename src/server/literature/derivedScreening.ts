@@ -33,7 +33,63 @@ export type DerivedDecision = {
 export type ProfileView = {
   /** What the publication says it did, from layer 1. Null for a profile read before this existed. */
   evidenceSynthesis?: string | null;
+  /** What it studied, from layer 1. Empty or absent for a profile read before this existed. */
+  speciesStudied?: readonly string[] | null;
 };
+
+/**
+ * Enough to recognise a plant, fungal or bacterial study. Deliberately a word list and not a
+ * taxonomy: the only decision it has to make is whether the organism could have the receptors
+ * and axes this ontology is built from, and a plant cannot.
+ */
+const NON_ANIMAL_WORDS = [
+  "plant",
+  "plants",
+  "seedling",
+  "seedlings",
+  "crop",
+  "crops",
+  "weed",
+  "weeds",
+  "algae",
+  "alga",
+  "cyanobacteria",
+  "bacteria",
+  "bacterium",
+  "fungus",
+  "fungi",
+  "yeast",
+  "arabidopsis",
+  "hordeum",
+  "barley",
+  "maize",
+  "soybean",
+  "soya",
+  "wheat",
+  "rice",
+  "lemna",
+  "duckweed",
+  "chlorella",
+  "e coli",
+  "escherichia",
+] as const;
+
+function isNonAnimal(species: string): boolean {
+  const text = ` ${species.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  return NON_ANIMAL_WORDS.some((word) => text.includes(` ${word} `));
+}
+
+/**
+ * True when every organism the paper names is a plant, fungus or microbe.
+ *
+ * Every, not any: a study that exposes both barley and rats is still a rat study and must not be
+ * thrown away. A paper that names no species at all is not judged here either -- an in-vitro
+ * human cell study often names none, and silence is not evidence of a plant.
+ */
+export function studiesOnlyNonAnimals(species: readonly string[] | null | undefined): boolean {
+  if (!species || species.length === 0) return false;
+  return species.every((item) => isNonAnimal(item));
+}
 
 function documentLevelExclusion(
   facts: ProviderFacts,
@@ -46,6 +102,16 @@ function documentLevelExclusion(
     return {
       reason: "COMMENTARY_OR_EDITORIAL",
       rationale: `Indexed as ${facts.descriptors.length > 0 ? "a non-study publication type" : "commentary or an editorial"}, so it reports no findings of its own.`,
+    };
+  }
+  // Glyphosate is a herbicide, so its literature is full of plant studies, and the relevance
+  // gate's domain terms match "reproduction" in a barley paper as readily as in a rat one. One
+  // such paper reached claim extraction and produced claims about the seed yield of fast-growing
+  // plants. The profiler already recorded the species; nothing downstream was reading it.
+  if (studiesOnlyNonAnimals(profile.speciesStudied)) {
+    return {
+      reason: "NON_ANIMAL_MODEL",
+      rationale: `The only organisms studied are ${(profile.speciesStudied ?? []).join(", ")}, which have none of the receptors or axes this ontology holds.`,
     };
   }
   if (facts.narrativeReview === true) {

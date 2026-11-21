@@ -1,3 +1,4 @@
+import { studiesOnlyNonAnimals } from "../literature/derivedScreening";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -548,4 +549,26 @@ test("screening writes neither findings nor assessment changes", { skip: !isLoca
   } finally {
     await db.$disconnect();
   }
+});
+
+test("a study of plants alone is out of scope, and a mixed study is not", () => {
+  // Glyphosate is a herbicide, so "reproduction" matches a barley paper as readily as a rat
+  // one. One reached claim extraction and produced claims about the seed yield of fast-growing
+  // plants. The profiler had recorded the species all along; nothing downstream read it.
+  assert.equal(studiesOnlyNonAnimals(["Hordeum vulgare (barley)"]), true);
+  assert.equal(studiesOnlyNonAnimals(["Arabidopsis thaliana", "maize"]), true);
+  assert.equal(studiesOnlyNonAnimals(["Lemna minor (duckweed)"]), true);
+
+  // Every, not any: a study that exposes both barley and rats is still a rat study.
+  assert.equal(studiesOnlyNonAnimals(["barley", "rat"]), false);
+  assert.equal(studiesOnlyNonAnimals(["rat"]), false);
+  assert.equal(studiesOnlyNonAnimals(["human", "GC-1 cells"]), false);
+
+  // Silence is not evidence of a plant: an in-vitro human study often names no species.
+  assert.equal(studiesOnlyNonAnimals([]), false);
+  assert.equal(studiesOnlyNonAnimals(null), false);
+  assert.equal(studiesOnlyNonAnimals(undefined), false);
+
+  // A plant name inside a longer phrase must not catch an animal study by accident.
+  assert.equal(studiesOnlyNonAnimals(["rats fed a maize diet"]), true);
 });

@@ -199,16 +199,27 @@ test("the pilot is five pending papers and the command stays local", () => {
   assert.throws(() => parseClaimArgs(["--all", "--dry-run", "--compound", "bpa", "--domain", "reproductive"]), /--all/);
   assert.throws(() => parseClaimArgs(["--dry-run", "--apply", "--compound", "bpa", "--domain", "reproductive"]), /either/);
   assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive", "--limit", "90"]), /1 to 5/);
-  assert.deepEqual(parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]), {
-    dryRun: true,
-    limit: 5,
-    cohort: "pilot",
-    extractor: "deterministic",
-    inspect: null,
-    transcriptPath: undefined,
-    recordPath: undefined,
-    pmids: [],
-  });
+  const bpaCommand = parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]);
+  assert.equal(bpaCommand.dryRun, true);
+  assert.equal(bpaCommand.limit, 5);
+  assert.equal(bpaCommand.cohort, "pilot");
+  assert.equal(bpaCommand.extractor, "deterministic");
+  assert.deepEqual(bpaCommand.pmids, []);
+  assert.equal(bpaCommand.target.compound, "bpa");
+  assert.equal(bpaCommand.target.screeningDomain, "REP");
+
+  // A second compound runs the same way, with no hand-picked pilot to fall back on: its cohort
+  // is whatever the screener included, and asking for a pilot it does not have is an error
+  // rather than a silent BPA run.
+  const glyphosate = parseClaimArgs(["--dry-run", "--compound", "glyphosate", "--domain", "reproductive"]);
+  assert.equal(glyphosate.target.compound, "glyphosate");
+  assert.equal(glyphosate.cohort, "included");
+  assert.throws(
+    () => parseClaimArgs(["--dry-run", "--compound", "glyphosate", "--domain", "reproductive", "--cohort", "pilot"]),
+    /no hand-picked pilot/,
+  );
+  // A pair with no search run and no screened papers is refused, rather than returning nothing.
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "glyphosate", "--domain", "redox"]), /No claim cohort/);
 
   // Re-reading a handful of papers after a prompt or ontology change should not cost a re-read
   // of the rest.
@@ -232,8 +243,8 @@ test("the pilot is five pending papers and the command stays local", () => {
     /1 to 60/,
   );
   // Another compound or domain is still a different scope and still refused.
-  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "phthalates", "--domain", "reproductive"]), /--compound bpa/);
-  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "redox"]), /--domain reproductive/);
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "phthalates", "--domain", "reproductive"]), /No claim cohort/);
+  assert.throws(() => parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "redox"]), /No claim cohort/);
 
   // The rule-based extractor is the default: a model run, which costs money, is always asked for.
   assert.equal(parseClaimArgs(["--dry-run", "--compound", "bpa", "--domain", "reproductive"]).extractor, "deterministic");

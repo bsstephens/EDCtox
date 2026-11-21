@@ -37,10 +37,18 @@ export async function loadClaimPilot(db: Db, limit: number) {
  * papers in it. Ordered oldest first so a truncated run is a stable prefix rather than a
  * different set of papers each time.
  */
-export async function loadIncludedClaimCohort(db: Db, limit: number, pmids: readonly string[] = []) {
-  const compound = await db.compound.findUniqueOrThrow({ where: { slug: "bpa" }, select: { id: true, canonicalName: true } });
+export async function loadIncludedClaimCohort(
+  db: Db,
+  limit: number,
+  pmids: readonly string[] = [],
+  target: { compound: string; screeningDomain: string } = { compound: "bpa", screeningDomain: "REP" },
+) {
+  const compound = await db.compound.findUniqueOrThrow({
+    where: { slug: target.compound },
+    select: { id: true, canonicalName: true, aliases: { select: { name: true } } },
+  });
   const decisions = await db.literatureScreeningDecision.findMany({
-    where: { machineDecision: "INCLUDE", compoundId: compound.id, domainCode: "REP" },
+    where: { machineDecision: "INCLUDE", compoundId: compound.id, domainCode: target.screeningDomain },
     select: { evidenceSourceId: true },
   });
   const sources = await db.evidenceSource.findMany({
@@ -60,10 +68,17 @@ export async function loadIncludedClaimCohort(db: Db, limit: number, pmids: read
     },
   });
 
-  const ordered = orderByCompoundCentrality(
-    sources,
-    (name) => name.toLowerCase().includes("bisphenol") || name.toLowerCase().startsWith("bpa"),
+  // How central the compound is, judged against its own names rather than a hardcoded one.
+  // The first word of the canonical name carries it: "bisphenol" for bisphenol A, "glyphosate"
+  // for glyphosate, which also catches "glyphosate-based herbicide" in a profile's list.
+  const stem = compound.canonicalName.toLowerCase().split(" ")[0] ?? compound.canonicalName.toLowerCase();
+  const ownNames = [compound.canonicalName, ...compound.aliases.map((alias) => alias.name)].map((value) =>
+    value.toLowerCase(),
   );
+  const ordered = orderByCompoundCentrality(sources, (name) => {
+    const lower = name.toLowerCase();
+    return lower.includes(stem) || ownNames.some((own) => lower.includes(own));
+  });
 
   return {
     compoundId: compound.id,

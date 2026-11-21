@@ -792,6 +792,19 @@ export const compounds: CompoundSeed[] = [
     recordKind: "FORMULATION",
     isMixture: true,
     isEnvironmentalChemical: true,
+    // Generic names only. Routing reported "glyphosate-based herbicides" and "GBHs" among the
+    // compound names no record matched, so papers about the formulation were being filed under
+    // the active ingredient or nowhere. These are the literature's own generic terms for this
+    // shell, not brands: no commercial brand is named here, which is why "Roundup" and
+    // "MON 52276" are absent even though the search retrieves on them.
+    aliases: [
+      { name: "glyphosate-based herbicide", aliasType: "COMMON_NAME" },
+      { name: "glyphosate-based herbicides", aliasType: "COMMON_NAME" },
+      { name: "glyphosate-based herbicide formulation", aliasType: "COMMON_NAME" },
+      { name: "glyphosate-based herbicide formulations", aliasType: "COMMON_NAME" },
+      { name: "GBH", aliasType: "ABBREVIATION" },
+      { name: "GBHs", aliasType: "ABBREVIATION" },
+    ],
     notes:
       "This shell contains glyphosate. Glyphosate is an active ingredient of this shell. Evidence entered here stays on the formulation.",
   }),

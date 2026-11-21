@@ -1084,6 +1084,12 @@ enum ScreeningReason {
   NARRATIVE_REVIEW_ONLY
   METHOD_ONLY
   NON_RELEVANT_OUTCOME
+  /// Right chemical, right keyword, wrong kingdom. A herbicide's literature is full of plant
+  /// studies and "reproduction" matches a barley paper as readily as a rat one. Plants have no
+  /// estrogen receptor and no HPG axis, so such a paper cannot bear on any mechanism this
+  /// ontology holds. Kept distinct from IRRELEVANT_KEYWORD_MATCH, where the match itself is
+  /// spurious: here the match is real and the organism is out of scope.
+  NON_ANIMAL_MODEL
   IRRELEVANT_KEYWORD_MATCH
   DUPLICATE_PUBLICATION
   RETRACTED

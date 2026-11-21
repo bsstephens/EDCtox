@@ -1,3 +1,4 @@
+import { claimCohortFor, type ClaimCohortTarget } from "./constants";
 export type ClaimCommand = {
   dryRun: boolean;
   limit: number;
@@ -7,6 +8,8 @@ export type ClaimCommand = {
    * does not widen: only the number of papers does.
    */
   cohort: "pilot" | "included";
+  /** Which compound and domain this run is for. */
+  target: ClaimCohortTarget;
   /** The rule-based extractor stays the default, so a model run is always asked for explicitly. */
   extractor: "deterministic" | "claude";
   /** Papers to read before stopping, so a long run can be inspected before it is trusted. */
@@ -48,12 +51,15 @@ export function parseClaimArgs(argv: string[]): ClaimCommand {
   const dryRun = argv.includes("--dry-run");
   const apply = argv.includes("--apply");
   if (dryRun === apply) throw new Error("Pass either --dry-run or --apply.");
-  if (argument(argv, "--compound") !== "bpa") throw new Error("Use --compound bpa.");
-  if (argument(argv, "--domain") !== "reproductive") throw new Error("Use --domain reproductive.");
+  // A cohort exists where a search has been run and papers screened in, which is deliberate.
+  const target = claimCohortFor(argument(argv, "--compound") ?? "", argument(argv, "--domain") ?? "");
 
-  const cohortText = argument(argv, "--cohort") ?? "pilot";
+  const cohortText = argument(argv, "--cohort") ?? (target.hasPilot ? "pilot" : "included");
   if (cohortText !== "pilot" && cohortText !== "included") throw new Error("Use --cohort pilot or --cohort included.");
   const cohort = cohortText;
+  if (cohort === "pilot" && !target.hasPilot) {
+    throw new Error(`${target.compound} has no hand-picked pilot. Use --cohort included.`);
+  }
 
   const extractorText = argument(argv, "--extractor") ?? "deterministic";
   if (extractorText !== "deterministic" && extractorText !== "claude") {
@@ -78,6 +84,7 @@ export function parseClaimArgs(argv: string[]): ClaimCommand {
   return {
     dryRun,
     limit,
+    target,
     cohort,
     extractor: extractorText,
     inspect,
