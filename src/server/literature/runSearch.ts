@@ -1,10 +1,12 @@
 import { applyLiteratureRun, recordCompoundSearched, type LiteratureStore } from "./applyCandidates";
 import { planLiteratureHits, type ExistingSource, type IncomingPaper, type PlannedHit } from "./dedup";
 import {
+  BPA_REPRODUCTIVE_SCOPE,
   EUROPE_PMC_UNIQUE_CAP,
   PURPOSE_NOTES,
   RESULT_WINDOWS,
-  buildBpaReproductiveQuery,
+  buildScopeQuery,
+  type SearchScope,
   windowCap,
   windowSort,
   type LiteratureProviderName,
@@ -165,6 +167,8 @@ function emptyReport(
 
 export async function runBpaReproductiveSearch(options: {
   compound: { id: string; curationStatus: string };
+  /** Which compound's identity the queries are built from. Defaults to BPA's. */
+  scope?: SearchScope;
   purposes: LiteraturePurposeName[];
   providers: LiteratureProviderName[];
   existing: ExistingSource[];
@@ -186,7 +190,7 @@ export async function runBpaReproductiveSearch(options: {
     let europeRoom = EUROPE_PMC_UNIQUE_CAP;
     for (const provider of options.providers) {
       for (const window of RESULT_WINDOWS) {
-        const built = buildBpaReproductiveQuery(purpose, provider);
+        const built = buildScopeQuery(options.scope ?? BPA_REPRODUCTIVE_SCOPE, purpose, provider);
         const sort = windowSort(provider, window.name);
         const sortMode = sort ?? "relevance";
         const startedAt = new Date();
@@ -204,7 +208,7 @@ export async function runBpaReproductiveSearch(options: {
           const skipped: PlannedHit[] = [];
           const passed: IncomingPaper[] = [];
           for (const item of page.papers) {
-            const decision = assessReproductiveRelevance(item);
+            const decision = assessReproductiveRelevance(item, options.scope ?? BPA_REPRODUCTIVE_SCOPE);
             if (!decision.pass && decision.skipReason) {
               skipped.push({
                 disposition: "SKIPPED",
@@ -239,6 +243,7 @@ export async function runBpaReproductiveSearch(options: {
               provider,
               purpose,
               queryText: built.query,
+              queryVersion: built.version,
               resultWindow: window.name,
               sortMode,
               startedAt,
@@ -274,6 +279,7 @@ export async function runBpaReproductiveSearch(options: {
               provider,
               purpose,
               queryText: built.query,
+              queryVersion: built.version,
               resultWindow: window.name,
               sortMode,
               startedAt,

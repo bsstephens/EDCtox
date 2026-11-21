@@ -774,6 +774,11 @@ export const compounds: CompoundSeed[] = [
     primaryCategory: "Herbicide active ingredient",
     casNumber: "1071-83-6",
     isEnvironmentalChemical: true,
+    // The IUPAC name is a true synonym of the active ingredient and the literature search
+    // requires it. Brand and formulation names are deliberately absent: Roundup is not
+    // glyphosate, and the formulation shell below names no brand either. The search retrieves
+    // on those phrases without claiming they identify this compound.
+    aliases: [{ name: "N-(phosphonomethyl)glycine", aliasType: "IUPAC" }],
     notes: "Do not treat a formulated product as identical to glyphosate. The formulation shell is a separate record.",
   }),
   compound({

@@ -33,6 +33,12 @@ export type LiteratureRunWrite = {
   provider: LiteratureProviderName;
   purpose: LiteraturePurposeName;
   queryText: string;
+  /**
+   * The version of the query that produced this run, which is the compound's and not a global
+   * constant: a glyphosate run recording "bpa-reproductive-v2" would misattribute every row it
+   * wrote. Defaults to BPA's for the callers that predate per-compound versions.
+   */
+  queryVersion?: string;
   resultWindow: string;
   sortMode: string;
   startedAt: Date;
@@ -76,7 +82,7 @@ export async function applyLiteratureRun(
       compoundId: input.compoundId,
       provider: input.provider,
       queryText: input.queryText,
-      queryVersion: LITERATURE_QUERY_VERSION,
+      queryVersion: input.queryVersion ?? LITERATURE_QUERY_VERSION,
       resultWindow: input.resultWindow,
       sortMode: input.sortMode,
       purpose: input.purpose,
@@ -125,7 +131,7 @@ export async function applyLiteratureRun(
         providerIndexedAt: hit.paper.provider.indexedAt ? new Date(hit.paper.provider.indexedAt) : null,
         supplemental: {
           abstractProvenance: hit.paper.abstractText ? input.provider : null,
-          queryVersion: LITERATURE_QUERY_VERSION,
+          queryVersion: input.queryVersion ?? LITERATURE_QUERY_VERSION,
           searchPurpose: input.purpose,
           studySignal: hit.studySignal,
         },

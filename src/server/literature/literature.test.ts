@@ -21,6 +21,9 @@ import {
   buildBpaReproductiveQuery,
   LITERATURE_QUERY_VERSION,
   assertBpaReproductiveTarget,
+  assertScopeMatchesRecord,
+  buildScopeQuery,
+  searchScopeFor,
 } from "./queries";
 
 const QUERY_HASHES = {
@@ -151,7 +154,7 @@ test("versioned BPA reproductive queries stay separated", () => {
   assert.equal(europeNull.includes("systematic review"), false);
 
   const seed = read("src/data/seeds/compounds.ts");
-  assert.equal(seed.includes(BPA_REPRODUCTIVE_SCOPE.iupacName), true);
+  assert.equal(seed.includes(BPA_REPRODUCTIVE_SCOPE.iupacName ?? ""), true);
   assert.equal(seed.includes('canonicalName: "Bisphenol A"'), true);
   assert.equal(seed.includes('casNumber: "80-05-7"'), true);
   assertBpaReproductiveTarget({
@@ -159,7 +162,7 @@ test("versioned BPA reproductive queries stay separated", () => {
     canonicalName: "Bisphenol A",
     displayName: "BPA",
     casNumber: "80-05-7",
-    aliasNames: [BPA_REPRODUCTIVE_SCOPE.iupacName],
+    aliasNames: [BPA_REPRODUCTIVE_SCOPE.iupacName ?? ""],
   });
   assert.throws(() =>
     assertBpaReproductiveTarget({
@@ -575,4 +578,46 @@ test("search apply cannot change the 71 mechanism assessments or create findings
   } finally {
     await db.$disconnect();
   }
+});
+
+test("a second compound's search is its own identity on the shared domain terms", () => {
+  // Search was the only stage that had to be generalised to run glyphosate: profiling and
+  // routing were built compound-agnostic from the start.
+  const scope = searchScopeFor("glyphosate");
+  assert.equal(scope.queryVersion, "glyphosate-reproductive-v1");
+  assert.notEqual(scope.queryVersion, BPA_REPRODUCTIVE_SCOPE.queryVersion);
+
+  const pubmed = buildScopeQuery(scope, "HUMAN_REPRODUCTIVE", "PUBMED").query;
+  assert.match(pubmed, /"Glyphosate"\[Title\/Abstract\]/);
+  assert.match(pubmed, /"1071-83-6"\[RN\]/);
+  assert.match(pubmed, /"N-\(phosphonomethyl\)glycine"\[Title\/Abstract\]/);
+  // Most of this literature studies a formulation and names the brand, so a search that omits
+  // it misses the papers the evidence actually rests on.
+  assert.match(pubmed, /"Roundup"\[Title\/Abstract\]/);
+  // The domain half is shared: it is the same reproductive literature either way.
+  assert.match(pubmed, /sperm\[Title\/Abstract\]/);
+  assert.equal(pubmed.includes("Bisphenol"), false);
+
+  // Retrieval aids are not identity claims. Roundup is not glyphosate, and the formulation is
+  // its own record whose seed names no brand, so the guard must not demand it as an alias.
+  assertScopeMatchesRecord(scope, {
+    slug: "glyphosate",
+    canonicalName: "Glyphosate",
+    displayName: "Glyphosate",
+    casNumber: "1071-83-6",
+    aliasNames: ["N-(phosphonomethyl)glycine"],
+  });
+  // The identity it does assert is still enforced.
+  assert.throws(
+    () =>
+      assertScopeMatchesRecord(scope, {
+        slug: "glyphosate",
+        canonicalName: "Glyphosate",
+        displayName: "Glyphosate",
+        casNumber: "1071-83-6",
+        aliasNames: [],
+      }),
+    /IUPAC alias/,
+  );
+  assert.throws(() => searchScopeFor("dehp"), /No search scope for dehp/);
 });

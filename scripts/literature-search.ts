@@ -5,7 +5,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { PrismaClient } from "../generated/prisma";
 import { parseLiteratureArgs } from "../src/server/literature/cli";
 import { assertScientificSnapshotUnchanged, scientificSnapshot } from "../src/server/literature/guard";
-import { assertBpaReproductiveTarget } from "../src/server/literature/queries";
+import { assertScopeMatchesRecord, searchScopeFor } from "../src/server/literature/queries";
 import { runBpaReproductiveSearch, type LiteratureRunReport } from "../src/server/literature/runSearch";
 
 function loadEnvFile(path: string) {
@@ -72,18 +72,24 @@ async function main() {
 
   const db = new PrismaClient();
   try {
+    // Defaults to BPA so the existing command reads unchanged.
+    const slugIndex = process.argv.indexOf("--compound");
+    const slug = slugIndex === -1 ? "bpa" : process.argv[slugIndex + 1];
+    if (!slug) throw new Error("Use --compound with a slug, or omit it for bpa.");
+    const scope = searchScopeFor(slug);
     const compound = await db.compound.findUnique({
-      where: { slug: "bpa" },
+      where: { slug },
       include: { aliases: { select: { name: true } } },
     });
-    if (!compound) throw new Error("BPA is not in the database.");
-    assertBpaReproductiveTarget({
+    if (!compound) throw new Error(`${slug} is not in the database.`);
+    assertScopeMatchesRecord(scope, {
       slug: compound.slug,
       canonicalName: compound.canonicalName,
       displayName: compound.displayName,
       casNumber: compound.casNumber,
       aliasNames: compound.aliases.map((alias) => alias.name),
     });
+    console.log(`Searching for ${scope.canonicalName} (${scope.slug}), query ${scope.queryVersion}.`);
 
     const before = await scientificSnapshot(db);
     const sourcesBefore = await db.evidenceSource.count();
@@ -92,6 +98,7 @@ async function main() {
     });
     const reports = await runBpaReproductiveSearch({
       compound: { id: compound.id, curationStatus: compound.curationStatus },
+      scope,
       purposes: command.purposes,
       providers: command.providers,
       existing,

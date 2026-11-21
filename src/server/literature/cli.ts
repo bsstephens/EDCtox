@@ -3,6 +3,7 @@ import {
   LITERATURE_PURPOSES,
   type LiteratureProviderName,
   type LiteraturePurposeName,
+  searchScopeFor,
 } from "./queries";
 
 const PURPOSE_FLAGS: Record<string, LiteraturePurposeName> = {
@@ -29,15 +30,19 @@ export type LiteratureCommand = {
 };
 
 export function parseLiteratureArgs(argv: string[]): LiteratureCommand {
+  // Still refused: --all would mean every compound in the database, most of which have no
+  // query written for them at all.
   if (argv.includes("--all")) {
-    throw new Error("Refusing --all. Phase 3A searches BPA only.");
+    throw new Error("Refusing --all. Search one compound at a time, with --compound.");
   }
   const dryRun = argv.includes("--dry-run");
   const apply = argv.includes("--apply");
   if (dryRun === apply) throw new Error("Pass either --dry-run or --apply.");
 
-  const compound = argument(argv, "--compound");
-  if (compound !== "bpa") throw new Error("Use --compound bpa. Phase 3A does not search other compounds.");
+  // A compound is searchable when a versioned query has been written for it, which is a
+  // deliberate act, not when it merely exists in the database.
+  const compound = argument(argv, "--compound") ?? "bpa";
+  searchScopeFor(compound);
 
   const domain = argument(argv, "--domain");
   if (domain !== "reproductive") {
