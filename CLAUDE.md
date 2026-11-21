@@ -21,6 +21,12 @@ into `generated/prisma`. Every public page is a server component.
   BPA reproductive papers, `--extractor claude` to use the model (costs money, prompts first),
   `--inspect N` to read the first N without writing, and `--pmids a,b` to re-read specific
   papers. `--all` is refused: another compound or domain is a change of scope, not a bigger run.
+- `npm run literature:claims:remap -- --dry-run` re-resolves where stored claims point, from the
+  current ontology and synonym table, reading no paper and calling no model. Use it after adding
+  an ontology row or a synonym; re-reading would cost money and churn rows, since two readings of
+  one abstract agree on 74% to 86% of findings. It never clears a mapping it cannot verify, and
+  it skips the rule-based extractor's claims by default, whose narrower mappings are the only
+  baseline there is.
 - `npm run db:seed` — local only. The seed upserts seed scores over curated rows; never run it
   against production.
 - `literature:*` and `external:resolve` refuse a non-localhost database unless pointed at one.
@@ -52,7 +58,11 @@ into `generated/prisma`. Every public page is a server component.
 - A claim points at a `Mechanism` or an `Outcome`, never both, and a `GROUPING_ONLY` mechanism is
   refused as a claim target. Mapping is exact matching on keys built from the ontology itself:
   no fuzzy matching, no nearest neighbour. A term the ontology does not hold stays unmapped so
-  the gap stays visible. See `docs/CLAIM_SYNONYM_PROPOSALS.md` for the pending vocabulary work.
+  the gap stays visible. Curated synonyms live in `src/data/seeds/claimSynonyms.ts`, one accepted
+  entry per decision, traceable to `docs/CLAIM_SYNONYM_PROPOSALS.md`; a term reaches a node
+  because someone decided it should, never by similarity. A synonym may carry a direction, or a
+  relation list where the node names an action: agonising a receptor and changing how much of it
+  is present are different nodes.
 - Shipping a seed change is deploy, seed, then **redeploy**: anything cached between the deploy
   and the seed serves pre-seed data for a day. The cache key is the deployment id, not the
   commit, so a redeploy of the same commit does change it. Locally, `rm -rf .next/cache` after

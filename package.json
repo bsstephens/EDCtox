@@ -29,7 +29,8 @@
     "literature:backfill": "tsx scripts/literature-backfill-metadata.ts",
     "literature:profile": "tsx scripts/literature-profile.ts",
     "literature:route": "tsx scripts/literature-route.ts",
-    "literature:claims:compare": "tsx scripts/literature-claims-compare.ts"
+    "literature:claims:compare": "tsx scripts/literature-claims-compare.ts",
+    "literature:claims:remap": "tsx scripts/literature-claims-remap.ts"
   },
   "prisma": {
     "seed": "./node_modules/.bin/tsx prisma/seed.ts"

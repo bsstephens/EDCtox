@@ -108,6 +108,7 @@ export async function applyMachineClaims(
       machineRationale: item.draft.machineRationale,
       machinePassesSeen: item.draft.machinePassesSeen ?? null,
       machinePassesRun: item.draft.machinePassesRun ?? null,
+      machineObjectHead: item.draft.objectHead ?? null,
       machineMappingState: item.draft.machineMappingState,
       machineMechanismId,
       machineOutcomeId,

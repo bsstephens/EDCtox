@@ -105,6 +105,12 @@ export const mechanisms: MechanismSeed[] = [
     { code: "ER_BETA_AGONISM", name: "ER-beta agonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC1_RECEPTOR_AGONIST" },
     { code: "ER_BETA_ANTAGONISM", name: "ER-beta antagonism", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC2_RECEPTOR_ANTAGONIST" },
     { code: "GPER_SIGNALING", name: "GPER signalling", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC4_SIGNAL_TRANSDUCTION" },
+    // Added Nov 2026. The axis modelled the receptor only as actions, agonism and antagonism, so
+    // a paper reporting how much receptor is present -- ERa immunoreactive neurons, receptor
+    // protein or transcript levels -- had nowhere to point. That is a distinct mechanism from
+    // acting at the receptor, and the key characteristic for it already existed.
+    { code: "ER_ALPHA_EXPRESSION", name: "ER-alpha expression", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC3_RECEPTOR_EXPRESSION" },
+    { code: "ER_BETA_EXPRESSION", name: "ER-beta expression", group: "ESTROGEN_RECEPTOR", parent: "REP_ESTROGEN_RECEPTOR", kc: "KC3_RECEPTOR_EXPRESSION" },
     { code: "ANDROGEN_RECEPTOR_AGONISM", name: "Androgen receptor agonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR", kc: "KC1_RECEPTOR_AGONIST" },
     { code: "ANDROGEN_RECEPTOR_ANTAGONISM", name: "Androgen receptor antagonism", group: "ANDROGEN_RECEPTOR", parent: "REP_ANDROGEN_RECEPTOR", kc: "KC2_RECEPTOR_ANTAGONIST" },
     { code: "PROGESTERONE_RECEPTOR", name: "Progesterone receptor", group: "PROGESTERONE_SIGNALING", parent: "REP_STEROIDOGENESIS" },
@@ -120,6 +126,9 @@ export const mechanisms: MechanismSeed[] = [
     { code: "LH", name: "LH", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "FSH", name: "FSH", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "PROLACTIN", name: "Prolactin", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
+    // Added Nov 2026 from the first model-backed claim run: four claims reported AMH and had
+    // nowhere to point. Section 3 of docs/CLAIM_SYNONYM_PROPOSALS.md.
+    { code: "AMH", name: "Anti-Müllerian hormone (AMH)", group: "HPG_AXIS", parent: "REP_HPG", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "TESTOSTERONE", name: "Testosterone", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "ESTRADIOL", name: "Estradiol", group: "STEROIDOGENESIS", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },
     { code: "PROGESTERONE", name: "Progesterone", group: "PROGESTERONE_SIGNALING", parent: "REP_STEROIDOGENESIS", kc: "KC8_HORMONE_DISTRIBUTION" },

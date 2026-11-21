@@ -1255,6 +1255,11 @@ model MechanisticClaim {
   /// rule-based extractor, which is deterministic and has no passes.
   machinePassesSeen    Int?
   machinePassesRun     Int?
+  /// The object with its qualifiers stripped, as the extractor read it: "CYP19A1" for "CYP19A1
+  /// expression". It is what the mapping was made on and what the stableKey was hashed over,
+  /// so without it neither can be checked or redone from the row. A remap that only had
+  /// objectText would have cleared 15 good mappings. Null for the rule-based extractor.
+  machineObjectHead    String?
   /// Machine output stays UNMAPPED or CANDIDATE. VERIFIED is reserved for a curator.
   machineMappingState ClaimMappingState
   /// Current ontology link. A curator remap or unmap changes this pointer.

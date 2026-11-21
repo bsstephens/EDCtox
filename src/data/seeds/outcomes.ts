@@ -59,6 +59,14 @@ export const outcomes = [
   ["THYROID_CANCER", "Thyroid cancer", "CANCER", "A thyroid cancer diagnosis. Distinct from altered thyroid hormone levels, which are their own outcomes. Unscored until curated."],
   ["ENDOMETRIAL_CANCER", "Endometrial cancer", "CANCER", "An endometrial cancer diagnosis. Distinct from endometriosis, which is benign. Unscored until curated."],
   ["OVARIAN_CANCER", "Ovarian cancer", "CANCER", "An ovarian cancer diagnosis. Added Nov 2026 after routing found it indexed on stored papers with no outcome to route to. Outcome-level evidence only. Unscored until curated."],
+  // Added Nov 2026 from the first model-backed claim run over the 52 screened BPA reproductive
+  // papers: each of these was reported by a paper and had no outcome to point at. Accepted from
+  // section 3 of docs/CLAIM_SYNONYM_PROPOSALS.md. All unscored until curated.
+  ["ABNORMAL_SPERM_MORPHOLOGY", "Abnormal sperm morphology", "REPRODUCTIVE", "A higher share of abnormal sperm forms. The third measure of a semen analysis, alongside count and motility, which were already here."],
+  ["REDUCED_SEMEN_VOLUME", "Reduced semen volume", "REPRODUCTIVE", "Lower ejaculate volume. Distinct from sperm concentration and from total count, which is concentration multiplied by volume."],
+  ["REDUCED_FECUNDABILITY", "Reduced fecundability", "REPRODUCTIVE", "A longer time to pregnancy in natural conception, or subfertility. Kept apart from assisted-reproduction success because the populations and the measures differ."],
+  ["REDUCED_ART_SUCCESS", "Reduced assisted reproduction success", "REPRODUCTIVE", "Lower fertilisation, oocyte, embryo or clinical pregnancy rates in assisted reproduction. A clinic measure, not a measure of natural fertility."],
+  ["CARDIOVASCULAR_DISEASE", "Cardiovascular disease", "VASCULAR", "A cardiovascular disease diagnosis. Hypertension and endothelial dysfunction are separate entries and are not substitutes for it."],
 ] as const;
 
 export type OutcomeSeed = {
