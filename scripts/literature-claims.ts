@@ -20,8 +20,9 @@ import {
 } from "../src/server/claims/claude";
 import { catalogFromRows, extractMechanisticClaims } from "../src/server/claims/extract";
 import { buildMechanismLookup } from "../src/server/claims/mechanismLookup";
+import { buildArmLookup } from "../src/server/claims/armLookup";
 import { buildOutcomeLookup, claimDirection } from "../src/server/claims/outcomeLookup";
-import { loadClaimPilot, loadIncludedClaimCohort } from "../src/server/claims/load";
+import { loadArmCandidates, loadClaimPilot, loadIncludedClaimCohort } from "../src/server/claims/load";
 import { assertScientificSnapshotUnchanged, scientificSnapshot } from "../src/server/literature/guard";
 
 function loadEnvFile(path: string) {
@@ -75,6 +76,14 @@ async function main() {
     const catalog = catalogFromRows(mechanismRows);
     const lookup = buildMechanismLookup(mechanismRows);
     const outcomes = buildOutcomeLookup(await db.outcome.findMany({ select: { code: true, name: true } }));
+    const armCandidates = await loadArmCandidates(db, cohort.compoundId);
+    const arms = buildArmLookup(armCandidates);
+    if (armCandidates.length > 1) {
+      console.log(
+        `Study arms may be: ${armCandidates.map((row) => row.slug).join(", ")}. ` +
+          `A result from another arm is filed against that record, not this one.`,
+      );
+    }
 
     const usingClaude = command.extractor === "claude";
     const provenance = usingClaude
@@ -92,6 +101,7 @@ async function main() {
           compoundNameFor: () => cohort.compoundName,
           mechanismCodeFor: (objectText) => lookup.find(objectText),
           outcomeCodeFor: (objectText, relation) => outcomes.find(objectText, claimDirection(relation)),
+          armCompoundIdFor: (armText) => arms.find(armText),
           passes: CLAUDE_PASSES,
           onAnswer: (request, raw, pass) => {
             if (!command.recordPath) return;
@@ -122,6 +132,13 @@ async function main() {
       const answer = await ask(`This makes ${calls} calls to ${CLAUDE_CLAIM_MODEL}, which cost money. Type apply to continue: `);
       if (answer !== "apply") throw new Error("Stopped.");
     }
+
+    const slugById = new Map(armCandidates.map((row) => [row.compoundId, row.slug]));
+    const arm = (draft: { armText?: string | null; armCompoundId?: string | null }) => {
+      if (!draft.armText) return "";
+      const slug = draft.armCompoundId ? slugById.get(draft.armCompoundId) : undefined;
+      return ` arm:${draft.armText}${slug && slug !== command.target.compound ? ` -> ${slug}` : slug ? "" : " (unresolved)"}`;
+    };
 
     type Paper = (typeof cohort.papers)[number];
     const asInput = (paper: Paper) => ({
@@ -161,7 +178,7 @@ async function main() {
         const run = draft.machinePassesRun;
         const passes = run !== undefined && seen !== undefined && run > 1 ? ` ${seen}/${run} passes` : "";
         console.log(
-          `  ${draft.relation} ${draft.objectText} ${draft.machineDirectness} ${draft.machineConfidence} ${draft.machineMappingState} ${draft.mechanismCode ?? draft.outcomeCode ?? "unmapped"}${draft.outcomeCode ? " (outcome)" : ""} ${draft.reviewPriority}${passes}`,
+          `  ${draft.relation} ${draft.objectText} ${draft.machineDirectness} ${draft.machineConfidence} ${draft.machineMappingState} ${draft.mechanismCode ?? draft.outcomeCode ?? "unmapped"}${draft.outcomeCode ? " (outcome)" : ""} ${draft.reviewPriority}${passes}${arm(draft)}`,
         );
         console.log(`  ${draft.quotedSupport ?? ""}`);
       }
@@ -177,6 +194,15 @@ async function main() {
     const claimTotal = perPaper.reduce((sum, row) => sum + row.drafts.length, 0);
     const mappedTotal = perPaper.reduce((sum, row) => sum + row.drafts.filter((d) => d.mechanismCode).length, 0);
     const outcomeTotal = perPaper.reduce((sum, row) => sum + row.drafts.filter((d) => d.outcomeCode).length, 0);
+    const reassigned = perPaper.reduce(
+      (sum, row) => sum + row.drafts.filter((d) => d.armCompoundId && d.armCompoundId !== cohort.compoundId).length,
+      0,
+    );
+    const unresolvedArms = arms.unresolved();
+    if (unresolvedArms.size > 0) {
+      console.log(`\nArm phrases that matched no related record, which a curator should look at:`);
+      for (const [text, count] of unresolvedArms) console.log(`  ${text} (${count})`);
+    }
     const oneReading = perPaper.reduce(
       (sum, row) => sum + row.drafts.filter((d) => d.machinePassesRun && d.machinePassesSeen && d.machinePassesSeen < d.machinePassesRun).length,
       0,
@@ -186,6 +212,7 @@ async function main() {
         `${outcomeTotal} to an outcome, ` +
         `${silent} papers with no mechanistic claim in the abstract` +
         (usingClaude ? `, ${oneReading} claims read by only one pass` : "") +
+        (reassigned > 0 ? `, ${reassigned} filed against another arm's record` : "") +
         (failed > 0 ? `, ${failed} papers failed` : "") +
         ".",
     );

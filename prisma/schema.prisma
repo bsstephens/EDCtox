@@ -142,6 +142,7 @@ model Compound {
   mechanismAssessments       MechanismAssessment[]
   outcomeAssessments         CompoundOutcomeAssessment[]
   regulatoryAssessments      RegulatoryAssessment[]
+  claimArms                  MechanisticClaim[]            @relation("ClaimArmCompound")
   relationshipsFrom          CompoundRelationship[]        @relation("RelationshipSource")
   relationshipsTo            CompoundRelationship[]        @relation("RelationshipTarget")
   interactionsAsA            CompoundInteraction[]         @relation("InteractionA")
@@ -1261,6 +1262,17 @@ model MechanisticClaim {
   /// rule-based extractor, which is deterministic and has no passes.
   machinePassesSeen    Int?
   machinePassesRun     Int?
+  /// Which preparation this result came from, when the study dosed more than one. A 2017 paper
+  /// found glyphosate alone had no effect on bovine granulosa cell estradiol while the Roundup
+  /// formulation dramatically decreased it; both readings are correct and both were filed
+  /// against glyphosate, because a claim had no way to say which arm it came from. compoundId
+  /// stays the compound the run asked about, so a run remains auditable; this is the record
+  /// actually dosed. Null means the study drew no such distinction, and the claim is about
+  /// compoundId. Evidence about a compound is therefore coalesce(armCompoundId, compoundId).
+  armCompoundId        String?              @db.Uuid
+  /// The arm as the abstract names it: "GLPH", "G-RU", "Roundup". Kept for the same reason as
+  /// machineObjectHead: without it the resolution cannot be checked or redone from the row.
+  machineArmText       String?
   /// The object with its qualifiers stripped, as the extractor read it: "CYP19A1" for "CYP19A1
   /// expression". It is what the mapping was made on and what the stableKey was hashed over,
   /// so without it neither can be checked or redone from the row. A remap that only had
@@ -1309,6 +1321,7 @@ model MechanisticClaim {
   compound         Compound            @relation(fields: [compoundId], references: [id], onDelete: Cascade)
   mechanism        Mechanism?          @relation("CurrentClaimMechanism", fields: [mechanismId], references: [id], onDelete: SetNull)
   machineMechanism Mechanism?          @relation("MachineClaimMechanism", fields: [machineMechanismId], references: [id], onDelete: SetNull)
+  armCompound      Compound?           @relation("ClaimArmCompound", fields: [armCompoundId], references: [id], onDelete: SetNull)
   outcome          Outcome?            @relation("CurrentClaimOutcome", fields: [outcomeId], references: [id], onDelete: SetNull)
   machineOutcome   Outcome?            @relation("MachineClaimOutcome", fields: [machineOutcomeId], references: [id], onDelete: SetNull)
   agentRun         CurationAgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
@@ -1320,6 +1333,7 @@ model MechanisticClaim {
   @@index([machineMechanismId])
   @@index([outcomeId])
   @@index([machineOutcomeId])
+  @@index([armCompoundId])
   @@index([agentRunId])
 }
 

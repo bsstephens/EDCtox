@@ -35,6 +35,7 @@ function claim(overrides: Record<string, unknown> = {}) {
     objectType: "ENZYME",
     objectText: "aromatase",
     objectHead: "aromatase",
+    armText: "",
     directness: "STRONGLY_SUPPORTED",
     confidence: "HIGH",
     quotedSupport: "Exposure to bisphenol A reduced aromatase expression in human granulosa cells.",

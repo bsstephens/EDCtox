@@ -16,6 +16,8 @@
  * there is to compare against. `--provider` overrides that for a deliberate re-resolution.
  */
 import { PrismaClient } from "../generated/prisma";
+import { buildArmLookup } from "../src/server/claims/armLookup";
+import { loadArmCandidates } from "../src/server/claims/load";
 import { buildRemapper } from "../src/server/claims/remap";
 import { catalogFromRows } from "../src/server/claims/extract";
 import { assertClaimDatabase } from "../src/server/claims/cli";
@@ -36,11 +38,16 @@ async function main() {
     const before = await scientificSnapshot(db);
     const mechanismRows = await db.mechanism.findMany({ select: { id: true, code: true, name: true, scorePolicy: true } });
     const outcomeRows = await db.outcome.findMany({ select: { id: true, code: true, name: true } });
-    const remap = buildRemapper({
-      mechanisms: mechanismRows,
-      outcomes: outcomeRows,
-      catalog: catalogFromRows(mechanismRows),
-    });
+    // Arms resolve within the related records of the claim's own compound, so a lookup is built
+    // per compound and cached.
+    const armLookups = new Map<string, ReturnType<typeof buildArmLookup>>();
+    const armLookupFor = async (compoundId: string) => {
+      const cached = armLookups.get(compoundId);
+      if (cached) return cached;
+      const built = buildArmLookup(await loadArmCandidates(db, compoundId));
+      armLookups.set(compoundId, built);
+      return built;
+    };
     const mechanismIdByCode = new Map(mechanismRows.map((row) => [row.code, row.id]));
     const outcomeIdByCode = new Map(outcomeRows.map((row) => [row.code, row.id]));
 
@@ -50,6 +57,9 @@ async function main() {
         id: true,
         objectText: true,
         machineObjectHead: true,
+        machineArmText: true,
+        armCompoundId: true,
+        compoundId: true,
         relation: true,
         curatorVerified: true,
         curatorMappingState: true,
@@ -67,11 +77,27 @@ async function main() {
     let moved = 0;
     let lost = 0;
     let locked = 0;
-    const writes: Array<{ id: string; mechanismId: string | null; outcomeId: string | null; state: "CANDIDATE" | "UNMAPPED"; free: boolean }> = [];
+    const writes: Array<{
+      id: string;
+      mechanismId: string | null;
+      outcomeId: string | null;
+      armCompoundId: string | null;
+      state: "CANDIDATE" | "UNMAPPED";
+      free: boolean;
+    }> = [];
     for (const claim of claims) {
+      const arms = await armLookupFor(claim.compoundId);
+      const remap = buildRemapper({
+        mechanisms: mechanismRows,
+        outcomes: outcomeRows,
+        catalog: catalogFromRows(mechanismRows),
+        armCompoundIdFor: (armText) => arms.find(armText),
+      });
       const result = remap({
         objectText: claim.objectText,
         objectHead: claim.machineObjectHead,
+        armText: claim.machineArmText,
+        armCompoundId: claim.armCompoundId,
         relation: claim.relation,
         mechanismCode: claim.machineMechanism?.code ?? null,
         outcomeCode: claim.machineOutcome?.code ?? null,
@@ -92,6 +118,7 @@ async function main() {
       );
       writes.push({
         id: claim.id,
+        armCompoundId: result.armCompoundId,
         mechanismId: result.mechanismCode ? (mechanismIdByCode.get(result.mechanismCode) ?? null) : null,
         outcomeId: result.outcomeCode ? (outcomeIdByCode.get(result.outcomeCode) ?? null) : null,
         state: result.mappingState,
@@ -120,6 +147,7 @@ async function main() {
             machineMechanismId: write.mechanismId,
             machineOutcomeId: write.outcomeId,
             machineMappingState: write.state,
+            armCompoundId: write.armCompoundId,
             ...(write.free ? { mechanismId: write.mechanismId, outcomeId: write.outcomeId } : {}),
           },
         });

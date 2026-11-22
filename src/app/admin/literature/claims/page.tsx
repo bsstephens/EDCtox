@@ -106,8 +106,14 @@ export default async function MechanisticClaimsPage() {
                 {paper.claims.map((claim) => (
                   <li key={claim.id} className="border-t border-stone-200 pt-3 text-sm leading-6">
                     <p className="font-medium">
-                      {claim.subjectText} {prettyEnum(claim.relation)} {claim.objectText}
+                      {claim.armCompound?.displayName ?? claim.subjectText} {prettyEnum(claim.relation)} {claim.objectText}
                     </p>
+                    {claim.machineArmText ? (
+                      <p className="text-stone-700">
+                        Study arm: {claim.machineArmText}
+                        {claim.armCompound ? ` · filed against ${claim.armCompound.displayName}` : " · not matched to a record"}
+                      </p>
+                    ) : null}
                     <p className="text-stone-700">
                       {prettyEnum(claim.machineDirectness)} · {prettyEnum(claim.machineConfidence)} confidence ·{" "}
                       {claim.mechanism

@@ -35,7 +35,7 @@ export const CLAUDE_CLAIM_PROVIDER = "claude";
  * and Haiku is that fallback until the behaviour changes or Scott raises it with Anthropic.
  */
 export const CLAUDE_CLAIM_MODEL = "claude-haiku-5-5";
-export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v4";
+export const CLAUDE_CLAIM_PROMPT_VERSION = "claim-abstract-claude-v5";
 
 export class ClaudeClaimError extends Error {}
 
@@ -44,6 +44,9 @@ export const CLAUDE_CLAIM_SYSTEM_PROMPT = `You read one scientific abstract and 
 Rules:
 - Record only what the abstract states. Do not add a claim because it is well known, because the compound is associated with it elsewhere, or because the title implies it. If the abstract does not say it, it is not there.
 - One claim per distinct stated relationship. Do not split one finding into several claims, and do not merge two findings into one.
+- armText names the substance or preparation this particular result came from, when the study dosed more than one. Many papers compare an active ingredient with a commercial formulation, or a compound with its breakdown product, and report different results for each; filing those together loses the comparison the paper was written to make.
+    Give the substance as the abstract names it, expanding an abbreviation the abstract defines: an abstract that writes "glyphosate (GLPH) and glyphosate-Roundup (G-RU)" and later reports an effect of G-RU gives armText "glyphosate-Roundup", not "G-RU".
+    Leave armText empty when the abstract dosed only the compound named to you, or when it does not say which arm a result came from. An empty answer is correct and common; a guess is not.
 - objectText is the thing affected, in the abstract's own words: a receptor, an enzyme, a gene, a hormone, a cell type, a process, or an outcome. Do not translate it into a standard vocabulary and do not expand an abbreviation the abstract did not expand.
 - objectHead names the same thing with every qualifier removed, so that two abstracts describing one entity give the same objectHead. Drop where it was measured, in which sex or group, by what assay, in what medium, and at what dose. Keep the entity and nothing else. Still the abstract's own words, still no translation and no expanded abbreviation.
     objectText "ERα immunoreactive neurons in the BST, Arc, VMH and MeA of female mice" -> objectHead "ERα"
@@ -128,6 +131,7 @@ export const ClaudeClaimOutput = z.object({
         // verbose form drifts between runs ("ERa immunoreactive neurons in the BST, Arc, VMH and
         // MeA" one run, "ERa immunoreactive neurons" the next) and never matches the ontology.
         objectHead: z.string().min(1),
+        armText: z.string(),
         directness: z.enum(DIRECTNESS),
         confidence: z.enum(["LOW", "MODERATE", "HIGH"]),
         quotedSupport: z.string().min(1),
@@ -221,6 +225,8 @@ export function parseClaims(
     mechanismCodeFor: (objectText: string) => string | null;
     /** Tried only when the mechanism ontology holds nothing: a claim points at one or the other. */
     outcomeCodeFor?: (objectText: string, relation: string) => string | null;
+    /** Which compound record an arm phrase names, within the run compound's related records. */
+    armCompoundIdFor?: (armText: string) => string | null;
   },
 ): { drafts: ClaimDraft[]; dropped: Array<{ objectText: string; why: string }> } {
   const parsed = ClaudeClaimOutput.safeParse(raw);
@@ -270,6 +276,8 @@ export function parseClaims(
     const mechanismCode = mapping.mechanismCode;
     drafts.push({
       objectHead: claim.objectHead.trim(),
+      armText: empty(claim.armText),
+      armCompoundId: input.armCompoundIdFor?.(claim.armText) ?? null,
       subjectType: "CHEMICAL",
       subjectText: input.compoundName,
       relation: claim.relation,
@@ -490,6 +498,7 @@ export function createClaudeExtractor(options: {
   mechanismCodeFor: (objectText: string) => string | null;
   /** Tried only when the mechanism ontology holds nothing: a claim points at one or the other. */
   outcomeCodeFor?: (objectText: string, relation: string) => string | null;
+  armCompoundIdFor?: (armText: string) => string | null;
   /** How many times to read each paper. Defaults to one; two is what the pilot settled on. */
   passes?: number;
   onAnswer?: (request: ClaimRequest, raw: unknown, pass: number) => void;
@@ -512,6 +521,7 @@ export function createClaudeExtractor(options: {
           catalog,
           mechanismCodeFor: options.mechanismCodeFor,
           outcomeCodeFor: options.outcomeCodeFor,
+          armCompoundIdFor: options.armCompoundIdFor,
         });
         options.onAnswer?.(request, raw, pass);
         if (dropped.length > 0) options.onDropped?.(paper, dropped);

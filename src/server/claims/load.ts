@@ -124,9 +124,63 @@ export async function loadStoredClaims(db: Db) {
       promptVersion: true,
       mechanism: { select: { code: true, name: true } },
       outcome: { select: { code: true, name: true } },
+      machineArmText: true,
+      armCompound: { select: { slug: true, displayName: true } },
       evidenceSource: {
         select: { id: true, title: true, year: true, pmid: true, doi: true, publicationStatus: true },
       },
     },
   });
+}
+
+
+/**
+ * The compound records an arm of a study could be, for a run about one compound: itself, the
+ * formulations it is an active ingredient of, what those contain, its metabolites and its
+ * parent. A closed set, which is what lets arm resolution be exact matching rather than a
+ * search over every compound in the database.
+ */
+export async function loadArmCandidates(db: Db, compoundId: string) {
+  const relationships = await db.compoundRelationship.findMany({
+    where: {
+      OR: [{ sourceCompoundId: compoundId }, { targetCompoundId: compoundId }],
+      relationshipType: { in: ["ACTIVE_INGREDIENT_OF", "CONTAINS", "METABOLITE_OF"] },
+    },
+    select: { sourceCompoundId: true, targetCompoundId: true },
+  });
+  const self = await db.compound.findUniqueOrThrow({
+    where: { id: compoundId },
+    select: { parentCompoundId: true },
+  });
+  const ids = new Set<string>([compoundId]);
+  for (const row of relationships) {
+    ids.add(row.sourceCompoundId);
+    ids.add(row.targetCompoundId);
+  }
+  if (self.parentCompoundId) ids.add(self.parentCompoundId);
+  const metabolites = await db.compound.findMany({
+    where: { parentCompoundId: compoundId },
+    select: { id: true },
+  });
+  for (const row of metabolites) ids.add(row.id);
+
+  const rows = await db.compound.findMany({
+    where: { id: { in: [...ids] } },
+    select: {
+      id: true,
+      slug: true,
+      canonicalName: true,
+      displayName: true,
+      recordKind: true,
+      aliases: { select: { name: true } },
+    },
+  });
+  return rows.map((row) => ({
+    compoundId: row.id,
+    slug: row.slug,
+    canonicalName: row.canonicalName,
+    displayName: row.displayName,
+    recordKind: row.recordKind,
+    aliases: row.aliases.map((alias) => alias.name),
+  }));
 }

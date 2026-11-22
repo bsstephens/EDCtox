@@ -24,6 +24,9 @@ export type ClaimDraft = {
    * claim points at one or the other, never both.
    */
   outcomeCode?: string | null;
+  /** The arm as the abstract names it, and the record it resolved to. */
+  armText?: string | null;
+  armCompoundId?: string | null;
   subjectType: "CHEMICAL";
   /// The compound as the publication names it. The rule-based extractor only ever produced
   /// bisphenol A; a model-backed one names whatever the paper studies.

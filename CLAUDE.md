@@ -55,6 +55,14 @@ into `generated/prisma`. Every public page is a server component.
   refuses the task outright, which `src/server/claims/claude.ts` records; do not reword the
   prompt to get around it. A claim fewer passes read is queued `REVIEW_REQUIRED` and stores the
   counts, so "one reading of two" is distinguishable from "did not map".
+- A claim records which arm of a study produced it. `compoundId` is the compound the run asked
+  about; `armCompoundId` is the preparation actually dosed, and null means the study drew no
+  distinction, so evidence about a compound is `coalesce(armCompoundId, compoundId)`. A paper
+  that doses an active ingredient and a formulation and gets different answers is the normal
+  case, not an edge case. Arms resolve only within the run compound's related records (its
+  formulations, what they contain, its metabolites, its parent), which is what keeps the match
+  exact; a brand name is read as evidence that the arm was a formulation rather than as a
+  chemical identity, and `machineArmText` keeps what the paper actually named.
 - A claim points at a `Mechanism` or an `Outcome`, never both, and a `GROUPING_ONLY` mechanism is
   refused as a claim target. Mapping is exact matching on keys built from the ontology itself:
   no fuzzy matching, no nearest neighbour. A term the ontology does not hold stays unmapped so

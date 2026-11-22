@@ -19,6 +19,9 @@ import { buildSynonymResolver } from "./synonyms";
 
 export type RemapInput = {
   objectText: string;
+  /** The arm as the abstract named it, where the row records it. */
+  armText?: string | null;
+  armCompoundId?: string | null;
   /** What the extractor mapped on, where the row records it. */
   objectHead: string | null;
   relation: string;
@@ -32,6 +35,7 @@ export type MachineMappingState = "CANDIDATE" | "UNMAPPED";
 export type RemapResult = {
   mechanismCode: string | null;
   outcomeCode: string | null;
+  armCompoundId: string | null;
   mappingState: MachineMappingState;
   changed: boolean;
 };
@@ -40,6 +44,8 @@ export function buildRemapper(input: {
   mechanisms: readonly MechanismNameRow[];
   outcomes: readonly OutcomeNameRow[];
   catalog: MechanismCatalog;
+  /** Resolves a stored arm phrase again. Omitted, the stored arm is left as it is. */
+  armCompoundIdFor?: (armText: string) => string | null;
 }) {
   const mechanisms = buildMechanismLookup(input.mechanisms);
   const outcomes = buildOutcomeLookup(input.outcomes);
@@ -87,20 +93,35 @@ export function buildRemapper(input: {
      * confident, wrong, curator-facing links.
      */
     if (!claim.objectHead && !mechanismCode && !outcomeCode && (claim.mechanismCode ?? claim.outcomeCode)) {
+      const keptArm = claim.armText
+        ? (input.armCompoundIdFor?.(claim.armText) ?? claim.armCompoundId ?? null)
+        : (claim.armCompoundId ?? null);
       return {
         mechanismCode: claim.mechanismCode,
         outcomeCode: claim.outcomeCode,
+        armCompoundId: keptArm,
         mappingState: "CANDIDATE",
-        changed: false,
+        changed: keptArm !== (claim.armCompoundId ?? null),
       };
     }
+
+    // The arm phrase was stored precisely so this could be redone without re-reading the paper.
+    // The first run resolved "glyphosate-Roundup" to glyphosate, because the phrase contains
+    // that name; keeping the text is what let the fix reach the rows already written.
+    const armCompoundId = claim.armText
+      ? (input.armCompoundIdFor?.(claim.armText) ?? claim.armCompoundId ?? null)
+      : (claim.armCompoundId ?? null);
 
     const mappingState: MachineMappingState = mechanismCode || outcomeCode ? "CANDIDATE" : "UNMAPPED";
     return {
       mechanismCode,
       outcomeCode,
+      armCompoundId,
       mappingState,
-      changed: mechanismCode !== claim.mechanismCode || outcomeCode !== claim.outcomeCode,
+      changed:
+        mechanismCode !== claim.mechanismCode ||
+        outcomeCode !== claim.outcomeCode ||
+        armCompoundId !== (claim.armCompoundId ?? null),
     };
   };
 }
