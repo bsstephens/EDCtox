@@ -809,6 +809,30 @@ export const compounds: CompoundSeed[] = [
       "This shell contains glyphosate. Glyphosate is an active ingredient of this shell. Evidence entered here stays on the formulation.",
   }),
   compound({
+    slug: "poea",
+    canonicalName: "Polyethoxylated tallow amine",
+    displayName: "POEA",
+    description:
+      "The predominant surfactant in glyphosate-based herbicide formulations worldwide, and a co-formulant rather than an active ingredient or a metabolite. Assessed in its own right by both the industry-funded safety reviews and the independent literature, partly because it is more acutely toxic than glyphosate itself, so papers dose it as a separate arm.",
+    compoundType: "INDUSTRIAL_CHEMICAL",
+    primaryCategory: "Herbicide co-formulant surfactant",
+    // POEA is a class of ethoxylated tallow amines rather than a single substance, so this CAS
+    // identifies the class and not one molecule. Recorded because papers cite it; it is not a
+    // claim that every POEA studied is the same material. Formulation composition is
+    // confidential and varies by region, which is the same reason no brand is named anywhere.
+    casNumber: "61791-26-2",
+    isMixture: true,
+    isEnvironmentalChemical: true,
+    aliases: [
+      { name: "Polyethoxylated tallow amine", aliasType: "COMMON_NAME" },
+      { name: "polyethoxylated tallow amine", aliasType: "SYNONYM" },
+      { name: "POEA", aliasType: "ABBREVIATION" },
+      { name: "polyoxyethyleneamine", aliasType: "SYNONYM" },
+    ],
+    notes:
+      "A co-formulant, not an active ingredient and not a breakdown product. Findings on POEA are not copied onto glyphosate or onto the formulation shell.",
+  }),
+  compound({
     slug: "ampa",
     canonicalName: "Aminomethylphosphonic acid",
     displayName: "AMPA",

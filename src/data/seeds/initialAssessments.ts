@@ -1188,6 +1188,8 @@ export const relationships = [
   ["melatonin", "paraquat", "PROTECTS_AGAINST", "Experimental reports of reduced oxidative and mitochondrial neuronal injury. Not a demonstrated clinical antidote."],
   ["glyphosate-based-herbicide", "glyphosate", "CONTAINS", "The formulation shell contains glyphosate. Findings on the formulation are not copied onto the active ingredient."],
   ["glyphosate", "glyphosate-based-herbicide", "ACTIVE_INGREDIENT_OF", "Glyphosate is an active ingredient of the formulation shell. The formulation is not scored as glyphosate."],
+  ["glyphosate-based-herbicide", "poea", "CONTAINS", "The predominant surfactant in these formulations. Its toxicity is not the active ingredient's, and the reviews assess it separately."],
+  ["poea", "glyphosate", "CO_FORMULANT_WITH", "POEA accompanies glyphosate in formulations without being an active ingredient or a breakdown product. Papers dose it as its own arm, so it has to be reachable as one. No finding is copied in either direction."],
   // Regrettable substitution, as the WHO/UNEP 2026 assessment describes it: a regulated chemical
   // replaced by a structurally similar or insufficiently tested one. Recording the chain is the
   // point. No activity is copied in either direction, and neither record is scored from the other.

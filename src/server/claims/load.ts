@@ -136,15 +136,23 @@ export async function loadStoredClaims(db: Db) {
 
 /**
  * The compound records an arm of a study could be, for a run about one compound: itself, the
- * formulations it is an active ingredient of, what those contain, its metabolites and its
- * parent. A closed set, which is what lets arm resolution be exact matching rather than a
- * search over every compound in the database.
+ * formulations it is an active ingredient of, the formulations that contain it, its
+ * co-formulants, its breakdown products and metabolites, and its parent. One hop along those
+ * relationships and no further. A closed set is what lets arm resolution be exact matching
+ * rather than a search over every compound in the database.
+ *
+ * Co-formulants are in the set because papers dose them as arms: POEA, the surfactant in
+ * glyphosate formulations, is more acutely toxic than glyphosate and both the industry-funded
+ * and independent reviews assess it separately. It is neither an active ingredient nor a
+ * breakdown product, which is why CO_FORMULANT_WITH exists and why one hop reaches it.
  */
 export async function loadArmCandidates(db: Db, compoundId: string) {
   const relationships = await db.compoundRelationship.findMany({
     where: {
       OR: [{ sourceCompoundId: compoundId }, { targetCompoundId: compoundId }],
-      relationshipType: { in: ["ACTIVE_INGREDIENT_OF", "CONTAINS", "METABOLITE_OF"] },
+      relationshipType: {
+        in: ["ACTIVE_INGREDIENT_OF", "CONTAINS", "METABOLITE_OF", "BREAKDOWN_PRODUCT_OF", "CO_FORMULANT_WITH"],
+      },
     },
     select: { sourceCompoundId: true, targetCompoundId: true },
   });

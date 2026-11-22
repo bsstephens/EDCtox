@@ -92,3 +92,21 @@ test("a formulation phrase with no shell in the set stays unresolved", () => {
   assert.equal(noShell.find("the commercial product"), null);
   assert.equal(noShell.unresolved().get("the commercial product"), 1);
 });
+
+test("a co-formulant is reachable as an arm, and an unrelated compound is not", () => {
+  // POEA is the surfactant in glyphosate formulations. It is neither an active ingredient nor a
+  // breakdown product, and it is more acutely toxic than glyphosate, so papers dose it as its
+  // own arm and the reviews assess it separately. CO_FORMULANT_WITH is what makes it reachable
+  // in one hop from the compound being studied.
+  const withPoea = buildArmLookup([
+    ...candidates,
+    { compoundId: "c-poea", slug: "poea", canonicalName: "Polyethoxylated tallow amine", displayName: "POEA", recordKind: "SPECIFIC_COMPOUND", aliases: ["POEA", "polyoxyethyleneamine"] },
+  ]);
+  assert.equal(withPoea.find("POEA"), "c-poea");
+  assert.equal(withPoea.find("polyethoxylated tallow amine"), "c-poea");
+  assert.equal(withPoea.find("polyoxyethyleneamine"), "c-poea");
+
+  // A different herbicide studied alongside is not an arm of this compound: it belongs to its
+  // own record, and guessing would file its findings here.
+  assert.equal(withPoea.find("glufosinate"), null);
+});
