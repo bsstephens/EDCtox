@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ATLAS_CACHE_TAG } from "~/server/cache";
+import { curatorWritesAllowed } from "~/server/curator";
 import { db } from "~/server/db";
 
 import { applyClaimMapping } from "./apply";
@@ -20,6 +21,10 @@ function publicMessage(error: unknown): string {
 }
 
 async function run(command: Parameters<typeof applyClaimMapping>[1]) {
+  // Checked here rather than in each action, so a new mapping action cannot be added without it,
+  // and checked in the action rather than only in a route guard, because a server action is its
+  // own POST endpoint and a route matcher stops covering it the moment it is used from elsewhere.
+  if (!curatorWritesAllowed()) notFound();
   let message: string | null = null;
   try {
     await applyClaimMapping(db, command);
