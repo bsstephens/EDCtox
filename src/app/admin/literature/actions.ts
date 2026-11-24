@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
-import { curatorWritesAllowed } from "~/server/curator";
+import { NotCuratorError, requireCurator } from "~/server/curator";
 import { db } from "~/server/db";
 import { ScreeningError, applyCuratorDecision } from "~/server/screening/curate";
 import { SCREENING_DECISIONS } from "~/server/screening/reasons";
@@ -14,7 +14,12 @@ function field(formData: FormData, name: string): string {
 }
 
 export async function setCuratorDecision(formData: FormData): Promise<{ error?: string }> {
-  if (!curatorWritesAllowed()) notFound();
+  try {
+    await requireCurator();
+  } catch (error) {
+    if (error instanceof NotCuratorError) notFound();
+    throw error;
+  }
   const evidenceSourceId = field(formData, "evidenceSourceId");
   const decision = field(formData, "decision");
   const reasonCode = field(formData, "reasonCode");

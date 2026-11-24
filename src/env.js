@@ -14,6 +14,16 @@ export const env = createEnv({
     NCBI_EMAIL: z.string().email().optional(),
     /** Server-only. Used by the literature screening provider (scripts). Never NEXT_PUBLIC_. */
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    CLERK_SECRET_KEY: z.string().min(1).optional(),
+    /**
+     * Who may write curator columns, as a comma-separated list of email addresses.
+     *
+     * Signing in is not the same as being allowed in. Clerk lets anyone create an account unless
+     * sign-up is restricted, so authentication alone would hand the curator queue to any
+     * stranger who signed up. This is the authorisation half, kept in configuration rather than
+     * in code so that changing who may curate is not a deploy.
+     */
+    CURATOR_EMAILS: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -25,7 +35,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
   },
 
   /**
@@ -39,8 +49,10 @@ export const env = createEnv({
     NCBI_API_KEY: process.env.NCBI_API_KEY,
     NCBI_EMAIL: process.env.NCBI_EMAIL,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    CURATOR_EMAILS: process.env.CURATOR_EMAILS,
     NODE_ENV: process.env.NODE_ENV,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
