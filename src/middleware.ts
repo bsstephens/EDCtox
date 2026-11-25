@@ -37,8 +37,16 @@ export default function middleware(request: NextRequest, event: Parameters<typeo
   return handler(request, event);
 }
 
+/**
+ * Only a deployed build asks for a sign-in, which is the same line the curator check draws.
+ *
+ * A production instance's session cookie is bound to its own domain, so a production key cannot
+ * sign anyone in on localhost: protecting the local pages with one would lock the developer out
+ * of the queue they curate from, with no way in. Local admin stays open, as it has been
+ * throughout, and the database a local run writes is the one that machine chose.
+ */
 const handler = clerkMiddleware(async (auth, request) => {
-  if (isAdminRoute(request)) await auth.protect();
+  if (deployed && isAdminRoute(request)) await auth.protect();
 });
 
 export const config = {

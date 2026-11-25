@@ -41,6 +41,17 @@ test("the route guard is a layer, not the lock", () => {
   assert.match(middleware, /auth\.protect\(\)/);
   // Public pages are not matched: they are read-only and the point of the site.
   assert.equal(middleware.includes('"/(.*)"'), false);
+  // A production key cannot sign anyone in on localhost, so asking for a sign-in there would
+  // lock the developer out of the queue they curate from.
+  assert.match(middleware, /if \(deployed && isAdminRoute\(request\)\) await auth\.protect\(\);/);
+});
+
+test("the allowlist guards reading an admin page, not only writing from one", () => {
+  // The middleware asks whether anyone is signed in. Until sign-up is restricted anyone can
+  // create an account, and such an account could otherwise read every machine suggestion and
+  // every curator decision while being refused only at the point of writing.
+  const layout = read("src/app/admin/layout.tsx");
+  assert.match(layout, /if \(!\(await isCurator\(\)\)\) notFound\(\);/);
 });
 
 test("the allowlist is parsed forgivingly and compared strictly", () => {

@@ -1,7 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
 
-import { env } from "~/env";
-
 /**
  * Who is allowed to write a curator column.
  *
@@ -19,13 +17,25 @@ import { env } from "~/env";
  * Both halves are enforced inside the action rather than only in middleware. A server action is
  * its own POST endpoint whose id sits in the page's public JavaScript, and a route matcher stops
  * covering an action the moment it is used from a page outside the matched path.
+ *
+ * The two settings are read from the raw environment rather than through the validated `env`
+ * object, for two reasons. A guard should not be the reason a module cannot be imported without a
+ * database URL: routing `~/env` through here made the unit tests depend on a configured machine.
+ * And SKIP_ENV_VALIDATION hands back whatever the environment holds, so an unset NODE_ENV would
+ * read as "not production" and open the writes, while Next inlines the raw NODE_ENV as
+ * "production" in a production build whatever validation did.
  */
 
 export class NotCuratorError extends Error {}
 
+/** True only in a deployed build. Inlined by Next, so it cannot be left unset by accident. */
+function deployed(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 /** Lowercased, so a configured address and a provider's casing cannot disagree. */
 export function curatorEmails(): string[] {
-  return (env.CURATOR_EMAILS ?? "")
+  return (process.env.CURATOR_EMAILS ?? "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
@@ -40,12 +50,12 @@ export function curatorEmails(): string[] {
  * before any of this and how the pipeline scripts still work.
  */
 export function curatorWritesConfigured(): boolean {
-  return env.NODE_ENV !== "production" || curatorEmails().length > 0;
+  return !deployed() || curatorEmails().length > 0;
 }
 
 /** True when the signed-in user is on the allowlist, by any of their verified addresses. */
 export async function isCurator(): Promise<boolean> {
-  if (env.NODE_ENV !== "production") return true;
+  if (!deployed()) return true;
   const allowed = curatorEmails();
   if (allowed.length === 0) return false;
 

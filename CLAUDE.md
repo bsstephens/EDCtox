@@ -41,6 +41,11 @@ into `generated/prisma`. Every public page is a server component.
   Curator decisions live in separate columns.
 - Migrations are expand-only and ship with their code. Vercel runs `prisma migrate deploy` in the build.
 - `/admin/*` routes are unlisted; only the claims list and mapping queue render in production.
+  In a deployed build they need a Clerk sign-in **and** an address on `CURATOR_EMAILS`: Clerk
+  answers who you are, the allowlist answers whether you may, and a deployment missing either
+  serves 404 rather than opening. Locally both are skipped, because a production Clerk key
+  cannot sign anyone in on localhost. Every write action calls `requireCurator()` for itself —
+  a server action is its own POST endpoint, so the route guard is a layer, not the lock.
 - Public pages read through `src/server/atlas/cached.ts` (one-day data cache, tag `atlas`).
   Any new write that changes what a public page shows must call
   `revalidateTag(ATLAS_CACHE_TAG)`. Admin pages read the database directly. `robots.txt`
